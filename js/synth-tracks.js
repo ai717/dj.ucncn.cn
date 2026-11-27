@@ -6,8 +6,8 @@
 export const TRACK_CATALOG = [
   {
     id: 'sunrise-house',
-    title: '晨曦 House (Sunrise)',
-    genre: 'Piano House',
+    title: '晨曦浩室',
+    genre: '钢琴浩室',
     bpm: 122,
     key: '8A · Am',
     energy: 8,
@@ -16,8 +16,8 @@ export const TRACK_CATALOG = [
   },
   {
     id: 'night-shift',
-    title: '夜班 Techno (Night Shift)',
-    genre: 'Techno',
+    title: '深夜铁克诺',
+    genre: '电子铁克诺',
     bpm: 126,
     key: '8A · Am',
     energy: 9,
@@ -26,8 +26,8 @@ export const TRACK_CATALOG = [
   },
   {
     id: 'golden-hour',
-    title: '落日 Disco (Golden Hour)',
-    genre: 'Nu-Disco',
+    title: '落日迪斯科',
+    genre: '复古迪斯科',
     bpm: 120,
     key: '8B · C',
     energy: 8,
@@ -36,8 +36,8 @@ export const TRACK_CATALOG = [
   },
   {
     id: 'low-tide',
-    title: '低潮 Boom-Bap (Low Tide)',
-    genre: 'Boom-Bap',
+    title: '低潮律动',
+    genre: '经典说唱',
     bpm: 92,
     key: '7A · Dm',
     energy: 6,
@@ -46,8 +46,8 @@ export const TRACK_CATALOG = [
   },
   {
     id: 'neon-vocal',
-    title: '霓虹人声吉他 (Neon Vocal)',
-    genre: 'Vocal House',
+    title: '霓虹人声吉他',
+    genre: '人声浩室',
     bpm: 124,
     key: '8A · Am',
     energy: 9,
@@ -56,8 +56,8 @@ export const TRACK_CATALOG = [
   },
   {
     id: 'rush-hour',
-    title: '极速 DnB (Rush Hour)',
-    genre: 'Drum & Bass',
+    title: '极速碎拍',
+    genre: '鼓打贝斯',
     bpm: 174,
     key: '8A · Am',
     energy: 10,

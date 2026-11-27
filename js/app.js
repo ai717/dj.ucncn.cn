@@ -49,7 +49,7 @@ const coach = new CoachEngine(engine, {
     const txt = document.getElementById('lesson-meter-text');
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
     if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
-    ui.coachTag.textContent = `CONTINUE · LESSON ${lesson.number} OF ${totalLessons} · ${lesson.title} (${stepNumber}/${totalSteps})`;
+    ui.coachTag.textContent = `第 ${lesson.number} / ${totalLessons} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`;
     ui.coachTitle.textContent = isLessonActive ? step.title : `${lesson.title}（自由练习模式）`;
     ui.coachDesc.textContent = isLessonActive ? step.instruction : '点击右侧「继续上课」开启高亮引导，或自由打碟练习。';
     const toggleBtn = document.getElementById('btn-coach-toggle');
@@ -99,7 +99,7 @@ function renderMixesWellNext() {
   }).slice(0, 2);
 
   if (!matches.length) { bar.innerHTML = ''; return; }
-  bar.innerHTML = `<span>推荐接歌 (Mixes well next):</span>` + matches.map((m) =>
+  bar.innerHTML = `<span>推荐接歌：</span>` + matches.map((m) =>
     `<button type="button" class="mix-chip" data-mix-load="${targetDeck}:${m.id}">${m.title} · ${m.bpm} BPM → ${targetDeck}</button>`
   ).join('');
 }
@@ -144,7 +144,7 @@ function renderCrate() {
       <div class="crate-item-btns">
         <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
         <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
-        <button type="button" class="hw-sm" data-add-set="${t.id}">+ Set</button>
+        <button type="button" class="hw-sm" data-add-set="${t.id}">+ 待播</button>
       </div>
     `;
     ui.crateList.appendChild(row);
@@ -160,7 +160,7 @@ function renderSetList() {
   ui.setList.innerHTML = '';
   if (items.length === 0) {
     ui.setList.innerHTML = setTab === 'queue'
-      ? '<div class="crate-item-meta" style="padding:10px;">在左侧曲库点击「+ Set」按演出顺序排入歌曲，点击 Auto DJ 自动连播混音。</div>'
+      ? '<div class="crate-item-meta" style="padding:10px;">在左侧曲库点击「+ 待播」按演出顺序排入歌曲，点击「自动连播」即可连续自动混音。</div>'
       : '<div class="crate-item-meta" style="padding:10px;">本次会话还没有播放记录。</div>';
     return;
   }
@@ -338,11 +338,11 @@ function syncUIWithEngine() {
   const recBtn = document.getElementById('btn-rec');
   if (recBtn) {
     recBtn.classList.toggle('recording', engine.isRecording);
-    recBtn.innerHTML = engine.isRecording ? '<span class="rec-dot"></span>STOP' : '<span class="rec-dot"></span>REC';
+    recBtn.innerHTML = engine.isRecording ? '<span class="rec-dot"></span>停止' : '<span class="rec-dot"></span>录音';
   }
   const curveBtn = document.getElementById('btn-curve-toggle');
   if (curveBtn) {
-    curveBtn.textContent = engine.cutCurve ? 'CUT CURVE' : 'BLEND CURVE';
+    curveBtn.textContent = engine.cutCurve ? '搓碟切割' : '平滑曲线';
     curveBtn.classList.toggle('active', engine.cutCurve);
   }
   const splitBtn = document.getElementById('btn-split-cue');
@@ -440,7 +440,7 @@ premixBtn.addEventListener('click', async () => {
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
     premixController = null;
-    premixBtn.textContent = 'Premixes · 高手示范';
+    premixBtn.textContent = '高手示范';
   }
 });
 
@@ -741,7 +741,7 @@ autoDjBtn.addEventListener('click', async () => {
   const list = setQueue.length >= 2 ? [...setQueue] : TRACK_CATALOG.slice(0, 3);
   autoDjController = new AbortController();
   const { signal } = autoDjController;
-  autoDjBtn.textContent = '⏹ 停止 Auto DJ';
+  autoDjBtn.textContent = '⏹ 停止连播';
 
   try {
     let curDeck = 'A';
@@ -771,7 +771,7 @@ autoDjBtn.addEventListener('click', async () => {
     engine.pause('A', { silentAction: true, instant: true });
     engine.pause('B', { silentAction: true, instant: true });
     autoDjController = null;
-    autoDjBtn.textContent = '▶ Auto DJ';
+    autoDjBtn.textContent = '▶ 自动连播';
   }
 });
 
