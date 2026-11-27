@@ -164,15 +164,22 @@ function renderSetList() {
   }
   items.forEach((t, idx) => {
     const row = document.createElement('div');
-    row.className = 'crate-item compact-row';
-    row.style.gridTemplateColumns = '1fr 48px auto';
+    row.className = 'set-row';
+    const isFirst = idx === 0;
+    const isLast = idx === items.length - 1;
     row.innerHTML = `
-      <span class="crate-song"><strong>${idx + 1}. ${t.title}</strong></span>
-      <span class="crate-col">${t.bpm}</span>
+      <span class="set-idx">${idx + 1}</span>
+      <span class="crate-song"><strong>${t.title}</strong></span>
+      <span class="crate-col" style="text-align:right;">${Math.round(t.bpm)}</span>
       <div class="crate-item-btns">
-        <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
-        <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
-        ${setTab === 'queue' ? `<button type="button" class="hw-sm" data-remove-set="${idx}" title="移出清单">×</button>` : ''}
+        ${setTab === 'queue' ? `
+          <button type="button" class="hw-sm set-icon-btn" data-move-up="${idx}" ${isFirst ? 'disabled' : ''} title="上移">↑</button>
+          <button type="button" class="hw-sm set-icon-btn" data-move-down="${idx}" ${isLast ? 'disabled' : ''} title="下移">↓</button>
+          <button type="button" class="hw-sm set-icon-btn" data-remove-set="${idx}" title="移出">×</button>
+        ` : `
+          <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
+          <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
+        `}
       </div>
     `;
     ui.setList.appendChild(row);
@@ -642,6 +649,24 @@ ui.crateList.addEventListener('click', (e) => {
 });
 
 ui.setList.addEventListener('click', (e) => {
+  const upBtn = e.target.closest('[data-move-up]');
+  if (upBtn) {
+    const i = Number(upBtn.dataset.moveUp);
+    if (i > 0) {
+      [setQueue[i - 1], setQueue[i]] = [setQueue[i], setQueue[i - 1]];
+      renderSetList();
+    }
+    return;
+  }
+  const downBtn = e.target.closest('[data-move-down]');
+  if (downBtn) {
+    const i = Number(downBtn.dataset.moveDown);
+    if (i < setQueue.length - 1) {
+      [setQueue[i], setQueue[i + 1]] = [setQueue[i + 1], setQueue[i]];
+      renderSetList();
+    }
+    return;
+  }
   const rmBtn = e.target.closest('[data-remove-set]');
   if (rmBtn) {
     setQueue.splice(Number(rmBtn.dataset.removeSet), 1);
@@ -654,11 +679,48 @@ ui.setList.addEventListener('click', (e) => {
   engine.loadTrack(deck, trackId);
 });
 
-document.getElementById('btn-auto-dj').addEventListener('click', async () => {
-  const list = setQueue.length >= 2 ? setQueue : TRACK_CATALOG.slice(0, 2);
-  await engine.loadTrack('A', list[0].id, { silentAction: true });
-  await engine.loadTrack('B', list[1].id, { silentAction: true });
-  document.getElementById('btn-automix').click();
+let autoDjController = null;
+const autoDjBtn = document.getElementById('btn-auto-dj');
+autoDjBtn.addEventListener('click', async () => {
+  if (autoDjController) {
+    autoDjController.abort();
+    return;
+  }
+  const list = setQueue.length >= 2 ? [...setQueue] : TRACK_CATALOG.slice(0, 3);
+  autoDjController = new AbortController();
+  const { signal } = autoDjController;
+  autoDjBtn.textContent = '⏹ 停止 Auto DJ';
+
+  try {
+    let curDeck = 'A';
+    await engine.loadTrack(curDeck, list[0].id, { silentAction: true });
+    engine.setCrossfader(-1, { silentAction: true });
+    engine.play(curDeck, { silentAction: true });
+
+    for (let i = 1; i < list.length; i++) {
+      await abortableSleep(5000, signal);
+      const nextDeck = curDeck === 'A' ? 'B' : 'A';
+      await engine.loadTrack(nextDeck, list[i].id, { silentAction: true });
+      if (signal.aborted) break;
+      engine.syncDeck(nextDeck, { silentAction: true });
+      engine.play(nextDeck, { silentAction: true });
+      const start = engine.crossfader;
+      const end = nextDeck === 'B' ? 1 : -1;
+      for (let s = 1; s <= 16; s++) {
+        engine.setCrossfader(start + ((end - start) * s) / 16, { silentAction: true });
+        await abortableSleep(160, signal);
+      }
+      engine.pause(curDeck, { silentAction: true, instant: true });
+      curDeck = nextDeck;
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') throw err;
+  } finally {
+    engine.pause('A', { silentAction: true, instant: true });
+    engine.pause('B', { silentAction: true, instant: true });
+    autoDjController = null;
+    autoDjBtn.textContent = '▶ Auto DJ';
+  }
 });
 
 // 波形跳转与黑胶搓碟

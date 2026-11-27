@@ -1119,6 +1119,31 @@ body {
 .crate-item-btns { display: flex; gap: 4px; justify-content: flex-end; }
 .crate-item-btns .hw-sm { white-space: nowrap; padding: 0 7px; }
 
+.set-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 42px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  transition: background 0.12s;
+}
+
+.set-row:hover { background: #1c1c21; }
+.set-idx { font-size: 11px; color: var(--dim); font-family: var(--mono); text-align: center; }
+.set-icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+}
+.set-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .crate-deck-pill {
   display: inline-grid;
   place-items: center;
