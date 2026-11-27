@@ -64,8 +64,8 @@ export function drawScrollingWaveform(canvas, engine, deckId) {
     ctx.stroke();
   }
 
-  // 绘制音频峰值柱状图（支持循环首尾无缝衔接）
-  const barWidth = Math.max(2 * dpr, (w / 140));
+  // 绘制高密度饱满音频波形（类似 Serato / Backspin 实心对称波形）
+  const barWidth = Math.max(1.5 * dpr, w / 240);
   const numCols = Math.ceil(w / barWidth);
   for (let i = 0; i < numCols; i++) {
     const x = i * barWidth;
@@ -75,11 +75,16 @@ export function drawScrollingWaveform(canvas, engine, deckId) {
 
     const bin = Math.min(peaks.length - 1, Math.floor((sampleTime / duration) * peaks.length));
     const amp = peaks[bin];
-    const barH = Math.max(3 * dpr, amp * (h * 0.82));
+    const barH = Math.max(2 * dpr, amp * (h * 0.88));
     const y = (h - barH) * 0.5;
 
     ctx.fillStyle = x < centerX ? dimColor : color;
-    ctx.fillRect(x, y, barWidth * 0.72, barH);
+    ctx.fillRect(x, y, Math.max(1, barWidth - 0.5 * dpr), barH);
+    // 中心高光芯线，增强波形立体感
+    if (x >= centerX && barH > 8 * dpr) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.fillRect(x, y + barH * 0.25, Math.max(1, barWidth - 0.5 * dpr), barH * 0.5);
+    }
   }
 
   // 中心播放头红/白线
