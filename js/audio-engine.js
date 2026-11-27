@@ -13,6 +13,7 @@ export class DJAudioEngine {
 
     this.crossfader = -1; // -1 = A, 0 = Center, +1 = B
     this.masterVolume = 0.85;
+    this.splitCue = false;
 
     this.decks = {
       A: this._createDeckState('A'),
@@ -37,6 +38,9 @@ export class DJAudioEngine {
       eq: { high: 0, mid: 0, low: 0 }, // -12 to +6 dB (0 = center)
       filter: 0,           // -1 (LPF) .. 0 (Off) .. +1 (HPF)
       echo: 0,             // 0 .. 0.85 Echo send
+      reverb: 0,           // 0 .. 0.85 Reverb send
+      flanger: 0,          // 0 .. 0.85 Flanger wet
+      cueMonitor: false,   // 耳机预听开关
       cuePoint: 0,
       hotCues: [null, null, null, null],
       loop4: false,
@@ -56,12 +60,26 @@ export class DJAudioEngine {
       this.masterAnalyser = this.ctx.createAnalyser();
       this.masterAnalyser.fftSize = 256;
 
+      // 共享立体声卷积混响脉冲 (1.8s)
+      this.reverbConvolver = this.ctx.createConvolver();
+      this.reverbConvolver.buffer = this._createReverbImpulse(1.8, 2.4);
+      this.reverbConvolver.connect(this.masterGain);
+
+      // 分路耳机监听节点：Master 走左声道，Cue 走右声道
+      this.cueBus = this.ctx.createGain();
+      this.splitMerger = this.ctx.createChannelMerger(2);
+      this.splitMasterMono = this.ctx.createGain();
+      this.splitCueMono = this.ctx.createGain();
+      this.splitMasterMono.connect(this.splitMerger, 0, 0);
+      this.splitCueMono.connect(this.splitMerger, 0, 1);
+
       this.masterGain.connect(this.masterAnalyser);
       this.masterAnalyser.connect(this.ctx.destination);
 
       this._initDeckNodes('A');
       this._initDeckNodes('B');
       this._applyCrossfader();
+      this._applyRouting();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
@@ -109,6 +127,28 @@ export class DJAudioEngine {
     echoTone.type = 'lowpass';
     echoTone.frequency.value = 2400;
 
+    // Reverb 混响发送链
+    const reverbSend = ctx.createGain();
+    reverbSend.gain.value = 0;
+
+    // Flanger 镶边发送链 (LFO 调制短延迟)
+    const flangerSend = ctx.createGain();
+    flangerSend.gain.value = 0;
+    const flangerDelay = ctx.createDelay(0.05);
+    flangerDelay.delayTime.value = 0.005;
+    const flangerLfo = ctx.createOscillator();
+    flangerLfo.type = 'sine';
+    flangerLfo.frequency.value = 0.35;
+    const flangerDepth = ctx.createGain();
+    flangerDepth.gain.value = 0.003;
+    flangerLfo.connect(flangerDepth);
+    flangerDepth.connect(flangerDelay.delayTime);
+    flangerLfo.start();
+
+    // 耳机预听发送链 (推子前信号 -> cueBus)
+    const cueSend = ctx.createGain();
+    cueSend.gain.value = 0;
+
     eqLow.connect(eqMid);
     eqMid.connect(eqHigh);
     eqHigh.connect(sweepFilter);
@@ -117,6 +157,9 @@ export class DJAudioEngine {
     analyser.connect(xfGain);
     xfGain.connect(this.masterGain);
 
+    sweepFilter.connect(cueSend);
+    cueSend.connect(this.cueBus);
+
     channelGain.connect(echoSend);
     echoSend.connect(echoDelay);
     echoDelay.connect(echoTone);
@@ -124,7 +167,43 @@ export class DJAudioEngine {
     echoFeedback.connect(echoDelay);
     echoTone.connect(this.masterGain);
 
-    d.nodes = { eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain, echoSend, echoDelay };
+    channelGain.connect(reverbSend);
+    reverbSend.connect(this.reverbConvolver);
+
+    channelGain.connect(flangerSend);
+    flangerSend.connect(flangerDelay);
+    flangerDelay.connect(xfGain);
+
+    d.nodes = { eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain, echoSend, echoDelay, reverbSend, flangerSend, cueSend };
+  }
+
+  _createReverbImpulse(duration = 1.8, decay = 2.4) {
+    const rate = this.ctx.sampleRate;
+    const length = Math.floor(rate * duration);
+    const impulse = this.ctx.createBuffer(2, length, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      }
+    }
+    return impulse;
+  }
+
+  _applyRouting() {
+    if (!this.ctx) return;
+    try { this.masterAnalyser.disconnect(this.ctx.destination); } catch (_) {}
+    try { this.masterAnalyser.disconnect(this.splitMasterMono); } catch (_) {}
+    try { this.cueBus.disconnect(this.splitCueMono); } catch (_) {}
+    try { this.splitMerger.disconnect(this.ctx.destination); } catch (_) {}
+
+    if (this.splitCue) {
+      this.masterAnalyser.connect(this.splitMasterMono);
+      this.cueBus.connect(this.splitCueMono);
+      this.splitMerger.connect(this.ctx.destination);
+    } else {
+      this.masterAnalyser.connect(this.ctx.destination);
+    }
   }
 
   onChange(fn) {
@@ -413,6 +492,41 @@ export class DJAudioEngine {
     if (!silentAction) {
       this._emitAction({ type: 'ECHO', deck: deckId, value: clamped });
     }
+  }
+
+  setReverb(deckId, amount) {
+    const d = this.decks[deckId];
+    d.reverb = Math.max(0, Math.min(0.85, amount));
+    if (d.nodes && this.ctx) {
+      d.nodes.reverbSend.gain.setTargetAtTime(d.reverb, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  setFlanger(deckId, amount) {
+    const d = this.decks[deckId];
+    d.flanger = Math.max(0, Math.min(0.85, amount));
+    if (d.nodes && this.ctx) {
+      d.nodes.flangerSend.gain.setTargetAtTime(d.flanger, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  toggleCueMonitor(deckId) {
+    this.ensureContext();
+    const d = this.decks[deckId];
+    d.cueMonitor = !d.cueMonitor;
+    if (d.nodes) {
+      d.nodes.cueSend.gain.setTargetAtTime(d.cueMonitor ? 1 : 0, this.ctx.currentTime, 0.015);
+    }
+    this._notify();
+  }
+
+  setSplitCue(enabled) {
+    this.ensureContext();
+    this.splitCue = Boolean(enabled);
+    this._applyRouting();
+    this._notify();
   }
 
   cueAction(deckId, { silentAction = false } = {}) {

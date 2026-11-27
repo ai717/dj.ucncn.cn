@@ -43,6 +43,16 @@ export const TRACK_CATALOG = [
     energy: 6,
     bars: 8,
     color: '#a78bfa'
+  },
+  {
+    id: 'neon-vocal',
+    title: '霓虹人声吉他 (Neon Vocal)',
+    genre: 'Vocal House',
+    bpm: 124,
+    key: '8A · Am',
+    energy: 9,
+    bars: 8,
+    color: '#ec4899'
   }
 ];
 
@@ -176,7 +186,58 @@ function triggerChord(ctx, dest, time, midis, dur, type = 'triangle', cutoff = 2
   }
 }
 
-export function computePeaks(buffer, bins = 480) {
+export function triggerVocalChop(ctx, dest, time, midi, dur, vowel = 'a', gainVal = 0.16) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(midiToFreq(midi), time);
+
+  // 双共振峰滤波器模拟人声切片质感
+  const f1 = ctx.createBiquadFilter();
+  f1.type = 'bandpass';
+  f1.frequency.setValueAtTime(vowel === 'a' ? 750 : 450, time);
+  f1.Q.value = 4.5;
+
+  const f2 = ctx.createBiquadFilter();
+  f2.type = 'bandpass';
+  f2.frequency.setValueAtTime(vowel === 'a' ? 1200 : 900, time);
+  f2.Q.value = 5.0;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.001, time);
+  g.gain.linearRampToValueAtTime(gainVal, time + 0.018);
+  g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+  osc.connect(f1);
+  osc.connect(f2);
+  f1.connect(g);
+  f2.connect(g);
+  g.connect(dest);
+  osc.start(time);
+  osc.stop(time + dur + 0.02);
+}
+
+function triggerGuitarPluck(ctx, dest, time, midi, dur, gainVal = 0.14) {
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(midiToFreq(midi), time);
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(3400, time);
+  lp.frequency.exponentialRampToValueAtTime(600, time + dur);
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gainVal, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+  osc.connect(lp);
+  lp.connect(g);
+  g.connect(dest);
+  osc.start(time);
+  osc.stop(time + dur + 0.02);
+}
+
+function computePeaks(buffer, bins = 480) {
   const data = buffer.getChannelData(0);
   const step = Math.max(1, Math.floor(data.length / bins));
   const peaks = new Float32Array(bins);
@@ -321,6 +382,19 @@ export async function getRenderedTrack(trackId) {
         const chord = bar < 4 ? [60, 64, 67, 71] : [65, 69, 72, 76];
         triggerChord(offline, master, t + beatDur * 0.25, chord, beatDur * 0.45, 'triangle', 2800, 0.11);
       }
+    } else if (meta.id === 'neon-vocal') {
+      triggerKick(offline, master, t, 152, 0.25, 0.88);
+      if (beatInBar === 1 || beatInBar === 3) {
+        triggerSnare(offline, master, noiseBuf, t, 0.3);
+      }
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.14);
+      const root = bar < 4 ? 33 : 29;
+      triggerBass(offline, master, t + beatDur * 0.5, root, beatDur * 0.4, 'sawtooth', 500, 0.3);
+      // 人声切片 + 吉他拨弦交替
+      const vNotes = [69, 72, 74, 72];
+      triggerVocalChop(offline, master, t, vNotes[beatInBar], beatDur * 0.45, beatInBar % 2 === 0 ? 'a' : 'o', 0.18);
+      triggerGuitarPluck(offline, master, t + beatDur * 0.25, root + 24, beatDur * 0.35, 0.13);
+      triggerGuitarPluck(offline, master, t + beatDur * 0.75, root + 31, beatDur * 0.35, 0.11);
     } else {
       // low-tide Boom-Bap (92 BPM)
       if (beatInBar === 0 || beatInBar === 2) {

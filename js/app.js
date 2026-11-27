@@ -139,6 +139,16 @@ function syncUIWithEngine() {
     if (echoEl && Math.abs(Number(echoEl.value) - d.echo) > 0.01) {
       echoEl.value = String(d.echo);
     }
+    const revEl = document.querySelector(`[data-reverb="${id}"]`);
+    if (revEl && Math.abs(Number(revEl.value) - d.reverb) > 0.01) {
+      revEl.value = String(d.reverb);
+    }
+    const flgEl = document.querySelector(`[data-flanger="${id}"]`);
+    if (flgEl && Math.abs(Number(flgEl.value) - d.flanger) > 0.01) {
+      flgEl.value = String(d.flanger);
+    }
+    const cueMonBtn = document.querySelector(`[data-cue-mon="${id}"]`);
+    if (cueMonBtn) cueMonBtn.classList.toggle('active', d.cueMonitor);
   }
   ui.crossfader.value = String(engine.crossfader);
   const isPro = document.body.classList.contains('pro-mode');
@@ -298,6 +308,28 @@ document.querySelectorAll('[data-echo]').forEach((input) => {
   });
 });
 
+document.querySelectorAll('[data-reverb]').forEach((input) => {
+  input.addEventListener('input', () => {
+    engine.setReverb(input.dataset.reverb, Number(input.value));
+  });
+});
+
+document.querySelectorAll('[data-flanger]').forEach((input) => {
+  input.addEventListener('input', () => {
+    engine.setFlanger(input.dataset.flanger, Number(input.value));
+  });
+});
+
+document.querySelectorAll('[data-cue-mon]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    engine.toggleCueMonitor(btn.dataset.cueMon);
+  });
+});
+
+document.getElementById('chk-split-cue').addEventListener('change', (e) => {
+  engine.setSplitCue(e.target.checked);
+});
+
 ui.layoutModeBtn.addEventListener('click', () => {
   document.body.classList.toggle('pro-mode');
   syncUIWithEngine();
@@ -445,8 +477,148 @@ document.getElementById('btn-copy-challenge').addEventListener('click', async (e
   try {
     await navigator.clipboard.writeText(text);
     e.target.textContent = '✓ 已复制战绩';
-    setTimeout(() => { e.target.textContent = '📋 复制战绩分享'; }, 1600);
+    setTimeout(() => { e.target.textContent = '📋 复制战绩文案'; }, 1600);
   } catch (_) {}
+});
+
+// 生成并下载战绩分享海报 (Canvas 720x420 PNG)
+document.getElementById('btn-download-poster').addEventListener('click', () => {
+  const c = document.createElement('canvas');
+  c.width = 720;
+  c.height = 420;
+  const ctx = c.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, 720, 420);
+  grad.addColorStop(0, '#0b0e14');
+  grad.addColorStop(1, '#162032');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 720, 420);
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(18, 18, 684, 384);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('BACKSPIN 中文版 · dj.ucncn.cn', 44, 68);
+
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.fillText('30 秒盲听对拍挑战 · 战绩卡', 44, 120);
+
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 110px sans-serif';
+  ctx.fillText(ui.challengeGrade.textContent, 530, 260);
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '22px sans-serif';
+  const lines = ui.challengeStats.innerText.split('\n').filter(Boolean);
+  lines.forEach((line, idx) => {
+    ctx.fillText(line.trim(), 44, 210 + idx * 42);
+  });
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('免设备 · 免注册 · 打开浏览器就能学的互动 DJ 教练', 44, 365);
+
+  const link = document.createElement('a');
+  link.download = 'dj-challenge-poster.png';
+  link.href = c.toDataURL('image/png');
+  link.click();
+});
+
+// Web MIDI 硬件控制器支持
+const midiDialog = document.getElementById('midi-dialog');
+const midiStatusEl = document.getElementById('midi-status');
+const midiMapListEl = document.getElementById('midi-map-list');
+const midiTargets = [
+  { id: 'playA', label: 'Deck A 播放/暂停' },
+  { id: 'playB', label: 'Deck B 播放/暂停' },
+  { id: 'crossfader', label: 'Crossfader 交叉推子' },
+  { id: 'tempoA', label: 'Deck A 调速推子' },
+  { id: 'tempoB', label: 'Deck B 调速推子' }
+];
+const midiBindings = new Map();
+let learningTarget = null;
+let midiInitialized = false;
+
+function renderMidiMappings() {
+  midiMapListEl.innerHTML = '';
+  for (const t of midiTargets) {
+    const bound = midiBindings.get(t.id);
+    const row = document.createElement('div');
+    row.className = 'midi-map-row';
+    row.innerHTML = `
+      <span>${t.label}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="crate-item-meta">${bound ? `CC/Note #${bound}` : '未绑定'}</span>
+        <button type="button" class="mini-btn" data-midi-learn="${t.id}">
+          ${learningTarget === t.id ? '等待触发…' : '学习'}
+        </button>
+      </div>
+    `;
+    midiMapListEl.appendChild(row);
+  }
+}
+
+midiMapListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-midi-learn]');
+  if (!btn) return;
+  learningTarget = btn.dataset.midiLearn;
+  renderMidiMappings();
+});
+
+function handleMidiMessage(msg) {
+  const [status, data1, data2] = msg.data;
+  const cmd = status & 0xf0;
+  const key = `${cmd}:${data1}`;
+
+  if (learningTarget) {
+    midiBindings.set(learningTarget, key);
+    learningTarget = null;
+    renderMidiMappings();
+    return;
+  }
+
+  for (const [targetId, boundKey] of midiBindings.entries()) {
+    if (boundKey !== key) continue;
+    if (targetId === 'playA' && data2 > 0) engine.togglePlay('A');
+    else if (targetId === 'playB' && data2 > 0) engine.togglePlay('B');
+    else if (targetId === 'crossfader') engine.setCrossfader((data2 / 127) * 2 - 1);
+    else if (targetId === 'tempoA') engine.setTempo('A', ((data2 / 127) * 2 - 1) * 8);
+    else if (targetId === 'tempoB') engine.setTempo('B', ((data2 / 127) * 2 - 1) * 8);
+  }
+}
+
+async function initWebMidi() {
+  renderMidiMappings();
+  if (!navigator.requestMIDIAccess) {
+    midiStatusEl.textContent = '当前浏览器不支持 Web MIDI API，请使用 Chrome 或 Edge。';
+    return;
+  }
+  if (midiInitialized) return;
+  try {
+    const access = await navigator.requestMIDIAccess();
+    midiInitialized = true;
+    const updateInputs = () => {
+      const inputs = Array.from(access.inputs.values());
+      if (inputs.length === 0) {
+        midiStatusEl.textContent = '未检测到外接 MIDI 控制器。请插入 USB 打碟机后刷新或重新打开此面板。';
+      } else {
+        midiStatusEl.textContent = `已连接设备：${inputs.map((i) => i.name).join('、')}`;
+        inputs.forEach((input) => { input.onmidimessage = handleMidiMessage; });
+      }
+    };
+    updateInputs();
+    access.onstatechange = updateInputs;
+  } catch (_) {
+    midiStatusEl.textContent = '未能获取 MIDI 设备权限。';
+  }
+}
+
+document.getElementById('btn-open-midi').addEventListener('click', () => {
+  initWebMidi();
+  midiDialog.showModal();
 });
 
 // Dialog closedby="any" 渐进增强兜底（遵循 modern-web-guidance dialog 规范）

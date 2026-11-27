@@ -519,7 +519,82 @@ export const LESSONS = [
         },
         validate(action, engine) {
           if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.crossfader >= 0.85) {
-            return { pass: true, praise: '🎉 恭喜毕业！你已通关全部 10 节 DJ 互动课程，可以试试顶部的「🎯 盲听挑战」了！' };
+            return { pass: true, praise: '🎉 太棒了！你已经掌握了完整的切歌过渡流程。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-11',
+    number: 11,
+    title: 'Filter + Loop 4 组合技',
+    duration: '4 分钟',
+    summary: '先用 Loop 4 锁住高潮小节，再用 Filter 高通扫频制造悬念，最后瞬间切入下一首。',
+    steps: [
+      {
+        id: 'l11-s1',
+        title: '第一步：锁定 A 盘 Loop 4 并推高 Filter',
+        instruction: '开启 Deck A 的「LOOP 4」，并向右拖动 A 盘「FILTER」（≥ +0.4）拉起紧张感。',
+        highlightSelector: '[data-control="deck-A-loop4"]',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'neon-vocal', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('[data-control="deck-A-loop4"]');
+          await cursor.click();
+          if (!engine.decks.A.loop4) engine.toggleLoop4('A', { silentAction: true });
+          await cursor.moveTo('[data-control="deck-A-filter"]');
+          engine.setFilter('A', 0.55, { silentAction: true });
+          await wait(1200);
+          engine.setFilter('A', 0, { silentAction: true });
+          if (engine.decks.A.loop4) engine.toggleLoop4('A', { silentAction: true });
+        },
+        validate(action, engine) {
+          if (engine.decks.A.loop4 && engine.decks.A.filter >= 0.4) {
+            return { pass: true, praise: '张力拉满！Loop + Filter 是舞池最常用的造浪手法。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-12',
+    number: 12,
+    title: '毕业演出：三首歌连续 Set 编排',
+    duration: '5 分钟',
+    summary: '在实战中连续完成风格切换：把《霓虹人声吉他》装入 B 盘并完成三曲连混收官！',
+    steps: [
+      {
+        id: 'l12-s1',
+        title: '终极考核：装入《霓虹人声吉他》并切入 B 盘',
+        instruction: '在下方曲库找到「霓虹人声吉他 (Neon Vocal)」点击「→ B」装盘，用 SYNC 对齐并播放，最后将 Crossfader 推到最右（B ≥ 0.85）！',
+        highlightSelector: '#crate-list',
+        async runDemo(engine, cursor) {
+          await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          await engine.loadTrack('B', 'neon-vocal', { silentAction: true });
+          engine.setCrossfader(-1, { silentAction: true });
+          engine.play('A', { silentAction: true });
+          engine.syncDeck('B', { silentAction: true });
+          engine.play('B', { silentAction: true });
+          await cursor.moveTo('[data-control="crossfader"]');
+          for (let v = -1; v <= 1; v += 0.25) {
+            engine.setCrossfader(v, { silentAction: true });
+            await wait(150);
+          }
+          await wait(1000);
+          engine.pause('A', { silentAction: true });
+          engine.pause('B', { silentAction: true });
+          engine.setCrossfader(-1, { silentAction: true });
+        },
+        validate(action, engine) {
+          if (
+            engine.decks.B.track?.id === 'neon-vocal' &&
+            engine.decks.B.isPlaying &&
+            engine.crossfader >= 0.85
+          ) {
+            return { pass: true, praise: '🏆 恭喜全部通关 12 节课程！你已经是合格的浏览器 DJ 了，快去挑战「🎯 盲听挑战」吧！' };
           }
           return null;
         }

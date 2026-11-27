@@ -33,13 +33,16 @@
 
     <div class="topbar-actions">
       <button type="button" id="btn-open-lessons" class="pill-btn accent">
-        互动课程 <span id="lesson-progress-badge">0 / 10</span>
+        互动课程 <span id="lesson-progress-badge">0 / 12</span>
       </button>
       <button type="button" id="btn-challenge" class="pill-btn">
         🎯 盲听挑战
       </button>
       <button type="button" id="btn-layout-mode" class="pill-btn" title="切换 Simple / Pro 模式 (快捷键 `)">
         模式: Simple
+      </button>
+      <button type="button" id="btn-open-midi" class="pill-btn pro-only">
+        🎹 MIDI
       </button>
       <button type="button" id="btn-premix-demo" class="pill-btn">
         🎧 高手示范
@@ -150,6 +153,9 @@
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-A-eq-low" data-eq="A:low" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row filter"><span>FILTER</span><input type="range" data-control="deck-A-filter" data-filter="A" min="-1" max="1" step="0.05" value="0"></label>
             <label class="knob-row pro-only echo"><span>ECHO</span><input type="range" data-control="deck-A-echo" data-echo="A" min="0" max="0.85" step="0.05" value="0"></label>
+            <label class="knob-row pro-only fx"><span>REVERB</span><input type="range" data-reverb="A" min="0" max="0.85" step="0.05" value="0"></label>
+            <label class="knob-row pro-only fx"><span>FLANGER</span><input type="range" data-flanger="A" min="0" max="0.85" step="0.05" value="0"></label>
+            <button type="button" class="mini-btn pro-only cue-mon-btn" data-cue-mon="A">🎧 CUE A</button>
             <div class="fader-meter-wrap">
               <input type="range" class="vol-slider" data-vol="A" min="0" max="1" step="0.02" value="1" aria-label="Channel A 音量">
               <div class="vu-track"><div class="vu-fill deck-a" id="vu-A"></div></div>
@@ -164,6 +170,9 @@
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-B-eq-low" data-eq="B:low" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row filter"><span>FILTER</span><input type="range" data-control="deck-B-filter" data-filter="B" min="-1" max="1" step="0.05" value="0"></label>
             <label class="knob-row pro-only echo"><span>ECHO</span><input type="range" data-control="deck-B-echo" data-echo="B" min="0" max="0.85" step="0.05" value="0"></label>
+            <label class="knob-row pro-only fx"><span>REVERB</span><input type="range" data-reverb="B" min="0" max="0.85" step="0.05" value="0"></label>
+            <label class="knob-row pro-only fx"><span>FLANGER</span><input type="range" data-flanger="B" min="0" max="0.85" step="0.05" value="0"></label>
+            <button type="button" class="mini-btn pro-only cue-mon-btn" data-cue-mon="B">🎧 CUE B</button>
             <div class="fader-meter-wrap">
               <input type="range" class="vol-slider" data-vol="B" min="0" max="1" step="0.02" value="1" aria-label="Channel B 音量">
               <div class="vu-track"><div class="vu-fill deck-b" id="vu-B"></div></div>
@@ -178,6 +187,10 @@
             <span class="deck-b">B</span>
           </div>
           <input type="range" id="crossfader" data-control="crossfader" min="-1" max="1" step="0.02" value="-1" aria-label="Crossfader 交叉推子">
+          <label class="split-cue-row pro-only">
+            <input type="checkbox" id="chk-split-cue">
+            <span>🎧 分路预听 (左Master / 右Cue)</span>
+          </label>
         </div>
       </article>
 
@@ -281,7 +294,7 @@
   <dialog id="lessons-dialog" closedby="any" aria-labelledby="lessons-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="lessons-dialog-title">选择互动课程（共 10 节）</h1>
+        <h1 id="lessons-dialog-title">选择互动课程（共 12 节）</h1>
         <form method="dialog">
           <button type="submit" class="mini-btn" autofocus>关闭</button>
         </form>
@@ -312,9 +325,27 @@
       <div class="challenge-result" id="challenge-result" hidden>
         <div class="challenge-grade" id="challenge-grade">S</div>
         <div class="challenge-stats" id="challenge-stats"></div>
-        <button type="button" class="pill-btn accent" id="btn-copy-challenge">📋 复制战绩分享</button>
+        <div class="challenge-result-btns">
+          <button type="button" class="pill-btn accent" id="btn-copy-challenge">📋 复制战绩文案</button>
+          <button type="button" class="pill-btn" id="btn-download-poster">🖼️ 下载战绩海报</button>
+        </div>
       </div>
       <button type="button" class="showme-btn" id="btn-challenge-start">▶ 开始 30 秒挑战</button>
+    </div>
+  </dialog>
+
+  <!-- Web MIDI 硬件控制器映射弹窗 -->
+  <dialog id="midi-dialog" closedby="any" aria-labelledby="midi-dialog-title">
+    <div class="dialog-inner">
+      <header class="dialog-head">
+        <h1 id="midi-dialog-title">🎹 Web MIDI 控制器映射</h1>
+        <form method="dialog">
+          <button type="submit" class="mini-btn" autofocus>关闭</button>
+        </form>
+      </header>
+      <div class="midi-status" id="midi-status">正在检测 MIDI 设备…</div>
+      <div class="midi-map-list" id="midi-map-list"></div>
+      <p class="dialog-note">提示：请使用 Chrome / Edge 浏览器并连接 USB MIDI 打碟机，点击「学习」后拨动对应硬件旋钮或按键即可绑定。</p>
     </div>
   </dialog>
 
