@@ -44,6 +44,8 @@ export class CoachEngine {
     this.state = this._loadProgress();
     this.isLessonActive = false;
     this.isDemoRunning = false;
+    this.isAdvancing = false;
+    this.advanceTimer = null;
     this.highlightedEl = null;
 
     this.audio.onAction((action) => this._handleAction(action));
@@ -79,8 +81,17 @@ export class CoachEngine {
     return lesson.steps[this.state.stepIndex] || lesson.steps[0];
   }
 
+  _cancelPendingAdvance() {
+    if (this.advanceTimer) {
+      clearTimeout(this.advanceTimer);
+      this.advanceTimer = null;
+    }
+    this.isAdvancing = false;
+  }
+
   selectLesson(index) {
     if (index < 0 || index >= LESSONS.length) return;
+    this._cancelPendingAdvance();
     this.state.lessonIndex = index;
     this.state.stepIndex = 0;
     this.isLessonActive = true;
@@ -89,12 +100,14 @@ export class CoachEngine {
   }
 
   setLessonActive(active) {
+    this._cancelPendingAdvance();
     this.isLessonActive = Boolean(active);
     this.renderStep();
   }
 
   prevStep() {
     if (this.isDemoRunning) return;
+    this._cancelPendingAdvance();
     if (this.state.stepIndex > 0) {
       this.state.stepIndex -= 1;
       this._saveProgress();
@@ -109,10 +122,12 @@ export class CoachEngine {
 
   skipStep() {
     if (this.isDemoRunning) return;
+    this._cancelPendingAdvance();
     this._advance();
   }
 
   resetProgress() {
+    this._cancelPendingAdvance();
     this.state = { lessonIndex: 0, stepIndex: 0, completedLessons: [] };
     this._saveProgress();
     this.renderStep();
@@ -176,14 +191,17 @@ export class CoachEngine {
   }
 
   _handleAction(action) {
-    if (!this.isLessonActive || this.isDemoRunning) return;
+    if (!this.isLessonActive || this.isDemoRunning || this.isAdvancing) return;
     const step = this.getCurrentStep();
     const result = step.validate(action, this.audio);
     if (!result) return;
 
     if (result.pass) {
+      this.isAdvancing = true;
       this.renderStep({ type: 'success', text: `✓ ${result.praise}` });
-      setTimeout(() => {
+      this.advanceTimer = setTimeout(() => {
+        this.advanceTimer = null;
+        this.isAdvancing = false;
         this._advance();
       }, 1100);
     } else {

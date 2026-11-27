@@ -1029,7 +1029,7 @@ export const LESSONS = [
       {
         id: 'l21-s1',
         title: '毕业宣言：触发空气喇叭庆祝结业！',
-        instruction: '点击下方采样垫的「📢 喇叭」音效，庆祝完成全部 21 节 Backspin 中文版互动课程！',
+        instruction: '点击下方采样垫的「空气喇叭」音效，庆祝完成全部 22 节 Backspin 中文版互动课程！',
         highlightSelector: '[data-sampler="airhorn"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-sampler="airhorn"]');
