@@ -452,184 +452,206 @@ export async function getRenderedTrack(trackId) {
 }
 
 /**
- * 俱乐部级 8 键 DJ 采样器音效引擎（Web Audio 高拟真合成）
+ * 8 键 DJ 采样器精确 DSP 缓冲区合成器（与 Backspin 音色/时长/包络完全一致）
  */
-export function playSamplerPad(ctx, dest, padId) {
-  const now = ctx.currentTime;
-  const noiseBuf = createNoiseBuffer(ctx, 1.2);
+const samplerCache = new Map();
+
+function polyBlep(t, dt) {
+  if (t < dt) {
+    const x = t / dt;
+    return x + x - x * x - 1;
+  }
+  if (t > 1 - dt) {
+    const x = (t - 1) / dt;
+    return x * x + x + x + 1;
+  }
+  return 0;
+}
+
+function createSVF(sr) {
+  let low = 0, band = 0;
+  return (x, cutoff, q, mode) => {
+    const f = Math.min(0.85, 2 * Math.sin((Math.PI * Math.min(cutoff, sr * 0.42)) / sr));
+    const damp = 1 / Math.max(0.5, q);
+    const high = x - low - damp * band;
+    band += f * high;
+    low += f * band;
+    return mode === 'bp' ? band : mode === 'hp' ? high : low;
+  };
+}
+
+function finalizeSamplerBuffer(ctx, data) {
+  const sr = ctx.sampleRate;
+  const fadeSamples = Math.min(data.length, Math.floor(sr * 0.012));
+  for (let i = 0; i < fadeSamples; i++) {
+    data[data.length - 1 - i] *= i / fadeSamples;
+  }
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const a = Math.abs(data[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak > 0.0001) {
+    const scale = 0.88 / peak;
+    for (let i = 0; i < data.length; i++) data[i] *= scale;
+  }
+  const buf = ctx.createBuffer(1, data.length, sr);
+  buf.getChannelData(0).set(data);
+  return buf;
+}
+
+function getSamplerBuffer(ctx, padId) {
+  if (samplerCache.has(padId)) return samplerCache.get(padId);
+  const sr = ctx.sampleRate;
+  let data;
 
   if (padId === 'airhorn') {
-    // 经典牙买加/夜店三和弦失谐空气喇叭 + 起音滑音 + 亮频共振
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.setValueAtTime(1150, now);
-    bp.Q.value = 1.2;
-
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.001, now);
-    g.gain.linearRampToValueAtTime(0.32, now + 0.015);
-    g.gain.setValueAtTime(0.3, now + 0.28);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-
-    bp.connect(g);
-    g.connect(dest);
-
-    const freqs = [369.99, 466.16, 554.37, 739.99];
-    for (const f of freqs) {
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(f * 0.94, now);
-      osc.frequency.exponentialRampToValueAtTime(f, now + 0.035);
-      osc.detune.value = (Math.random() - 0.5) * 14;
-      osc.connect(bp);
-      osc.start(now);
-      osc.stop(now + 0.68);
+    const dur = 1.1;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    const freqs = [466, 554, 698];
+    const phases = [0, 0.3, 0.6];
+    const svf = createSVF(sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const vib = 1 + 0.004 * Math.sin(2 * Math.PI * 6 * t);
+      const droop = t > dur - 0.35 ? 1 - 0.03 * ((t - (dur - 0.35)) / 0.35) : 1;
+      let sum = 0;
+      for (let k = 0; k < 3; k++) {
+        const dt = (freqs[k] * vib * droop) / sr;
+        phases[k] = (phases[k] + dt) % 1;
+        sum += 2 * phases[k] - 1 - polyBlep(phases[k], dt);
+      }
+      const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.12);
+      const filtered = svf(sum / 3, 2400, 1.2, 'lp');
+      data[i] = Math.tanh(1.4 * filtered) * env;
     }
   } else if (padId === 'siren') {
-    // 经典 Dub Siren 警笛 + 回声衰减
-    const osc = ctx.createOscillator();
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    const lp = ctx.createBiquadFilter();
-    const g = ctx.createGain();
-
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(720, now);
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(5.5, now);
-    lfoGain.gain.setValueAtTime(240, now);
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-
-    lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(2200, now);
-
-    g.gain.setValueAtTime(0.001, now);
-    g.gain.linearRampToValueAtTime(0.18, now + 0.02);
-    g.gain.setValueAtTime(0.16, now + 0.55);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
-
-    osc.connect(lp);
-    lp.connect(g);
-    g.connect(dest);
-    lfo.start(now);
-    osc.start(now);
-    lfo.stop(now + 0.98);
-    osc.stop(now + 0.98);
+    const dur = 2.0;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const freq = 850 + 330 * Math.sin(2 * Math.PI * 2.6 * t);
+      phase += (2 * Math.PI * freq) / sr;
+      const env = Math.min(1, t / 0.03) * Math.min(1, (dur - t) / 0.25);
+      data[i] = Math.sin(phase) * env;
+    }
   } else if (padId === 'laser') {
-    // 锐利双发 DJ 激光射线
-    for (let k = 0; k < 2; k++) {
-      const t0 = now + k * 0.14;
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(2800, t0);
-      osc.frequency.exponentialRampToValueAtTime(120, t0 + 0.18);
-      g.gain.setValueAtTime(0.24, t0);
-      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
-      osc.connect(g);
-      g.connect(dest);
-      osc.start(t0);
-      osc.stop(t0 + 0.22);
+    const dur = 0.4;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const freq = 2800 * Math.pow(180 / 2800, t / dur);
+      phase += (2 * Math.PI * freq) / sr;
+      data[i] = Math.sin(phase) * Math.exp(-t / 0.22);
     }
   } else if (padId === 'rewind') {
-    // 真实黑胶倒带 Pull-up（噪音扫频 + 高速颤音上冲）
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.Q.value = 3.5;
-    bp.frequency.setValueAtTime(300, now);
-    bp.frequency.exponentialRampToValueAtTime(3600, now + 0.28);
-    bp.frequency.exponentialRampToValueAtTime(240, now + 0.52);
-
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.26);
-    osc.frequency.exponentialRampToValueAtTime(140, now + 0.52);
-
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.24, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-
-    noise.connect(bp);
-    bp.connect(g);
-    osc.connect(bp);
-    g.connect(dest);
-    noise.start(now);
-    osc.start(now);
-    noise.stop(now + 0.58);
-    osc.stop(now + 0.58);
+    const dur = 0.9;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    let phase = 0;
+    const svf = createSVF(sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const freq = 220 * Math.pow(9, t / dur);
+      const dt = freq / sr;
+      phase = (phase + dt) % 1;
+      const saw = 2 * phase - 1 - polyBlep(phase, dt);
+      const wobble = 0.7 + 0.3 * Math.sin(2 * Math.PI * 34 * t);
+      const noise = (Math.random() * 2 - 1) * 0.5;
+      const bpFreq = 1500 + 4000 * (t / dur);
+      const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.05);
+      data[i] = (saw * wobble * 0.65 + svf(noise, bpFreq, 1.5, 'bp')) * env;
+    }
   } else if (padId === 'boom') {
-    // 808 超低音冲击波 Impact Boom
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(135, now);
-    osc.frequency.exponentialRampToValueAtTime(34, now + 0.72);
-    g.gain.setValueAtTime(0.95, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-    osc.connect(g);
-    g.connect(dest);
-    osc.start(now);
-    osc.stop(now + 0.88);
-    triggerSnare(ctx, dest, noiseBuf, now, 0.22);
+    const dur = 1.8;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const freq = 32 + 100 * Math.exp(-t / 0.09);
+      phase += (2 * Math.PI * freq) / sr;
+      data[i] = Math.tanh(2.2 * Math.sin(phase)) * Math.exp(-t / 0.55);
+    }
   } else if (padId === 'snareroll') {
-    // 渐强加速 8 连击军鼓滚奏
-    const offsets = [0, 0.14, 0.26, 0.36, 0.44, 0.51, 0.57, 0.62];
-    offsets.forEach((off, idx) => {
-      triggerSnare(ctx, dest, noiseBuf, now + off, 0.14 + idx * 0.045);
-    });
+    const dur = 2.0;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    const hitLen = Math.floor(sr * 0.16);
+    const hit = new Float32Array(hitLen);
+    const bpSvf = createSVF(sr);
+    const hpSvf = createSVF(sr);
+    let p = 0;
+    for (let i = 0; i < hitLen; i++) {
+      const t = i / sr;
+      const f = 190 * Math.exp(-t / 0.04) + 70;
+      p += (2 * Math.PI * f) / sr;
+      const body = Math.sin(p) * Math.exp(-t / 0.045);
+      const n = Math.random() * 2 - 1;
+      const snap = (bpSvf(n, 2600, 1.2, 'bp') * 0.7 + hpSvf(n, 5200, 0.8, 'hp') * 0.5) * Math.exp(-t / 0.06);
+      hit[i] = body * 0.6 + snap;
+    }
+    let curT = 0;
+    let interval = 0.22;
+    while (curT < 1.9) {
+      const amp = 0.35 + 0.65 * (curT / 1.9);
+      const startIdx = Math.floor(curT * sr);
+      for (let j = 0; j < hitLen && startIdx + j < len; j++) {
+        data[startIdx + j] += hit[j] * amp;
+      }
+      curT += interval;
+      interval = Math.max(0.045, interval * 0.9);
+    }
   } else if (padId === 'aah') {
-    // 三共振峰人声 "Aah!" 切片 + 气息感
-    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 730; f1.Q.value = 5;
-    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1090; f2.Q.value = 6;
-    const f3 = ctx.createBiquadFilter(); f3.type = 'bandpass'; f3.frequency.value = 2440; f3.Q.value = 7;
-
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.001, now);
-    g.gain.linearRampToValueAtTime(0.36, now + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
-
-    f1.connect(g); f2.connect(g); f3.connect(g);
-    g.connect(dest);
-
-    for (const freq of [220, 440, 554.37]) {
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now);
-      osc.connect(f1); osc.connect(f2); osc.connect(f3);
-      osc.start(now);
-      osc.stop(now + 0.55);
+    const dur = 0.6;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    let phase = 0;
+    const f1 = createSVF(sr);
+    const f2 = createSVF(sr);
+    const f3 = createSVF(sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const vib = 1 + 0.012 * Math.sin(2 * Math.PI * 5 * t);
+      const droop = t > 0.35 ? 1 - 0.04 * ((t - 0.35) / 0.25) : 1;
+      const dt = (220 * vib * droop) / sr;
+      phase = (phase + dt) % 1;
+      const saw = 2 * phase - 1 - polyBlep(phase, dt);
+      const v = f1(saw, 730, 9, 'bp') * 1.0 + f2(saw, 1090, 8, 'bp') * 0.6 + f3(saw, 2440, 9, 'bp') * 0.25;
+      const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.18);
+      data[i] = v * env;
     }
   } else {
-    // EDM 白噪音扫频 + 合成器上升 Riser (1.0s)
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.Q.value = 2.2;
-    bp.frequency.setValueAtTime(280, now);
-    bp.frequency.exponentialRampToValueAtTime(6200, now + 0.95);
-
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(180, now);
-    osc.frequency.exponentialRampToValueAtTime(1280, now + 0.95);
-
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.02, now);
-    g.gain.linearRampToValueAtTime(0.28, now + 0.9);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 1.05);
-
-    noise.connect(bp);
-    osc.connect(bp);
-    bp.connect(g);
-    g.connect(dest);
-    noise.start(now);
-    osc.start(now);
-    noise.stop(now + 1.08);
-    osc.stop(now + 1.08);
+    // riser (2.0s)
+    const dur = 2.0;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    const svf = createSVF(sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const u = t / dur;
+      const cutoff = 300 * Math.pow(30, u);
+      const env = (u * u) * Math.min(1, (dur - t) / 0.05);
+      data[i] = svf(Math.random() * 2 - 1, cutoff, 1.6, 'bp') * env;
+    }
   }
+
+  const buf = finalizeSamplerBuffer(ctx, data);
+  samplerCache.set(padId, buf);
+  return buf;
+}
+
+export function playSamplerPad(ctx, dest, padId) {
+  const src = ctx.createBufferSource();
+  src.buffer = getSamplerBuffer(ctx, padId);
+  const g = ctx.createGain();
+  g.gain.value = 0.55;
+  src.connect(g);
+  g.connect(dest);
+  src.start();
 }

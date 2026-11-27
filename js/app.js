@@ -524,8 +524,8 @@ document.querySelectorAll('[data-fx-wet]').forEach((input) => {
 
 // 8 键 Sampler 点击、亮白触发态与拖放自定义音频
 const PAD_DURATIONS = {
-  airhorn: 650, siren: 950, laser: 360, rewind: 560,
-  boom: 850, riser: 1050, snareroll: 750, aah: 540
+  airhorn: 1100, siren: 2000, laser: 400, rewind: 900,
+  boom: 1800, riser: 2000, snareroll: 2000, aah: 600
 };
 const padTimers = new Map();
 
