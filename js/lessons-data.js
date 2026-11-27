@@ -15,8 +15,9 @@ export const LESSONS = [
     steps: [
       {
         id: 'l0-s1',
-        title: '1/10 · 顶部双轨同步波形条（Waveforms）',
-        instruction: '【名称与作用】上方蓝/橙双轨波形条实时展示 A/B 两首曲子的鼓点与能量起伏，中间白线是当前播放位置，用于肉眼判断两首歌节奏是否对齐。【操作】点击波形任意位置可立即跳转进度，请点击上方波形条试试。',
+        title: '认识同步波形条',
+        floatTip: '👆 点一下上方任意波形条，直接跳转进度',
+        instruction: '看懂双轨鼓点与白线播放头。直接点击上方波形条试试！',
         highlightSelector: '.waveforms-strip',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#wave-scroll-A');
@@ -34,8 +35,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s2',
-        title: '2/10 · 黑胶唱盘与唱臂（Turntable）',
-        instruction: '【名称与作用】模拟 33⅓ 转黑胶唱盘，播放时持续旋转，既能轻推盘边微调快慢，也能按住前后搓碟制造 Scratch 音效。【操作】按住左侧 A 盘黑胶盘面画圈转动一下。',
+        title: '认识黑胶唱盘',
+        floatTip: '💿 按住黑胶盘面画圈转动，体验搓碟音效',
+        instruction: '用于走带与手动搓碟。按住左侧黑胶盘面转一转！',
         highlightSelector: '#platter-A',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#platter-A');
@@ -58,8 +60,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s3',
-        title: '3/10 · 调速推子与 BPM（Tempo Fader）',
-        instruction: '【名称与作用】唱盘右侧「调速」竖推改变播放速度（±8%），右上角 BPM 数字随之变化，用于手动对齐两首歌的速度。【操作】上下拖动左侧 Deck A 的调速推子。',
+        title: '认识调速推子',
+        floatTip: '🎚️ 上下拖动「调速」推子，改变歌曲快慢',
+        instruction: '控制播放快慢（BPM），用于对拍。上下拖动调速推子试试！',
         highlightSelector: '#tempo-A',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#tempo-A');
@@ -77,8 +80,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s4',
-        title: '4/10 · 核心播控三键（CUE / ▶ / SYNC）',
-        instruction: '【名称与作用】「CUE」暂停时定起点、播放时按立即弹回起点；「▶」控制播放与黑胶刹车暂停；「SYNC」一键同步对盘速度。【操作】按下左侧 Deck A 的「▶」播放键听一下。',
+        title: '认识播控三键',
+        floatTip: '▶ 按一下绿色「播放」键，让左盘响起来',
+        instruction: 'CUE 定起点、▶ 播放刹车、SYNC 一键同步。先按 ▶ 播放！',
         highlightSelector: '[data-control="deck-A-play"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-play"]');
@@ -96,8 +100,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s5',
-        title: '5/10 · 热标点矩阵（Hot Cues 1~4）',
-        instruction: '【名称与作用】给歌曲的精彩段落（前奏、人声、Drop）打上彩色书签；点亮后随时点击可瞬间跳回并播放，右键可清除。【操作】点击 Deck A 的「1」号热标点按钮打下你的第一个标记。',
+        title: '认识热标点（Hot Cue）',
+        floatTip: '🔖 点一下「1」号按钮，打下你的彩色书签',
+        instruction: '给高潮段落做书签，随时秒跳。点一下「1」号按钮！',
         highlightSelector: '[data-control="deck-A-hotcue-0"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-hotcue-0"]');
@@ -115,8 +120,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s6',
-        title: '6/10 · 循环与黑胶特技（Loop / 刹车 / 倒转）',
-        instruction: '【名称与作用】「循环 4 拍」锁定当前 4 拍无限循环，两侧 ½ / ×2 可缩放拍数；右侧「刹车」缓慢停转、「倒转」瞬间倒带。【操作】点击 Deck A 的「循环 4 拍」按钮试试。',
+        title: '认识循环与黑胶特技',
+        floatTip: '🔁 点一下「循环 4 拍」，锁定当前节奏无限循环',
+        instruction: '循环用来留出接歌时间。点一下「循环 4 拍」试试！',
         highlightSelector: '[data-control="deck-A-loop4"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-loop4"]');
@@ -134,8 +140,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s7',
-        title: '7/10 · 三段均衡与滤波（HIGH / MID / BASS / FILTER）',
-        instruction: '【名称与作用】中央混音台的「高频/中频/低频」分别控制镲片、人声与底鼓贝斯；「滤波」向左变闷、向右变空灵，双击可归中。【操作】上下拖动左侧「低频」旋钮体验切低音。',
+        title: '认识三段均衡与滤波',
+        floatTip: '🎛️ 上下拖动「低频」旋钮，感受鼓点被切掉',
+        instruction: '高/中/低音分别控镲片/人声/鼓点。拖动「低频」旋钮试试！',
         highlightSelector: '[data-control="deck-A-eq-low"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-eq-low"]');
@@ -153,8 +160,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s8',
-        title: '8/10 · 通道推子、电平表与交叉推子（Crossfader）',
-        instruction: '【名称与作用】竖向通道推子控制单盘音量（左侧灯柱防爆音红灯）；底部横向「交叉推子」在 A 盘与 B 盘之间切换声音输出。【操作】左右拖动底部中间的交叉推子。',
+        title: '认识交叉推子',
+        floatTip: '🎚️ 左右拖动底部「交叉推子」，切换 A / B 盘声音',
+        instruction: '左推听 A、右推听 B、中间融合。左右拖一下交叉推子！',
         highlightSelector: '[data-control="crossfader"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="crossfader"]');
@@ -173,8 +181,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s9',
-        title: '9/10 · 8 键独立采样器（Sampler）',
-        instruction: '【名称与作用】空气喇叭、警笛、上升音效等 8 个独立音效垫，不占唱盘通道随时叠加气氛，还支持拖放本地音频文件自定义。【操作】点击任意一个采样垫（或按 Shift+1~8）。',
+        title: '认识 10 键采样器',
+        floatTip: '🥁 点任意一个采样垫（或按 Shift+1），叠加现场音效',
+        instruction: '10 个即时气氛音效垫，支持拖放自定义。随便点一个听听！',
         highlightSelector: '.sampler-pads-grid',
         async runDemo(engine, cursor) {
           await cursor.moveTo('.sampler-pad[data-sampler="airhorn"]');
@@ -190,8 +199,9 @@ export const LESSONS = [
       },
       {
         id: 'l0-s10',
-        title: '10/10 · 曲库与待播清单（Crate & Set）',
-        instruction: '【名称与作用】下方左侧「曲库」内置 14 首零版权舞曲并支持本地导入，按调性与 BPM 智能推荐接歌；右侧「待播清单」可排歌单自动连播。【操作】在曲库中点击任意歌曲的「→ B」装入右盘，即完成第 0 课！',
+        title: '认识曲库与待播清单',
+        floatTip: '🎵 在曲库点任意歌曲的「→ B」，装入右盘即可过关',
+        instruction: '30 首零版权舞曲随心选，支持本地导入。点任意「→ B」装盘！',
         highlightSelector: '.crate-panel',
         async runDemo(engine, cursor) {
           const btn = document.querySelector('#crate-list [data-load^="B:"]');

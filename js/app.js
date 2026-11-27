@@ -60,11 +60,29 @@ const coach = new CoachEngine(engine, {
       ui.coachFeedback.hidden = false;
       ui.coachFeedback.className = `coach-feedback ${feedback.type}`;
       ui.coachFeedback.textContent = feedback.text;
+      if (feedback.type === 'success') showStepReward(feedback.text);
     } else {
       ui.coachFeedback.hidden = true;
     }
   }
 });
+
+const rewardToastEl = document.getElementById('coach-reward-toast');
+const rewardTitleEl = document.getElementById('reward-title');
+const rewardSubEl = document.getElementById('reward-sub');
+const REWARD_PRAISES = ['真棒！', '太厉害了！', '完美过关！', '节奏感满分！'];
+let rewardTimer = null;
+
+function showStepReward(praiseText) {
+  if (!rewardToastEl) return;
+  rewardTitleEl.textContent = REWARD_PRAISES[Math.floor(Math.random() * REWARD_PRAISES.length)];
+  rewardSubEl.textContent = (praiseText || '').replace(/^✓\s*/, '');
+  rewardToastEl.hidden = false;
+  clearTimeout(rewardTimer);
+  rewardTimer = setTimeout(() => {
+    rewardToastEl.hidden = true;
+  }, 1050);
+}
 
 const floatTipEl = document.getElementById('coach-float-tip');
 const floatBadgeEl = document.getElementById('coach-float-badge');
@@ -120,9 +138,10 @@ function updateCoachFloatTip(state) {
     ? `第 0 课（入门）· ${state.stepNumber}/${state.totalSteps}`
     : `第 ${state.lesson.number} 课 · ${state.stepNumber}/${state.totalSteps}`;
   floatTitleEl.textContent = state.step.title;
+  const conciseTip = state.step.floatTip || state.step.instruction.replace(/^【[^】]+】/, '').trim();
   floatTextEl.textContent = state.feedback?.type === 'error'
     ? `💡 ${state.feedback.text}`
-    : (state.step.floatTip || state.step.instruction);
+    : conciseTip;
   floatTipEl.hidden = false;
   requestAnimationFrame(() => positionCoachFloatTip(targetEl));
 }
