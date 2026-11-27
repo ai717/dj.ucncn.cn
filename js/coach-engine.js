@@ -42,6 +42,7 @@ export class CoachEngine {
     this.cursor = new VirtualCursor(document.getElementById('virtual-cursor'));
 
     this.state = this._loadProgress();
+    this.isLessonActive = false;
     this.isDemoRunning = false;
     this.highlightedEl = null;
 
@@ -82,7 +83,13 @@ export class CoachEngine {
     if (index < 0 || index >= LESSONS.length) return;
     this.state.lessonIndex = index;
     this.state.stepIndex = 0;
+    this.isLessonActive = true;
     this._saveProgress();
+    this.renderStep();
+  }
+
+  setLessonActive(active) {
+    this.isLessonActive = Boolean(active);
     this.renderStep();
   }
 
@@ -120,7 +127,7 @@ export class CoachEngine {
       this.highlightedEl = null;
     }
 
-    if (step.highlightSelector) {
+    if (this.isLessonActive && step.highlightSelector) {
       const el = document.querySelector(step.highlightSelector);
       if (el) {
         el.classList.add('coach-highlight');
@@ -135,6 +142,7 @@ export class CoachEngine {
       totalSteps: lesson.steps.length,
       completedCount: this.state.completedLessons.length,
       totalLessons: LESSONS.length,
+      isLessonActive: this.isLessonActive,
       isDemoRunning: this.isDemoRunning,
       feedback
     });
@@ -142,6 +150,7 @@ export class CoachEngine {
 
   async runShowMe() {
     if (this.isDemoRunning) return;
+    this.isLessonActive = true;
     this.audio.ensureContext();
     const step = this.getCurrentStep();
     this.isDemoRunning = true;
@@ -157,7 +166,7 @@ export class CoachEngine {
   }
 
   _handleAction(action) {
-    if (this.isDemoRunning) return;
+    if (!this.isLessonActive || this.isDemoRunning) return;
     const step = this.getCurrentStep();
     const result = step.validate(action, this.audio);
     if (!result) return;

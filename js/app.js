@@ -43,15 +43,17 @@ const customSamplerBuffers = new Map();
 const activeFxMode = { A: 'echo', B: 'echo' };
 
 const coach = new CoachEngine(engine, {
-  updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isDemoRunning, feedback }) {
+  updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isLessonActive, isDemoRunning, feedback }) {
     ui.lessonBadge.textContent = `${completedCount}/${totalLessons}`;
     const fill = document.getElementById('lesson-meter-fill');
     const txt = document.getElementById('lesson-meter-text');
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
     if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
     ui.coachTag.textContent = `CONTINUE · LESSON ${lesson.number} OF ${totalLessons} · ${lesson.title} (${stepNumber}/${totalSteps})`;
-    ui.coachTitle.textContent = step.title;
-    ui.coachDesc.textContent = step.instruction;
+    ui.coachTitle.textContent = isLessonActive ? step.title : `${lesson.title}（自由练习模式）`;
+    ui.coachDesc.textContent = isLessonActive ? step.instruction : '点击右侧「继续上课」开启高亮引导，或自由打碟练习。';
+    const toggleBtn = document.getElementById('btn-coach-toggle');
+    if (toggleBtn) toggleBtn.textContent = isLessonActive ? '退出引导' : '继续上课';
 
     ui.btnShowMe.disabled = isDemoRunning;
     ui.btnPrev.disabled = isDemoRunning;
@@ -775,8 +777,9 @@ document.querySelectorAll('.mobile-tab').forEach((tab) => {
 
 // 教练按钮与课程弹窗
 ui.btnShowMe.addEventListener('click', () => coach.runShowMe());
-ui.btnPrev.addEventListener('click', () => coach.prevStep());
-ui.btnSkip.addEventListener('click', () => coach.skipStep());
+ui.btnPrev.addEventListener('click', () => { coach.setLessonActive(true); coach.prevStep(); });
+ui.btnSkip.addEventListener('click', () => { coach.setLessonActive(true); coach.skipStep(); });
+document.getElementById('btn-coach-toggle').addEventListener('click', () => coach.setLessonActive(!coach.isLessonActive));
 document.getElementById('btn-coach-all').addEventListener('click', () => { renderLessonsModal(); ui.lessonsDialog.showModal(); });
 document.getElementById('btn-open-lessons').addEventListener('click', () => { renderLessonsModal(); ui.lessonsDialog.showModal(); });
 document.getElementById('btn-reset-progress').addEventListener('click', () => { coach.resetProgress(); renderLessonsModal(); });
