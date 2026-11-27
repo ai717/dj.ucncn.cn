@@ -307,11 +307,33 @@ export class DJAudioEngine {
     }
   }
 
-  pause(deckId, { silentAction = false } = {}) {
+  pause(deckId, { silentAction = false, instant = false } = {}) {
     const d = this.decks[deckId];
     if (!d.isPlaying) return;
     d.offset = this.getCurrentTime(deckId);
-    this._stopSource(deckId);
+    if (!instant && !silentAction && d.source && this.ctx) {
+      // 模拟黑胶唱盘停转时的短促减速「咻~」刹车音（约 200ms 音高下坠）
+      const oldSrc = d.source;
+      d.source = null;
+      this._clearBrakingSource(deckId);
+      d.brakingSource = oldSrc;
+      const now = this.ctx.currentTime;
+      const curRate = Math.max(0.2, this.getPlaybackRate(deckId));
+      try {
+        oldSrc.playbackRate.cancelScheduledValues(now);
+        oldSrc.playbackRate.setValueAtTime(curRate, now);
+        oldSrc.playbackRate.exponentialRampToValueAtTime(0.05, now + 0.19);
+        oldSrc.stop(now + 0.21);
+        oldSrc.onended = () => {
+          try { oldSrc.disconnect(); } catch (_) {}
+          if (d.brakingSource === oldSrc) d.brakingSource = null;
+        };
+      } catch (_) {
+        try { oldSrc.stop(); oldSrc.disconnect(); } catch (__) {}
+      }
+    } else {
+      this._stopSource(deckId);
+    }
     d.isPlaying = false;
     this._notify();
     if (!silentAction) {
@@ -341,6 +363,7 @@ export class DJAudioEngine {
   }
 
   _startSource(deckId, offsetSec) {
+    this._clearBrakingSource(deckId);
     const d = this.decks[deckId];
     const src = this.ctx.createBufferSource();
     src.buffer = d.track.buffer;
@@ -359,7 +382,17 @@ export class DJAudioEngine {
     d.startedAtCtx = this.ctx.currentTime;
   }
 
+  _clearBrakingSource(deckId) {
+    const d = this.decks[deckId];
+    if (d.brakingSource) {
+      try { d.brakingSource.stop(); } catch (_) {}
+      try { d.brakingSource.disconnect(); } catch (_) {}
+      d.brakingSource = null;
+    }
+  }
+
   _stopSource(deckId) {
+    this._clearBrakingSource(deckId);
     const d = this.decks[deckId];
     if (d.source) {
       try { d.source.stop(); } catch (_) {}
