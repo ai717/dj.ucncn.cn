@@ -48,6 +48,11 @@ export class DJAudioEngine {
       fxBeatDiv: 0.5,      // 0.25, 0.5, 1
       stems: { vocal: true, drums: true, bass: true, other: true },
       scratchOffsetRate: 0,// 临时搓碟速率叠加
+      isScratching: false,
+      wasPlayingBeforeScratch: false,
+      scratchSource: null,
+      scratchDir: 0,       // 1 = forward, -1 = backward, 0 = held still
+      reversedBuffer: null,
       volume: 1.0,         // 0..1 通道推子
       gainTrim: 1.0,       // Pro Gain 旋钮 (0.2..1.8)
       eq: { high: 0, mid: 0, low: 0 }, // -12 to +6 dB (0 = center)
@@ -248,6 +253,7 @@ export class DJAudioEngine {
     }
     const track = await getRenderedTrack(trackId);
     d.track = track;
+    d.reversedBuffer = null;
     d.offset = 0;
     d.cuePoint = 0;
     d.hotCues = Array(8).fill(null);
@@ -275,7 +281,7 @@ export class DJAudioEngine {
     const d = this.decks[deckId];
     if (!d.track) return 0;
     const dur = d.track.duration;
-    if (!d.isPlaying || !this.ctx) return d.offset % dur;
+    if (!d.isPlaying || d.isScratching || !this.ctx) return d.offset % dur;
 
     const elapsed = (this.ctx.currentTime - d.startedAtCtx) * this.getPlaybackRate(deckId);
     if (d.loop4 && d.loopEnd > d.loopStart) {
@@ -801,6 +807,89 @@ export class DJAudioEngine {
     if (!silentAction) {
       this._emitAction({ type: 'LOOP4', deck: deckId, value: d.loop4 });
     }
+  }
+
+  _getReversedBuffer(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track) return null;
+    if (d.reversedBuffer) return d.reversedBuffer;
+    const src = d.track.buffer;
+    const rev = this.ctx.createBuffer(src.numberOfChannels, src.length, src.sampleRate);
+    for (let ch = 0; ch < src.numberOfChannels; ch++) {
+      const sData = src.getChannelData(ch);
+      const rData = rev.getChannelData(ch);
+      for (let i = 0, n = sData.length; i < n; i++) {
+        rData[i] = sData[n - 1 - i];
+      }
+    }
+    d.reversedBuffer = rev;
+    return rev;
+  }
+
+  _stopScratchSource(deckId) {
+    const d = this.decks[deckId];
+    if (d.scratchSource) {
+      try { d.scratchSource.stop(); } catch (_) {}
+      try { d.scratchSource.disconnect(); } catch (_) {}
+      d.scratchSource = null;
+    }
+    d.scratchDir = 0;
+  }
+
+  beginScratch(deckId) {
+    this.ensureContext();
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.isScratching = true;
+    d.wasPlayingBeforeScratch = d.isPlaying;
+    if (d.isPlaying) {
+      d.offset = this.getCurrentTime(deckId);
+      this._stopSource(deckId);
+    }
+    this._stopScratchSource(deckId);
+  }
+
+  moveScratch(deckId, deltaSec, speedRatio) {
+    const d = this.decks[deckId];
+    if (!d.track || !d.isScratching) return;
+    const dur = d.track.duration;
+    d.offset = (((d.offset + deltaSec) % dur) + dur) % dur;
+
+    const absRate = Math.min(3.5, Math.abs(speedRatio));
+    if (absRate < 0.08) {
+      this._stopScratchSource(deckId);
+      return;
+    }
+
+    const dir = speedRatio >= 0 ? 1 : -1;
+    if (d.scratchSource && d.scratchDir === dir) {
+      d.scratchSource.playbackRate.setTargetAtTime(absRate, this.ctx.currentTime, 0.012);
+    } else {
+      this._stopScratchSource(deckId);
+      const buf = dir > 0 ? d.track.buffer : this._getReversedBuffer(deckId);
+      const startOffset = dir > 0 ? d.offset : Math.max(0, dur - d.offset);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.playbackRate.value = absRate;
+      src.connect(d.nodes.eqLow);
+      src.start(0, startOffset % dur);
+      d.scratchSource = src;
+      d.scratchDir = dir;
+    }
+    this._emitAction({ type: 'SCRATCH', deck: deckId, value: speedRatio });
+  }
+
+  endScratch(deckId) {
+    const d = this.decks[deckId];
+    if (!d.isScratching) return;
+    d.isScratching = false;
+    this._stopScratchSource(deckId);
+    if (d.wasPlayingBeforeScratch && d.track) {
+      this._startSource(deckId, d.offset);
+      d.isPlaying = true;
+    }
+    this._notify();
   }
 
   setScratchDelta(deckId, rateDelta) {

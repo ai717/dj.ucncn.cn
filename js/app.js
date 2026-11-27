@@ -887,20 +887,63 @@ document.querySelectorAll('.overview-canvas').forEach((canvas) => {
   });
 });
 
+// 黑胶唱盘 1:1 真实角度手动旋转与双向搓碟（按住停盘、顺时针正向、逆时针真实倒放搓碟）
 document.querySelectorAll('.vinyl-platter').forEach((platter) => {
   const deckId = platter.dataset.deck;
   let dragging = false;
-  let lastX = 0;
-  platter.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; platter.setPointerCapture(e.pointerId); });
+  let lastAngle = 0;
+  let lastTime = 0;
+  let idleTimer = null;
+
+  const getPointerAngle = (e) => {
+    const r = platter.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+  };
+
+  platter.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastAngle = getPointerAngle(e);
+    lastTime = performance.now();
+    platter.setPointerCapture(e.pointerId);
+    engine.beginScratch(deckId);
+  });
+
   platter.addEventListener('pointermove', (e) => {
     if (!dragging) return;
-    const dx = e.clientX - lastX;
-    lastX = e.clientX;
-    engine.setScratchDelta(deckId, Math.max(-0.6, Math.min(0.8, dx * 0.04)));
+    const now = performance.now();
+    const angle = getPointerAngle(e);
+    let deltaDeg = angle - lastAngle;
+    if (deltaDeg > 180) deltaDeg -= 360;
+    if (deltaDeg < -180) deltaDeg += 360;
+    lastAngle = angle;
+
+    const dt = Math.max(0.008, (now - lastTime) / 1000);
+    lastTime = now;
+
+    // 1:1 跟随手指旋转黑胶盘面（33⅓ RPM = 1.8s / 360°）
+    platterAngles[deckId] = (platterAngles[deckId] + deltaDeg) % 360;
+    platter.style.transform = `rotate(${platterAngles[deckId]}deg)`;
+
+    const deltaSec = (deltaDeg / 360) * 1.8;
+    const speedRatio = (deltaDeg / dt) / 200; // 200 deg/s = 1.0x 原速
+    engine.moveScratch(deckId, deltaSec, speedRatio);
+
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (dragging) engine.moveScratch(deckId, 0, 0);
+    }, 65);
   });
-  const endScratch = () => { if (!dragging) return; dragging = false; engine.setScratchDelta(deckId, 0); };
-  platter.addEventListener('pointerup', endScratch);
-  platter.addEventListener('pointercancel', endScratch);
+
+  const finishScratch = () => {
+    if (!dragging) return;
+    dragging = false;
+    clearTimeout(idleTimer);
+    engine.endScratch(deckId);
+  };
+  platter.addEventListener('pointerup', finishScratch);
+  platter.addEventListener('pointercancel', finishScratch);
 });
 
 // 移动端切换
@@ -1102,8 +1145,8 @@ function animate(now) {
       const rem = Math.max(0, d.track.duration - cur);
       timeEl.textContent = `${fmtTime(cur)}  -${fmtTime(rem)}`;
     }
-    if (d.isPlaying) {
-      platterAngles[id] = (platterAngles[id] + dt * 120 * engine.getPlaybackRate(id)) % 360;
+    if (d.isPlaying && !d.isScratching) {
+      platterAngles[id] = (platterAngles[id] + dt * 200 * engine.getPlaybackRate(id)) % 360;
       document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
     }
     const beatInfo = engine.getBeatInfo(id);
