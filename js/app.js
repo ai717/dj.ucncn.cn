@@ -67,28 +67,78 @@ const coach = new CoachEngine(engine, {
   }
 });
 
+let crateSource = 'all'; // 'all' | 'local'
+let setTab = 'queue';    // 'queue' | 'played'
+const playedTracks = [];
+
+function trackDurationSec(t) {
+  return Math.round(((t.bars || 8) * 4 * 60) / (t.bpm || 120));
+}
+
+function fmtShortTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = String(Math.floor(sec % 60)).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function renderMixesWellNext() {
+  const bar = document.getElementById('mixes-well-bar');
+  if (!bar) return;
+  const activeDeck = engine.decks.A.isPlaying ? 'A' : engine.decks.B.isPlaying ? 'B' : 'A';
+  const cur = engine.decks[activeDeck].track;
+  if (!cur) { bar.innerHTML = ''; return; }
+  const curKey = (cur.key || '').split('·')[0].trim();
+  const targetDeck = activeDeck === 'A' ? 'B' : 'A';
+  const matches = TRACK_CATALOG.filter((t) => t.id !== cur.id).filter((t) => {
+    const k = (t.key || '').split('·')[0].trim();
+    const keyOk = k === curKey || k[0] === curKey[0];
+    const bpmOk = Math.abs(t.bpm - cur.bpm) <= 10;
+    return keyOk || bpmOk;
+  }).slice(0, 2);
+
+  if (!matches.length) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `<span>推荐接歌 (Mixes well next):</span>` + matches.map((m) =>
+    `<button type="button" class="mix-chip" data-mix-load="${targetDeck}:${m.id}">${m.title} · ${m.bpm} BPM → ${targetDeck}</button>`
+  ).join('');
+}
+
 function renderCrate() {
   ui.crateList.innerHTML = '';
   let list = TRACK_CATALOG.filter((t) => {
+    if (crateSource === 'local' && !t.id.startsWith('local-')) return false;
     if (!crateFilter) return true;
     const q = crateFilter.toLowerCase();
     return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
   });
   if (crateSort) {
-    list = [...list].sort((a, b) => (crateSortAsc ? a[crateSort] - b[crateSort] : b[crateSort] - a[crateSort]));
+    list = [...list].sort((a, b) => {
+      const av = a[crateSort];
+      const bv = b[crateSort];
+      if (typeof av === 'string') return crateSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      return crateSortAsc ? av - bv : bv - av;
+    });
+  }
+  if (list.length === 0) {
+    ui.crateList.innerHTML = '<div class="crate-item-meta" style="padding:10px;">暂无匹配的曲目，点击「+ 添加音乐」或「+ 添加文件夹」导入本地音频。</div>';
+    renderMixesWellNext();
+    return;
   }
   for (const t of list) {
     const onA = engine.decks.A.track?.id === t.id;
     const onB = engine.decks.B.track?.id === t.id;
+    const played = playedTracks.some((p) => p.id === t.id);
     const badgeA = onA ? '<span class="crate-deck-pill deck-a">A</span>' : '';
     const badgeB = onB ? '<span class="crate-deck-pill deck-b">B</span>' : '';
+    const check = played ? '<span class="crate-check">✓</span>' : '';
+    const keyShort = (t.key || '—').split('·')[0].trim();
     const row = document.createElement('div');
-    row.className = 'crate-item compact-row';
+    row.className = `crate-item compact-row ${onA || onB ? 'loaded' : ''}`;
     row.innerHTML = `
-      <span class="crate-song">${badgeA}${badgeB}<strong>${t.title}</strong> <small>${t.genre}</small></span>
-      <span class="crate-col">${t.key}</span>
-      <span class="crate-col">${t.bpm}</span>
+      <span class="crate-song">${badgeA}${badgeB}<strong>${t.title}</strong>${check}</span>
+      <span class="crate-col">${keyShort}</span>
+      <span class="crate-col">${t.bpm.toFixed(1)}</span>
       <span class="crate-col">${t.energy}</span>
+      <span class="crate-col">${fmtShortTime(trackDurationSec(t))}</span>
       <div class="crate-item-btns">
         <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
         <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
@@ -97,26 +147,32 @@ function renderCrate() {
     `;
     ui.crateList.appendChild(row);
   }
+  renderMixesWellNext();
 }
 
 function renderSetList() {
-  document.getElementById('set-count').textContent = String(setQueue.length);
+  document.getElementById('played-count').textContent = String(playedTracks.length);
+  const items = setTab === 'queue' ? setQueue : playedTracks;
+  const totalSec = items.reduce((acc, t) => acc + trackDurationSec(t), 0);
+  document.getElementById('set-summary').textContent = `${items.length} 首 · ${fmtShortTime(totalSec)}`;
   ui.setList.innerHTML = '';
-  if (setQueue.length === 0) {
-    ui.setList.innerHTML = '<div class="crate-item-meta" style="padding:8px;">待播清单为空，请在左侧曲库点击「+ Set」添加曲目。</div>';
+  if (items.length === 0) {
+    ui.setList.innerHTML = setTab === 'queue'
+      ? '<div class="crate-item-meta" style="padding:10px;">在左侧曲库点击「+ Set」按演出顺序排入歌曲，点击 Auto DJ 自动连播混音。</div>'
+      : '<div class="crate-item-meta" style="padding:10px;">本次会话还没有播放记录。</div>';
     return;
   }
-  setQueue.forEach((t, idx) => {
+  items.forEach((t, idx) => {
     const row = document.createElement('div');
-    row.className = 'crate-item';
+    row.className = 'crate-item compact-row';
+    row.style.gridTemplateColumns = '1fr 48px auto';
     row.innerHTML = `
-      <div class="crate-item-info">
-        <strong>${idx + 1}. ${t.title}</strong>
-        <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM</span>
-      </div>
+      <span class="crate-song"><strong>${idx + 1}. ${t.title}</strong></span>
+      <span class="crate-col">${t.bpm}</span>
       <div class="crate-item-btns">
         <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
         <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
+        ${setTab === 'queue' ? `<button type="button" class="hw-sm" data-remove-set="${idx}" title="移出清单">×</button>` : ''}
       </div>
     `;
     ui.setList.appendChild(row);
@@ -480,16 +536,81 @@ document.getElementById('btn-automix').addEventListener('click', async () => {
   }
 });
 
+// 记录已播放曲目
+engine.onAction((action) => {
+  if (action.type === 'PLAY') {
+    const t = engine.decks[action.deck]?.track;
+    if (t && !playedTracks.some((p) => p.id === t.id)) {
+      playedTracks.push(t);
+      renderCrate();
+      renderSetList();
+    }
+  }
+});
+
 // Crate & Set 曲库管理
-document.getElementById('input-local-audio').addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
+async function importAudioFiles(fileList) {
+  const files = Array.from(fileList || []).filter((f) => f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name));
   if (!files.length) return;
   const ctx = engine.ensureContext();
   for (const f of files) {
     try { await registerLocalAudioFile(ctx, f); } catch (err) { console.error(err); }
   }
   renderCrate();
+}
+
+document.getElementById('input-local-audio').addEventListener('change', async (e) => {
+  await importAudioFiles(e.target.files);
   e.target.value = '';
+});
+
+document.getElementById('input-local-folder').addEventListener('change', async (e) => {
+  await importAudioFiles(e.target.files);
+  e.target.value = '';
+});
+
+document.getElementById('btn-live-input-a').addEventListener('click', async () => {
+  try {
+    await engine.connectLiveInput('A');
+    renderCrate();
+  } catch (err) {
+    alert(err.message || '无法访问麦克风/线路输入');
+  }
+});
+
+document.getElementById('btn-src-all').addEventListener('click', () => {
+  crateSource = 'all';
+  document.getElementById('btn-src-all').classList.add('active');
+  document.getElementById('btn-src-local').classList.remove('active');
+  renderCrate();
+});
+
+document.getElementById('btn-src-local').addEventListener('click', () => {
+  crateSource = 'local';
+  document.getElementById('btn-src-local').classList.add('active');
+  document.getElementById('btn-src-all').classList.remove('active');
+  renderCrate();
+});
+
+document.getElementById('tab-set-queue').addEventListener('click', () => {
+  setTab = 'queue';
+  document.getElementById('tab-set-queue').classList.add('active');
+  document.getElementById('tab-set-played').classList.remove('active');
+  renderSetList();
+});
+
+document.getElementById('tab-set-played').addEventListener('click', () => {
+  setTab = 'played';
+  document.getElementById('tab-set-played').classList.add('active');
+  document.getElementById('tab-set-queue').classList.remove('active');
+  renderSetList();
+});
+
+document.getElementById('mixes-well-bar').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-mix-load]');
+  if (!chip) return;
+  const [deck, trackId] = chip.dataset.mixLoad.split(':');
+  engine.loadTrack(deck, trackId);
 });
 
 document.getElementById('crate-search').addEventListener('input', (e) => { crateFilter = e.target.value; renderCrate(); });
@@ -521,6 +642,12 @@ ui.crateList.addEventListener('click', (e) => {
 });
 
 ui.setList.addEventListener('click', (e) => {
+  const rmBtn = e.target.closest('[data-remove-set]');
+  if (rmBtn) {
+    setQueue.splice(Number(rmBtn.dataset.removeSet), 1);
+    renderSetList();
+    return;
+  }
   const btn = e.target.closest('[data-load]');
   if (!btn) return;
   const [deck, trackId] = btn.dataset.load.split(':');

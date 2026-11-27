@@ -764,6 +764,32 @@ export class DJAudioEngine {
     this._emitAction({ type: 'SAMPLER', padId });
   }
 
+  async connectLiveInput(deckId) {
+    this.ensureContext();
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('当前浏览器不支持麦克风/实时音频输入');
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const d = this.decks[deckId];
+    if (d.liveSource) {
+      try { d.liveSource.disconnect(); } catch (_) {}
+    }
+    const src = this.ctx.createMediaStreamSource(stream);
+    src.connect(d.nodes.eqLow);
+    d.liveSource = src;
+    d.track = {
+      id: `live-${deckId}`,
+      title: '实时音频输入 (Mic / Line-in)',
+      genre: 'Live Input',
+      bpm: 120,
+      key: '—',
+      energy: 8,
+      duration: 60,
+      peaks: new Float32Array(1200).fill(0.45)
+    };
+    this._notify();
+  }
+
   getLevel(deckId) {
     const d = this.decks[deckId];
     if (!d.nodes || !d.isPlaying) return 0;

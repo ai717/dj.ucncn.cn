@@ -429,28 +429,40 @@
       <span class="sampler-hint">拖放音频文件到采样垫可自定义音效</span>
     </section>
 
-    <!-- 底部 Crate 曲库 | Set 待播清单 双栏 -->
+    <!-- 底部 Crate 曲库 | Set 待播清单 双栏（1:1 对齐 Backspin 结构与功能） -->
     <section class="crate-set-grid">
       <div class="crate-panel">
         <div class="crate-head">
           <div class="crate-title-group">
             <h2>Crate</h2>
-            <label class="top-btn file-import-btn">
-              + 导入音乐
+            <div class="segmented-toggle compact-seg" role="group" aria-label="曲库来源">
+              <button type="button" id="btn-src-all" class="seg-btn active">全部曲库</button>
+              <button type="button" id="btn-src-local" class="seg-btn">本地导入</button>
+            </div>
+            <label class="top-btn crate-btn">
+              + 添加音乐
               <input type="file" id="input-local-audio" accept="audio/*" multiple hidden>
             </label>
+            <label class="top-btn crate-btn">
+              + 添加文件夹
+              <input type="file" id="input-local-folder" webkitdirectory multiple hidden>
+            </label>
+            <button type="button" class="top-btn crate-btn" id="btn-live-input-a" title="将麦克风或外接线路接入 Deck A 混音">实时输入 → A</button>
           </div>
-          <div class="crate-tools">
-            <input type="search" id="crate-search" class="crate-search" placeholder="搜索曲名 / 风格…" aria-label="搜索曲库">
-            <button type="button" class="hw-sm" data-sort="bpm">BPM↕</button>
-            <button type="button" class="hw-sm" data-sort="energy">能量↕</button>
-          </div>
+          <input type="search" id="crate-search" class="crate-search" placeholder="搜索曲库…" aria-label="搜索曲库">
         </div>
+
+        <div class="crate-subbar">
+          <div class="mixes-well" id="mixes-well-bar"></div>
+          <span class="crate-hint">内置 6 首练习曲，随时可导入本地音乐或文件夹：所有音频仅留在你的设备上。</span>
+        </div>
+
         <div class="crate-table-head">
-          <span>SONG</span>
-          <span>KEY</span>
-          <span>BPM</span>
-          <span>ENERGY</span>
+          <button type="button" class="sort-head" data-sort="title">SONG</button>
+          <button type="button" class="sort-head" data-sort="key">KEY</button>
+          <button type="button" class="sort-head" data-sort="bpm">BPM</button>
+          <button type="button" class="sort-head" data-sort="energy">ENERGY</button>
+          <span class="sort-head static">TIME</span>
           <span></span>
         </div>
         <div class="crate-list" id="crate-list"></div>
@@ -458,8 +470,14 @@
 
       <div class="set-panel">
         <div class="crate-head">
-          <h2>Set <span class="dim-num">(<span id="set-count">0</span>)</span></h2>
-          <button type="button" class="top-btn" id="btn-auto-dj">▶ Auto DJ</button>
+          <div class="crate-title-group">
+            <div class="segmented-toggle compact-seg" role="group" aria-label="Set 视图">
+              <button type="button" id="tab-set-queue" class="seg-btn active">Set</button>
+              <button type="button" id="tab-set-played" class="seg-btn">已播放 <span id="played-count">0</span></button>
+            </div>
+            <span class="dim-num" id="set-summary">0 首 · 0:00</span>
+          </div>
+          <button type="button" class="top-btn crate-btn" id="btn-auto-dj">▶ Auto DJ</button>
         </div>
         <div class="crate-list" id="set-list"></div>
       </div>
