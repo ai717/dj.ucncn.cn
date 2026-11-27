@@ -1374,45 +1374,6 @@ body.pro-mode .hw-sm.pro-only {
 .virtual-cursor.active { opacity: 1; }
 .virtual-cursor.clicking { transform: scale(0.72); background: rgba(159, 212, 163, 0.75); }
 
-.challenge-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  background: rgba(227, 200, 140, 0.12);
-  border: 1px solid var(--warn);
-  border-radius: 12px;
-  padding: 8px 14px;
-  flex-wrap: wrap;
-}
-.challenge-banner[hidden] { display: none; }
-.challenge-banner-right { display: flex; align-items: center; gap: 10px; }
-
-.challenge-result {
-  background: #101013;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-}
-.challenge-result[hidden] { display: none; }
-.challenge-grade {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 26px;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--warn), var(--b));
-  color: #0d0d0f;
-}
-.challenge-result-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-
 /* 高手示范（Premixes）选择列表 */
 .premix-list {
   display: flex;

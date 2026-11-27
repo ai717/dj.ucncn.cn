@@ -41,7 +41,6 @@
       <button type="button" id="btn-open-lessons" class="top-btn">
         课程 <span class="dim-num" id="lesson-progress-badge">0/21</span>
       </button>
-      <button type="button" id="btn-challenge" class="top-btn">盲听挑战</button>
       <button type="button" id="btn-load-demo-pair" class="top-btn">重置曲目</button>
 
       <div class="segmented-toggle" role="group" aria-label="界面模式">
@@ -90,15 +89,6 @@
         <button type="button" class="showme-btn" id="btn-show-me">▶ 演示给我看</button>
       </div>
     </section>
-
-    <!-- 盲听挑战悬浮条 -->
-    <div class="challenge-banner" id="challenge-banner" hidden>
-      <span><strong>30 秒盲听对拍挑战中</strong> · 只靠耳朵拖动右边 Deck B 的 TEMPO 推子对齐节拍</span>
-      <div class="challenge-banner-right">
-        <span class="challenge-timer">剩余 <strong id="banner-timer-val">30</strong>s</span>
-        <button type="button" class="showme-btn" id="btn-banner-submit">立即交卷</button>
-      </div>
-    </div>
 
     <!-- 顶部双轨连续高解析波形 -->
     <section class="waveforms-strip" aria-label="双轨同步波形">
@@ -650,28 +640,6 @@
           <p class="premix-card-desc">以低潮律动鼓点伴奏，在 B 盘霓虹人声吉他上演示基础婴儿搓（Baby Scratch）、前推切音与横推截断搓碟组合。</p>
         </button>
       </div>
-    </div>
-  </dialog>
-
-  <!-- 30 秒盲听对拍挑战弹窗 -->
-  <dialog id="challenge-dialog" closedby="any" aria-labelledby="challenge-dialog-title">
-    <div class="dialog-inner">
-      <header class="dialog-head">
-        <h1 id="challenge-dialog-title">30 秒盲听对拍挑战</h1>
-        <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
-      </header>
-      <p class="coach-desc">
-        规则：系统将随机打乱右盘（Deck B）的速度并隐藏 BPM 数字。你有 30 秒时间，纯靠耳朵拖动右盘「TEMPO」推子把两首歌节拍对齐。
-      </p>
-      <div class="challenge-result" id="challenge-result" hidden>
-        <div class="challenge-grade" id="challenge-grade">S</div>
-        <div class="challenge-stats" id="challenge-stats"></div>
-        <div class="challenge-result-btns">
-          <button type="button" class="top-btn" id="btn-copy-challenge">复制战绩文案</button>
-          <button type="button" class="showme-btn" id="btn-download-poster">下载战绩海报</button>
-        </div>
-      </div>
-      <button type="button" class="showme-btn" id="btn-challenge-start">▶ 开始 30 秒挑战</button>
     </div>
   </dialog>
 
