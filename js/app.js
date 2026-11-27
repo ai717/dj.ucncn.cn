@@ -347,6 +347,18 @@ function syncUIWithEngine() {
       const sBtn = document.querySelector(`[data-stem="${id}:${sKey}"]`);
       if (sBtn) sBtn.classList.toggle('active', Boolean(d.stems[sKey]));
     }
+    const splitBtn = document.querySelector(`.tagged-row > [data-stem-split="${id}"]`);
+    const stemGroup = document.querySelector(`[data-stem-group="${id}"]`);
+    if (splitBtn && stemGroup) {
+      splitBtn.hidden = Boolean(d.stemsExpanded);
+      stemGroup.hidden = !d.stemsExpanded;
+    }
+    const keyValBtn = document.querySelector(`[data-key-reset="${id}"]`);
+    if (keyValBtn) {
+      const ks = d.keyShift || 0;
+      keyValBtn.textContent = ks > 0 ? `+${ks}` : String(ks);
+      keyValBtn.classList.toggle('active', ks !== 0);
+    }
     const revBtn = document.querySelector(`[data-rev="${id}"]`);
     if (revBtn) revBtn.classList.toggle('active', Boolean(d.reversePlay));
   }
@@ -502,6 +514,39 @@ document.querySelectorAll('[data-bpm-scale]').forEach((b) => {
     const [deck, factor] = b.dataset.bpmScale.split(':');
     engine.scaleTrackBpm(deck, Number(factor));
   });
+});
+
+document.querySelectorAll('[data-grid-shift]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, delta] = b.dataset.gridShift.split(':');
+    engine.shiftGrid(deck, Number(delta));
+  });
+});
+
+document.querySelectorAll('[data-bpm-nudge]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, delta] = b.dataset.bpmNudge.split(':');
+    engine.nudgeTrackBpm(deck, Number(delta));
+  });
+});
+
+document.querySelectorAll('[data-key-shift]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, delta] = b.dataset.keyShift.split(':');
+    engine.setKeyShift(deck, (engine.decks[deck].keyShift || 0) + Number(delta));
+  });
+});
+
+document.querySelectorAll('[data-key-reset]').forEach((b) => {
+  b.addEventListener('click', () => engine.setKeyShift(b.dataset.keyReset, 0));
+});
+
+document.querySelectorAll('[data-key-match]').forEach((b) => {
+  b.addEventListener('click', () => engine.matchKey(b.dataset.keyMatch));
+});
+
+document.querySelectorAll('[data-stem-split]').forEach((b) => {
+  b.addEventListener('click', () => engine.toggleStemsSplit(b.dataset.stemSplit));
 });
 
 const tapTimes = { A: [], B: [] };

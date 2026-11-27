@@ -648,11 +648,29 @@ body {
 .hc-btn[data-hotcue$=":1"] { border-color: rgba(227, 200, 140, 0.5); color: var(--warn); }
 .hc-btn[data-hotcue$=":2"] { border-color: rgba(159, 212, 163, 0.5); color: var(--good); }
 .hc-btn[data-hotcue$=":3"] { border-color: rgba(185, 180, 201, 0.5); color: var(--v); }
+.hc-btn[data-hotcue$=":4"] { border-color: rgba(126, 182, 216, 0.5); color: #7eb6d8; }
+.hc-btn[data-hotcue$=":5"] { border-color: rgba(201, 138, 184, 0.5); color: #c98ab8; }
+.hc-btn[data-hotcue$=":6"] { border-color: rgba(184, 196, 122, 0.5); color: #b8c47a; }
+.hc-btn[data-hotcue$=":7"] { border-color: rgba(217, 154, 108, 0.5); color: #d99a6c; }
 
 .hc-btn.set[data-hotcue$=":0"] { background: var(--bad); color: #0d0d0f; border-color: var(--bad); }
 .hc-btn.set[data-hotcue$=":1"] { background: var(--warn); color: #0d0d0f; border-color: var(--warn); }
 .hc-btn.set[data-hotcue$=":2"] { background: var(--good); color: #0d0d0f; border-color: var(--good); }
 .hc-btn.set[data-hotcue$=":3"] { background: var(--v); color: #0d0d0f; border-color: var(--v); }
+.hc-btn.set[data-hotcue$=":4"] { background: #7eb6d8; color: #0d0d0f; border-color: #7eb6d8; }
+.hc-btn.set[data-hotcue$=":5"] { background: #c98ab8; color: #0d0d0f; border-color: #c98ab8; }
+.hc-btn.set[data-hotcue$=":6"] { background: #b8c47a; color: #0d0d0f; border-color: #b8c47a; }
+.hc-btn.set[data-hotcue$=":7"] { background: #d99a6c; color: #0d0d0f; border-color: #d99a6c; }
+
+body.pro-mode .hc-matrix {
+  gap: 5px;
+}
+
+body.pro-mode .hc-btn {
+  height: 23px;
+  border-radius: 999px;
+  font-size: 11px;
+}
 
 /* 底部 Loop + Vinyl 两端对齐行 */
 .deck-bottom-rows {
@@ -665,39 +683,60 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .row-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+}
+
+.fx-row-group {
+  flex: 1;
+  min-width: 0;
 }
 
 .tagged-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+}
+
+.stem-pads-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stem-pads-group[hidden] {
+  display: none;
 }
 
 .row-label {
-  width: 30px;
+  width: 28px;
   flex-shrink: 0;
   font-size: 9px;
   font-weight: 700;
   color: var(--dim);
 }
 
+.row-label-right {
+  width: auto;
+  margin-right: 2px;
+}
+
 .hw-sm {
-  height: 28px;
+  height: 26px;
   background: linear-gradient(#222226, #19191c);
   color: var(--text);
   border: 1px solid var(--line-2);
   border-radius: 7px;
-  padding: 0 9px;
-  font-size: 11px;
+  padding: 0 7px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 1px rgba(0, 0, 0, 0.4);
 }
 
@@ -707,11 +746,61 @@ body {
   border-color: var(--a);
   color: var(--a);
 }
+.hw-sm.mode-pill.active {
+  background: #ecebe8;
+  border-color: #ecebe8;
+  color: #0d0d0f;
+}
 .hw-sm.danger { border-color: rgba(224, 127, 118, 0.5); color: var(--bad); }
+
+.key-val-btn {
+  min-width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 
 .h-mini-slider {
   flex: 1;
-  accent-color: var(--a);
+  min-width: 56px;
+  height: 20px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.h-mini-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #0a0a0d;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.h-mini-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 20px;
+  margin-top: -9px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b8b8be 0 42%, #1d1d22 42% 58%, #e4e4ea 58% 100%);
+  border: 1px solid #6b6b74;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+.h-mini-slider::-moz-range-track {
+  height: 4px;
+  background: #0a0a0d;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.h-mini-slider::-moz-range-thumb {
+  width: 12px;
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b8b8be 0 42%, #1d1d22 42% 58%, #e4e4ea 58% 100%);
+  border: 1px solid #6b6b74;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 
 /* 中央混音台 (292px) */

@@ -48,6 +48,9 @@ export class DJAudioEngine {
       slipOriginCtx: 0,
       slipOriginOffset: 0,
       reversePlay: false,
+      gridOffset: 0,       // Beatgrid 偏移微调（秒）
+      keyShift: 0,         // 半音变调 (-6..+6)
+      stemsExpanded: false,
       fxBeatDiv: 0.5,      // 0.25, 0.5, 1
       stems: { vocal: true, drums: true, bass: true, other: true },
       scratchOffsetRate: 0,// 临时搓碟速率叠加
@@ -281,6 +284,10 @@ export class DJAudioEngine {
     d.track = track;
     d.reversedBuffer = null;
     d.offset = 0;
+    d.gridOffset = 0;
+    d.keyShift = 0;
+    d.stemsExpanded = false;
+    d.stems = { vocal: true, drums: true, bass: true, other: true };
     d.cuePoint = 0;
     d.hotCues = Array(8).fill(null);
     d.loop4 = false;
@@ -327,7 +334,7 @@ export class DJAudioEngine {
   getBeatInfo(deckId) {
     const d = this.decks[deckId];
     if (!d.track) return { beatInBar: 0, barInPhrase: 0, totalBeats: 0, phase: 0 };
-    const pos = this.getCurrentTime(deckId);
+    const pos = Math.max(0, this.getCurrentTime(deckId) - (d.gridOffset || 0));
     const beatDur = 60 / d.track.bpm;
     const totalBeats = pos / beatDur;
     const beatIndex = Math.floor(totalBeats);
@@ -418,6 +425,7 @@ export class DJAudioEngine {
       src.loopStart = 0;
       src.loopEnd = dur;
       src.playbackRate.value = this.getPlaybackRate(deckId);
+      if (src.detune) src.detune.value = (d.keyShift || 0) * 100;
       src.connect(d.nodes.stemBass);
       src.start(0, Math.max(0, dur - (offsetSec % dur)) % dur);
     } else {
@@ -431,6 +439,7 @@ export class DJAudioEngine {
         src.loopEnd = dur;
       }
       src.playbackRate.value = this.getPlaybackRate(deckId);
+      if (src.detune) src.detune.value = (d.keyShift || 0) * 100;
       src.connect(d.nodes.stemBass);
       src.start(0, offsetSec % dur);
     }
@@ -753,6 +762,67 @@ export class DJAudioEngine {
     if (!d.track) return;
     const beatDur = 60 / d.track.bpm;
     this.seek(deckId, this.getCurrentTime(deckId) + beats * beatDur);
+  }
+
+  shiftGrid(deckId, deltaSec) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.gridOffset = Math.max(-0.5, Math.min(0.5, (d.gridOffset || 0) + deltaSec));
+    this._notify();
+  }
+
+  nudgeTrackBpm(deckId, deltaBpm) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    const nextBpm = Math.round(Math.max(60, Math.min(200, d.track.bpm + deltaBpm)) * 10) / 10;
+    d.track = { ...d.track, bpm: nextBpm };
+    this._notify();
+  }
+
+  setKeyShift(deckId, semitones) {
+    const d = this.decks[deckId];
+    const clamped = Math.max(-6, Math.min(6, Math.round(semitones)));
+    d.keyShift = clamped;
+    if (d.source && d.source.detune && this.ctx) {
+      d.source.detune.setTargetAtTime(clamped * 100, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  matchKey(deckId) {
+    const d = this.decks[deckId];
+    const other = this.decks[deckId === 'A' ? 'B' : 'A'];
+    if (!d.track || !other.track) return;
+    const parseKey = (k) => {
+      const m = String(k || '').match(/^(\d{1,2})([AB])$/i);
+      if (!m) return null;
+      return (Number(m[1]) - 1) * 7 % 12; // Camelot wheel steps (fifths) to chromatic pitch class
+    };
+    const p1 = parseKey(d.track.key);
+    const p2 = parseKey(other.track.key);
+    if (p1 === null || p2 === null) {
+      this.setKeyShift(deckId, 0);
+      return;
+    }
+    let diff = ((p2 - p1) % 12 + 12) % 12;
+    if (diff > 6) diff -= 12;
+    this.setKeyShift(deckId, diff);
+  }
+
+  toggleStemsSplit(deckId) {
+    const d = this.decks[deckId];
+    d.stemsExpanded = !d.stemsExpanded;
+    if (!d.stemsExpanded) {
+      d.stems = { vocal: true, drums: true, bass: true, other: true };
+      if (d.nodes && this.ctx) {
+        const now = this.ctx.currentTime;
+        d.nodes.stemBass.gain.setTargetAtTime(0, now, 0.025);
+        d.nodes.stemVocal.gain.setTargetAtTime(0, now, 0.025);
+        d.nodes.stemDrums.gain.setTargetAtTime(0, now, 0.025);
+        d.nodes.stemOther.gain.setTargetAtTime(0, now, 0.025);
+      }
+    }
+    this._notify();
   }
 
   vinylBrake(deckId) {

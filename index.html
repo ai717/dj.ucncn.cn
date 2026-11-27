@@ -206,37 +206,60 @@
               <button type="button" class="hw-sm" data-loop-half="A">½</button>
               <button type="button" class="hw-sm loop-btn" data-control="deck-A-loop4" id="loop4-A">循环 4 拍</button>
               <button type="button" class="hw-sm" data-loop-double="A">×2</button>
-              <button type="button" class="hw-sm pro-only" data-jump="A:-4">◂◂</button>
-              <button type="button" class="hw-sm pro-only" data-jump="A:4">▸▸</button>
+              <button type="button" class="hw-sm pro-only" data-jump="A:-4" title="向后跳 4 拍">◂◂</button>
+              <button type="button" class="hw-sm pro-only" data-jump="A:4" title="向前跳 4 拍">▸▸</button>
             </div>
             <div class="row-group">
+              <span class="row-label row-label-right pro-only">黑胶</span>
               <button type="button" class="hw-sm" data-brake="A">刹车</button>
               <button type="button" class="hw-sm" data-spin="A">倒转</button>
               <button type="button" class="hw-sm pro-only" data-rev="A">反向</button>
             </div>
           </div>
-          <div class="tagged-row pro-only">
-            <span class="row-label">网格</span>
-            <button type="button" class="hw-sm" data-bpm-scale="A:0.5">÷2</button>
-            <button type="button" class="hw-sm" data-bpm-scale="A:2">×2</button>
-            <button type="button" class="hw-sm" data-tap="A">手动测速</button>
-            <button type="button" class="hw-sm active" data-mode-toggle="A:keyLock">锁调</button>
-            <button type="button" class="hw-sm" data-mode-toggle="A:slipMode">滑移</button>
+          <div class="split-row pro-only">
+            <div class="row-group">
+              <span class="row-label">网格</span>
+              <button type="button" class="hw-sm" data-bpm-scale="A:0.5" title="BPM 减半">÷2</button>
+              <button type="button" class="hw-sm" data-bpm-scale="A:2" title="BPM 翻倍">×2</button>
+              <button type="button" class="hw-sm" data-grid-shift="A:-0.015" title="网格左移">◂</button>
+              <button type="button" class="hw-sm" data-grid-shift="A:0.015" title="网格右移">▸</button>
+              <button type="button" class="hw-sm" data-bpm-nudge="A:-0.1" title="BPM 微调 -0.1">−</button>
+              <button type="button" class="hw-sm" data-bpm-nudge="A:0.1" title="BPM 微调 +0.1">+</button>
+              <button type="button" class="hw-sm" data-tap="A" title="连点测速">测速</button>
+            </div>
+            <div class="row-group">
+              <span class="row-label row-label-right">调性</span>
+              <button type="button" class="hw-sm" data-key-shift="A:-1" title="降半音">−</button>
+              <button type="button" class="hw-sm key-val-btn" data-key-reset="A" title="点击复位变调">0</button>
+              <button type="button" class="hw-sm" data-key-shift="A:1" title="升半音">+</button>
+              <button type="button" class="hw-sm" data-key-match="A" title="自动匹配对盘调性">匹配</button>
+            </div>
           </div>
-          <div class="tagged-row pro-only">
-            <span class="row-label">效果</span>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:echo">回声</button>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:reverb">混响</button>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:flanger">镶边</button>
-            <input type="range" class="h-mini-slider" data-control="deck-A-echo" data-fx-wet="A" min="0" max="0.85" step="0.05" value="0" aria-label="Deck A 效果强度">
-            <button type="button" class="hw-sm" data-fx-div="A">1/2</button>
+          <div class="split-row pro-only">
+            <div class="row-group fx-row-group">
+              <span class="row-label">效果</span>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:echo">回声</button>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:reverb">混响</button>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:flanger">镶边</button>
+              <input type="range" class="h-mini-slider" data-control="deck-A-echo" data-fx-wet="A" min="0" max="0.85" step="0.05" value="0" aria-label="Deck A 效果强度">
+              <button type="button" class="hw-sm" data-fx-div="A">1/2</button>
+            </div>
+            <div class="row-group">
+              <span class="row-label row-label-right">模式</span>
+              <button type="button" class="hw-sm mode-pill active" data-mode-toggle="A:keyLock">锁调</button>
+              <button type="button" class="hw-sm mode-pill" data-mode-toggle="A:slipMode">滑移</button>
+            </div>
           </div>
           <div class="tagged-row pro-only">
             <span class="row-label">分轨</span>
-            <button type="button" class="hw-sm active" data-stem="A:vocal">人声</button>
-            <button type="button" class="hw-sm active" data-stem="A:drums">鼓组</button>
-            <button type="button" class="hw-sm active" data-stem="A:bass">贝斯</button>
-            <button type="button" class="hw-sm active" data-stem="A:other">旋律</button>
+            <button type="button" class="hw-sm" data-stem-split="A">拆分分轨</button>
+            <div class="stem-pads-group" data-stem-group="A" hidden>
+              <button type="button" class="hw-sm active" data-stem="A:vocal">人声</button>
+              <button type="button" class="hw-sm active" data-stem="A:drums">鼓组</button>
+              <button type="button" class="hw-sm active" data-stem="A:bass">贝斯</button>
+              <button type="button" class="hw-sm active" data-stem="A:other">旋律</button>
+              <button type="button" class="hw-sm" data-stem-split="A" title="重置并收起分轨">×</button>
+            </div>
           </div>
         </div>
       </article>
@@ -443,37 +466,60 @@
               <button type="button" class="hw-sm" data-loop-half="B">½</button>
               <button type="button" class="hw-sm loop-btn" data-control="deck-B-loop4" id="loop4-B">循环 4 拍</button>
               <button type="button" class="hw-sm" data-loop-double="B">×2</button>
-              <button type="button" class="hw-sm pro-only" data-jump="B:-4">◂◂</button>
-              <button type="button" class="hw-sm pro-only" data-jump="B:4">▸▸</button>
+              <button type="button" class="hw-sm pro-only" data-jump="B:-4" title="向后跳 4 拍">◂◂</button>
+              <button type="button" class="hw-sm pro-only" data-jump="B:4" title="向前跳 4 拍">▸▸</button>
             </div>
             <div class="row-group">
+              <span class="row-label row-label-right pro-only">黑胶</span>
               <button type="button" class="hw-sm" data-brake="B">刹车</button>
               <button type="button" class="hw-sm" data-spin="B">倒转</button>
               <button type="button" class="hw-sm pro-only" data-rev="B">反向</button>
             </div>
           </div>
-          <div class="tagged-row pro-only">
-            <span class="row-label">网格</span>
-            <button type="button" class="hw-sm" data-bpm-scale="B:0.5">÷2</button>
-            <button type="button" class="hw-sm" data-bpm-scale="B:2">×2</button>
-            <button type="button" class="hw-sm" data-tap="B">手动测速</button>
-            <button type="button" class="hw-sm active" data-mode-toggle="B:keyLock">锁调</button>
-            <button type="button" class="hw-sm" data-mode-toggle="B:slipMode">滑移</button>
+          <div class="split-row pro-only">
+            <div class="row-group">
+              <span class="row-label">网格</span>
+              <button type="button" class="hw-sm" data-bpm-scale="B:0.5" title="BPM 减半">÷2</button>
+              <button type="button" class="hw-sm" data-bpm-scale="B:2" title="BPM 翻倍">×2</button>
+              <button type="button" class="hw-sm" data-grid-shift="B:-0.015" title="网格左移">◂</button>
+              <button type="button" class="hw-sm" data-grid-shift="B:0.015" title="网格右移">▸</button>
+              <button type="button" class="hw-sm" data-bpm-nudge="B:-0.1" title="BPM 微调 -0.1">−</button>
+              <button type="button" class="hw-sm" data-bpm-nudge="B:0.1" title="BPM 微调 +0.1">+</button>
+              <button type="button" class="hw-sm" data-tap="B" title="连点测速">测速</button>
+            </div>
+            <div class="row-group">
+              <span class="row-label row-label-right">调性</span>
+              <button type="button" class="hw-sm" data-key-shift="B:-1" title="降半音">−</button>
+              <button type="button" class="hw-sm key-val-btn" data-key-reset="B" title="点击复位变调">0</button>
+              <button type="button" class="hw-sm" data-key-shift="B:1" title="升半音">+</button>
+              <button type="button" class="hw-sm" data-key-match="B" title="自动匹配对盘调性">匹配</button>
+            </div>
           </div>
-          <div class="tagged-row pro-only">
-            <span class="row-label">效果</span>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:echo">回声</button>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:reverb">混响</button>
-            <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:flanger">镶边</button>
-            <input type="range" class="h-mini-slider" data-control="deck-B-echo" data-fx-wet="B" min="0" max="0.85" step="0.05" value="0" aria-label="Deck B 效果强度">
-            <button type="button" class="hw-sm" data-fx-div="B">1/2</button>
+          <div class="split-row pro-only">
+            <div class="row-group fx-row-group">
+              <span class="row-label">效果</span>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:echo">回声</button>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:reverb">混响</button>
+              <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:flanger">镶边</button>
+              <input type="range" class="h-mini-slider" data-control="deck-B-echo" data-fx-wet="B" min="0" max="0.85" step="0.05" value="0" aria-label="Deck B 效果强度">
+              <button type="button" class="hw-sm" data-fx-div="B">1/2</button>
+            </div>
+            <div class="row-group">
+              <span class="row-label row-label-right">模式</span>
+              <button type="button" class="hw-sm mode-pill active" data-mode-toggle="B:keyLock">锁调</button>
+              <button type="button" class="hw-sm mode-pill" data-mode-toggle="B:slipMode">滑移</button>
+            </div>
           </div>
           <div class="tagged-row pro-only">
             <span class="row-label">分轨</span>
-            <button type="button" class="hw-sm active" data-stem="B:vocal">人声</button>
-            <button type="button" class="hw-sm active" data-stem="B:drums">鼓组</button>
-            <button type="button" class="hw-sm active" data-stem="B:bass">贝斯</button>
-            <button type="button" class="hw-sm active" data-stem="B:other">旋律</button>
+            <button type="button" class="hw-sm" data-stem-split="B">拆分分轨</button>
+            <div class="stem-pads-group" data-stem-group="B" hidden>
+              <button type="button" class="hw-sm active" data-stem="B:vocal">人声</button>
+              <button type="button" class="hw-sm active" data-stem="B:drums">鼓组</button>
+              <button type="button" class="hw-sm active" data-stem="B:bass">贝斯</button>
+              <button type="button" class="hw-sm active" data-stem="B:other">旋律</button>
+              <button type="button" class="hw-sm" data-stem-split="B" title="重置并收起分轨">×</button>
+            </div>
           </div>
         </div>
       </article>
