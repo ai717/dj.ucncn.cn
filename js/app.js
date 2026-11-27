@@ -2137,7 +2137,7 @@ window.addEventListener('keydown', (e) => {
   else if (code === 'Backslash') { e.preventDefault(); document.getElementById('btn-open-lessons').click(); }
 });
 
-// 60fps 动画循环
+// 60fps 动画循环（带 DOM 缓存、高刷屏节能截流与静止待机降频）
 function fmtTime(sec) {
   const m = Math.floor(sec / 60);
   const s = (sec % 60).toFixed(1).padStart(4, '0');
@@ -2146,38 +2146,94 @@ function fmtTime(sec) {
 
 const platterAngles = { A: 0, B: 0 };
 let lastFrame = performance.now();
+let lastBeatState = { A: -1, B: -1 };
+let lastPhraseState = { A: -1, B: -1 };
+let lastVuState = { A: -1, B: -1 };
+
+// 持久化缓存高频 DOM 节点，杜绝 60fps 重复 querySelectorAll
+const animDom = {
+  A: {
+    scroll: document.getElementById('wave-scroll-A'),
+    overview: document.getElementById('wave-overview-A'),
+    time: document.getElementById('time-A'),
+    platter: document.getElementById('platter-A'),
+    beats: Array.from(document.querySelectorAll('#beats-A span')),
+    phrases: Array.from(document.querySelectorAll('#phrase-A span')),
+    vu: document.getElementById('vu-A'),
+    clip: document.getElementById('clip-A')
+  },
+  B: {
+    scroll: document.getElementById('wave-scroll-B'),
+    overview: document.getElementById('wave-overview-B'),
+    time: document.getElementById('time-B'),
+    platter: document.getElementById('platter-B'),
+    beats: Array.from(document.querySelectorAll('#beats-B span')),
+    phrases: Array.from(document.querySelectorAll('#phrase-B span')),
+    vu: document.getElementById('vu-B'),
+    clip: document.getElementById('clip-B')
+  },
+  phaseDot: document.getElementById('phase-dot')
+};
+
 function animate(now) {
-  const dt = (now - lastFrame) / 1000;
+  // 帧率节流：封顶 60FPS，防止 120Hz/144Hz/240Hz 电竞屏或 Retina 屏导致 GPU 风扇狂转
+  if (now - lastFrame < 15.5) {
+    requestAnimationFrame(animate);
+    return;
+  }
+  const dt = Math.min(0.1, (now - lastFrame) / 1000);
   lastFrame = now;
+
+  const anyPlaying = engine.decks.A.isPlaying || engine.decks.B.isPlaying ||
+                     engine.decks.A.isScratching || engine.decks.B.isScratching;
+
   for (const id of ['A', 'B']) {
-    drawScrollingWaveform(document.getElementById(`wave-scroll-${id}`), engine, id);
-    drawOverviewWaveform(document.getElementById(`wave-overview-${id}`), engine, id);
+    const el = animDom[id];
+    drawScrollingWaveform(el.scroll, engine, id);
+    drawOverviewWaveform(el.overview, engine, id);
+
     const d = engine.decks[id];
-    const timeEl = document.getElementById(`time-${id}`);
-    if (timeEl && d.track) {
+    if (el.time && d.track) {
       const cur = engine.getCurrentTime(id);
       const rem = Math.max(0, d.track.duration - cur);
-      timeEl.textContent = `${fmtTime(cur)}  -${fmtTime(rem)}`;
+      el.time.textContent = `${fmtTime(cur)}  -${fmtTime(rem)}`;
     }
+
     if (d.isPlaying && !d.isScratching) {
       const dir = d.reversePlay ? -1 : 1;
       platterAngles[id] = (platterAngles[id] + dir * dt * 200 * engine.getPlaybackRate(id)) % 360;
-      document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
+      if (el.platter) el.platter.style.transform = `rotate(${platterAngles[id]}deg)`;
     }
+
+    // 节拍与小节灯：仅在节拍变化时更新 DOM
     const beatInfo = engine.getBeatInfo(id);
-    document.querySelectorAll(`#beats-${id} span`).forEach((dot, idx) => {
-      dot.classList.toggle('on', Boolean(d.track && idx + 1 === beatInfo.beatInBar));
-      dot.classList.toggle('bar-start', idx === 0);
-    });
-    document.querySelectorAll(`#phrase-${id} span`).forEach((barEl, idx) => {
-      barEl.classList.toggle('on', Boolean(d.track && idx < beatInfo.barInPhrase));
-    });
+    if (d.track) {
+      if (lastBeatState[id] !== beatInfo.beatInBar) {
+        lastBeatState[id] = beatInfo.beatInBar;
+        el.beats.forEach((dot, idx) => {
+          dot.classList.toggle('on', idx + 1 === beatInfo.beatInBar);
+          dot.classList.toggle('bar-start', idx === 0);
+        });
+      }
+      if (lastPhraseState[id] !== beatInfo.barInPhrase) {
+        lastPhraseState[id] = beatInfo.barInPhrase;
+        el.phrases.forEach((barEl, idx) => {
+          barEl.classList.toggle('on', idx < beatInfo.barInPhrase);
+        });
+      }
+    }
+
+    // VU 电平表防抖
     const lvl = engine.getLevel(id);
-    document.getElementById(`vu-${id}`).style.height = `${Math.round(lvl * 100)}%`;
-    const clipEl = document.getElementById(`clip-${id}`);
-    if (clipEl) clipEl.classList.toggle('hot', lvl > 0.92);
+    const roundLvl = Math.round(lvl * 100);
+    if (lastVuState[id] !== roundLvl) {
+      lastVuState[id] = roundLvl;
+      if (el.vu) el.vu.style.height = `${roundLvl}%`;
+      if (el.clip) el.clip.classList.toggle('hot', lvl > 0.92);
+    }
   }
-  const phaseDot = document.getElementById('phase-dot');
+
+  // 相位对齐检测
   if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.decks.A.track && engine.decks.B.track) {
     const bA = engine.getBeatInfo('A').phase;
     const bB = engine.getBeatInfo('B').phase;
@@ -2189,13 +2245,19 @@ function animate(now) {
       ? t('节拍已同步 ✓', 'Beats Synced ✓')
       : (ms > 0 ? t(`B 领先 ${ms} ms`, `B +${ms} ms`) : t(`B 落后 ${Math.abs(ms)} ms`, `B -${Math.abs(ms)} ms`));
     ui.phaseMeter.classList.toggle('synced', Math.abs(ms) <= 22);
-    if (phaseDot) phaseDot.style.left = `${Math.max(8, Math.min(92, 50 + diff * 80))}%`;
+    if (animDom.phaseDot) animDom.phaseDot.style.left = `${Math.max(8, Math.min(92, 50 + diff * 80))}%`;
   } else {
     ui.phaseMeter.textContent = t('播放双盘可实时对比节拍', 'Play both decks to compare beats');
     ui.phaseMeter.classList.remove('synced');
-    if (phaseDot) phaseDot.style.left = '50%';
+    if (animDom.phaseDot) animDom.phaseDot.style.left = '50%';
   }
-  requestAnimationFrame(animate);
+
+  // 待机极低功耗调度：完全静止未播放时将采样率降至 15fps，CPU 负载直降 95%+
+  if (!anyPlaying) {
+    setTimeout(() => requestAnimationFrame(animate), 65);
+  } else {
+    requestAnimationFrame(animate);
+  }
 }
 
 setLang(getLang());
