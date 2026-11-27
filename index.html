@@ -8,8 +8,17 @@
   <meta name="description" content="SpinLab 指尖打碟台：零门槛、免注册、免设备，打开浏览器 3 分钟学会第一场 DJ 混音。提供双黑胶唱盘、3段EQ混音台、22节互动纠错课程与30首内置纯净曲目，支持中英双语、移动端触屏与全键盘操作。Drop beats, learn live — right in your browser.">
   <meta name="keywords" content="SpinLab, 指尖打碟台, DJ打碟, 在线DJ, 免费学DJ, 零基础学DJ, DJ混音台, 黑胶唱机, 搓碟教学, 网页打碟机, Web DJ, Learn to DJ online, DJ simulator, virtual DJ mixer, browser DJ, turntable scratch">
   <meta name="author" content="SpinLab Team">
+  <meta name="theme-color" content="#0d0d11">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="googlebot" content="index, follow">
+
+  <!-- 站点图标 (Favicon & PWA Icons) -->
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="shortcut icon" href="./favicon.ico">
+  <link rel="manifest" href="./site.webmanifest">
 
   <!-- 规范链接与多语言标识 (Hreflang) -->
   <link rel="canonical" href="https://dj.ucncn.cn/">
@@ -23,6 +32,7 @@
   <meta property="og:description" content="Drop beats, learn live — right in your browser. 零硬件门槛的双黑胶在线打碟台，22 节手把手互动纠错课程与 30 首内置合成曲库。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dj.ucncn.cn/">
+  <meta property="og:image" content="https://dj.ucncn.cn/apple-touch-icon.png">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:locale:alternate" content="en_US">
 
@@ -30,6 +40,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="SpinLab 指尖打碟台 · 打开浏览器，3 分钟学会第一场 DJ 混音">
   <meta name="twitter:description" content="Drop beats, learn live — right in your browser. 22 节互动课程与双黑胶唱台，零硬件开启你的第一场混音。">
+  <meta name="twitter:image" content="https://dj.ucncn.cn/apple-touch-icon.png">
 
   <!-- 结构化数据 (Schema.org JSON-LD - 提升 Google 搜索富摘要与收录评级) -->
   <script type="application/ld+json">
@@ -91,9 +102,16 @@
   <header class="topbar">
     <div class="brand">
       <svg class="brand-logo" viewBox="0 0 28 28" aria-hidden="true">
-        <circle cx="14" cy="14" r="12" fill="none" stroke="#8ecfe0" stroke-width="2"/>
-        <circle cx="14" cy="14" r="5" fill="#8ecfe0"/>
-        <circle cx="14" cy="14" r="2" fill="#0d0d0f"/>
+        <defs>
+          <linearGradient id="brandLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00f0ff" />
+            <stop offset="100%" stop-color="#ff3366" />
+          </linearGradient>
+        </defs>
+        <circle cx="14" cy="14" r="12" fill="#12141c" stroke="#00f0ff" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="9" fill="none" stroke="#2a2d3d" stroke-width="0.8" stroke-dasharray="3 1.5"/>
+        <circle cx="14" cy="14" r="5.2" fill="url(#brandLogoGrad)" stroke="#ffffff" stroke-width="0.6"/>
+        <circle cx="14" cy="14" r="1.5" fill="#0d0d0f" stroke="#ffffff" stroke-width="0.5"/>
       </svg>
       <strong class="brand-name">SpinLab</strong>
       <span class="brand-sub">指尖打碟台</span>

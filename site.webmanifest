@@ -1,0 +1,26 @@
+{
+  "name": "SpinLab · 指尖打碟台",
+  "short_name": "SpinLab",
+  "description": "打开浏览器，3 分钟学会第一场 DJ 混音。Drop beats, learn live — right in your browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d11",
+  "theme_color": "#0d0d11",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
