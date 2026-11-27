@@ -143,8 +143,43 @@ export const TRACK_CATALOG = [
     energy: 10,
     bars: 8,
     color: '#38bdf8'
-  }
+  },
+  { id: 'sunset-lounge', title: '日落酒廊', genre: '弛放浩室', bpm: 118, key: '5A · Cm', energy: 6, bars: 8, color: '#fb923c' },
+  { id: 'midnight-acid', title: '午夜酸音', genre: '酸性铁克诺', bpm: 134, key: '10A · Bm', energy: 9, bars: 8, color: '#a3e635' },
+  { id: 'tokyo-citypop', title: '都市霓虹', genre: '新迪斯科', bpm: 116, key: '9B · G', energy: 7, bars: 8, color: '#f472b6' },
+  { id: 'cyber-trap', title: '赛博重拍', genre: '电子陷阱', bpm: 140, key: '4A · Fm', energy: 9, bars: 8, color: '#e879f9' },
+  { id: 'ibiza-anthem', title: '伊比萨盛夏', genre: '渐进浩室', bpm: 128, key: '10B · D', energy: 9, bars: 8, color: '#facc15' },
+  { id: 'afterhours-min', title: '深夜极简', genre: '极简科技', bpm: 124, key: '11A · F#m', energy: 7, bars: 8, color: '#94a3b8' },
+  { id: 'golden-funk', title: '黄金放克', genre: '放克浩室', bpm: 122, key: '7B · F', energy: 8, bars: 8, color: '#fbbf24' },
+  { id: 'sub-dubstep', title: '深渊重低音', genre: '回响贝斯', bpm: 140, key: '1A · Abm', energy: 10, bars: 8, color: '#ef4444' },
+  { id: 'amber-ambient', title: '琥珀氛围', genre: '有机浩室', bpm: 119, key: '12A · Dbm', energy: 6, bars: 8, color: '#f59e0b' },
+  { id: 'retro-break', title: '复古碎拍', genre: '碎拍舞曲', bpm: 132, key: '3A · Bbm', energy: 8, bars: 8, color: '#34d399' },
+  { id: 'harbor-afro', title: '海港部落', genre: '非洲浩室', bpm: 120, key: '2A · Ebm', energy: 8, bars: 8, color: '#2dd4bf' },
+  { id: 'warehouse-hard', title: '工业重拍', genre: '硬核铁克诺', bpm: 142, key: '8A · Am', energy: 10, bars: 8, color: '#f87171' },
+  { id: 'velvet-rnb', title: '丝绒节奏', genre: '当代节奏布鲁斯', bpm: 96, key: '5A · Cm', energy: 6, bars: 8, color: '#c084fc' },
+  { id: 'aurora-melodic', title: '极光旋律', genre: '旋律浩室', bpm: 123, key: '9A · Em', energy: 8, bars: 8, color: '#38bdf8' },
+  { id: 'subway-dnb', title: '地下快车', genre: '液态鼓打贝斯', bpm: 172, key: '10A · Bm', energy: 9, bars: 8, color: '#60a5fa' },
+  { id: 'dawn-electro', title: '破晓电音', genre: '电音摇滚', bpm: 127, key: '11B · A', energy: 9, bars: 8, color: '#818cf8' }
 ];
+
+const EXTRA_STYLE_PRESETS = {
+  'sunset-lounge': { drum: 'fourFloor', root: 36, pad: 48, arp: [60, 63, 67, 70], bassWave: 'sine', cutoff: 420 },
+  'midnight-acid': { drum: 'techno', root: 35, pad: 47, arp: [59, 62, 66, 71], bassWave: 'sawtooth', cutoff: 980 },
+  'tokyo-citypop': { drum: 'fourFloor', root: 31, pad: 43, arp: [67, 71, 74, 78], bassWave: 'square', cutoff: 640 },
+  'cyber-trap': { drum: 'trap', root: 29, pad: 41, arp: [65, 68, 72, 77], bassWave: 'sawtooth', cutoff: 520 },
+  'ibiza-anthem': { drum: 'fourFloor', root: 38, pad: 50, arp: [62, 66, 69, 74], bassWave: 'sawtooth', cutoff: 760 },
+  'afterhours-min': { drum: 'techno', root: 30, pad: 42, arp: [66, 69, 73, 76], bassWave: 'triangle', cutoff: 380 },
+  'golden-funk': { drum: 'fourFloor', root: 29, pad: 41, arp: [65, 69, 72, 76], bassWave: 'square', cutoff: 700 },
+  'sub-dubstep': { drum: 'trap', root: 32, pad: 44, arp: [56, 59, 63, 68], bassWave: 'sawtooth', cutoff: 460 },
+  'amber-ambient': { drum: 'fourFloor', root: 37, pad: 49, arp: [61, 64, 68, 73], bassWave: 'sine', cutoff: 340 },
+  'retro-break': { drum: 'twoStep', root: 34, pad: 46, arp: [58, 61, 65, 70], bassWave: 'sawtooth', cutoff: 580 },
+  'harbor-afro': { drum: 'fourFloor', root: 39, pad: 51, arp: [63, 66, 70, 75], bassWave: 'triangle', cutoff: 480 },
+  'warehouse-hard': { drum: 'techno', root: 33, pad: 45, arp: [57, 60, 64, 69], bassWave: 'sawtooth', cutoff: 840 },
+  'velvet-rnb': { drum: 'groove', root: 36, pad: 48, arp: [60, 63, 67, 72], bassWave: 'sine', cutoff: 360 },
+  'aurora-melodic': { drum: 'fourFloor', root: 28, pad: 40, arp: [64, 67, 71, 76], bassWave: 'sawtooth', cutoff: 620 },
+  'subway-dnb': { drum: 'dnb', root: 35, pad: 47, arp: [59, 62, 66, 71], bassWave: 'sawtooth', cutoff: 440 },
+  'dawn-electro': { drum: 'techno', root: 33, pad: 45, arp: [69, 73, 76, 81], bassWave: 'square', cutoff: 780 }
+};
 
 const bufferCache = new Map();
 
@@ -578,6 +613,44 @@ export async function getRenderedTrack(trackId) {
       if (beatInBar === 0) {
         triggerChord(offline, master, t, [57, 60, 64, 69], beatDur * 1.8, 'sawtooth', 2200, 0.1);
       }
+    } else if (EXTRA_STYLE_PRESETS[meta.id]) {
+      const cfg = EXTRA_STYLE_PRESETS[meta.id];
+      const root = bar < 4 ? cfg.root : cfg.root + (bar % 2 === 0 ? 5 : 3);
+      if (cfg.drum === 'fourFloor') {
+        triggerKick(offline, master, t, 148, 0.25, 0.86);
+        if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.28);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.13);
+        triggerBass(offline, master, t + beatDur * 0.5, root, beatDur * 0.42, cfg.bassWave, cfg.cutoff, 0.32);
+      } else if (cfg.drum === 'techno') {
+        triggerKick(offline, master, t, 168, 0.28, 0.92);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.15);
+        if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.26);
+        for (let s = 1; s < 4; s++) {
+          triggerBass(offline, master, t + beatDur * (s * 0.25), root, beatDur * 0.2, cfg.bassWave, cfg.cutoff, 0.26);
+        }
+      } else if (cfg.drum === 'trap') {
+        if (beatInBar === 0 || beatInBar === 3) triggerKick(offline, master, t, 136, 0.3, 0.9);
+        if (beatInBar === 2) triggerSnare(offline, master, noiseBuf, t, 0.42);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.25, false, 0.1);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, false, 0.1);
+        triggerBass(offline, master, t, root, beatDur * 0.85, cfg.bassWave, cfg.cutoff, 0.36);
+      } else if (cfg.drum === 'twoStep' || cfg.drum === 'dnb') {
+        if (beatInBar === 0) triggerKick(offline, master, t, 158, 0.22, 0.88);
+        if (beatInBar === 2) triggerKick(offline, master, t + beatDur * 0.5, 148, 0.2, 0.78);
+        if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.4);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.12);
+        triggerBass(offline, master, t, root, beatDur * 0.75, cfg.bassWave, cfg.cutoff, 0.35);
+      } else {
+        // groove
+        if (beatInBar === 0 || beatInBar === 2) triggerKick(offline, master, t, 126, 0.26, 0.82);
+        if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.3);
+        triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, false, 0.08);
+        triggerBass(offline, master, t, root, beatDur * 0.7, cfg.bassWave, cfg.cutoff, 0.34);
+      }
+      triggerGuitarPluck(offline, master, t + beatDur * 0.25, cfg.arp[(b + bar) % cfg.arp.length], beatDur * 0.35, 0.13);
+      if (beatInBar === 0) {
+        triggerChord(offline, master, t, cfg.arp.slice(0, 3), beatDur * 1.6, 'triangle', 1700, 0.11);
+      }
     } else {
       // low-tide Boom-Bap (92 BPM)
       if (beatInBar === 0 || beatInBar === 2) {
@@ -611,7 +684,7 @@ export async function getRenderedTrack(trackId) {
     'island-bounce': 40,
     'arcade-synth': 43
   };
-  const padRoot = padMap[meta.id] || 45;
+  const padRoot = EXTRA_STYLE_PRESETS[meta.id]?.pad || padMap[meta.id] || 45;
   for (let bar = 0; bar < meta.bars; bar++) {
     const bt = bar * 4 * beatDur;
     const shift = bar % 4 === 2 ? -2 : bar % 4 === 3 ? -4 : 0;

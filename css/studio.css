@@ -1202,7 +1202,39 @@ body.pro-mode .hc-btn {
 .sort-head:hover { color: var(--text); }
 .sort-head.static { cursor: default; }
 
-.crate-list { display: flex; flex-direction: column; gap: 3px; }
+.crate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.crate-list::-webkit-scrollbar,
+.set-list::-webkit-scrollbar {
+  width: 6px;
+}
+.crate-list::-webkit-scrollbar-track,
+.set-list::-webkit-scrollbar-track {
+  background: #101013;
+  border-radius: 999px;
+}
+.crate-list::-webkit-scrollbar-thumb,
+.set-list::-webkit-scrollbar-thumb {
+  background: #35353e;
+  border-radius: 999px;
+}
+.crate-list::-webkit-scrollbar-thumb:hover,
+.set-list::-webkit-scrollbar-thumb:hover {
+  background: #52525e;
+}
+
+.set-list {
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
 
 .crate-item.compact-row {
   display: grid;
