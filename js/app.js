@@ -4,6 +4,7 @@ import { drawScrollingWaveform, drawOverviewWaveform } from './waveform-canvas.j
 import { LESSONS } from './lessons-data.js';
 import { CoachEngine } from './coach-engine.js';
 import { findExplainEntry } from './explain-data.js';
+import { getLang, setLang, applyStaticI18n, t, isEn } from './i18n.js';
 
 const engine = new DJAudioEngine();
 
@@ -51,12 +52,12 @@ const coach = new CoachEngine(engine, {
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
     if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
     ui.coachTag.textContent = lesson.number === 0
-      ? `第 0 课（入门）· ${lesson.title} (${stepNumber}/${totalSteps})`
-      : `第 ${lesson.number} / ${totalLessons - 1} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`;
-    ui.coachTitle.textContent = isLessonActive ? step.title : `${lesson.title}（自由练习模式）`;
-    ui.coachDesc.textContent = isLessonActive ? step.instruction : '点击右侧「继续上课」开启高亮引导，或自由打碟练习。';
+      ? t(`第 0 课（入门）· ${lesson.title} (${stepNumber}/${totalSteps})`, `Lesson 0 (Intro) · ${lesson.title} (${stepNumber}/${totalSteps})`)
+      : t(`第 ${lesson.number} / ${totalLessons - 1} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`, `Lesson ${lesson.number} of ${totalLessons - 1} · ${lesson.title} (${stepNumber}/${totalSteps})`);
+    ui.coachTitle.textContent = isLessonActive ? step.title : t(`${lesson.title}（自由练习模式）`, `${lesson.title} (Free Play)`);
+    ui.coachDesc.textContent = isLessonActive ? step.instruction : t('点击右侧「继续上课」开启高亮引导，或自由打碟练习。', 'Click "Start Guide" on the right for highlighted walkthrough, or practice freely.');
     const toggleBtn = document.getElementById('btn-coach-toggle');
-    if (toggleBtn) toggleBtn.textContent = isLessonActive ? '退出引导' : '继续上课';
+    if (toggleBtn) toggleBtn.textContent = isLessonActive ? t('退出引导', 'Exit Guide') : t('继续上课', 'Start Guide');
     document.querySelector('.coach-topbar')?.classList.toggle('learning-active', isLessonActive);
     updateCoachFloatTip({ lesson, step, stepNumber, totalSteps, isLessonActive, isDemoRunning, feedback });
 
@@ -480,15 +481,17 @@ function syncUIWithEngine() {
   if (masterKnob) updateKnobVisual(masterKnob, engine.masterVolume);
   renderCrate();
   ui.crossfader.value = String(engine.crossfader);
+  const curveBtn = document.getElementById('btn-curve-toggle');
+  if (curveBtn) {
+    curveBtn.textContent = engine.cutCurve ? t('搓碟切割', 'Scratch Cut') : t('平滑曲线', 'Blend Curve');
+    curveBtn.classList.toggle('active', engine.cutCurve);
+  }
   const recBtn = document.getElementById('btn-rec');
   if (recBtn) {
     recBtn.classList.toggle('recording', engine.isRecording);
-    recBtn.innerHTML = engine.isRecording ? '<span class="rec-dot"></span>停止' : '<span class="rec-dot"></span>录音';
-  }
-  const curveBtn = document.getElementById('btn-curve-toggle');
-  if (curveBtn) {
-    curveBtn.textContent = engine.cutCurve ? '搓碟切割' : '平滑曲线';
-    curveBtn.classList.toggle('active', engine.cutCurve);
+    recBtn.innerHTML = engine.isRecording
+      ? `<span class="rec-dot"></span>${t('停止', 'STOP')}`
+      : `<span class="rec-dot"></span>${t('录音', 'REC')}`;
   }
   const phonesSel = document.getElementById('sel-headphones-mode');
   if (phonesSel && phonesSel.value !== 'second') {
@@ -1560,6 +1563,36 @@ document.getElementById('btn-open-lessons').addEventListener('click', () => { re
 document.getElementById('btn-reset-progress').addEventListener('click', () => { coach.resetProgress(); renderLessonsModal(); });
 document.getElementById('btn-open-shortcuts').addEventListener('click', () => ui.shortcutsDialog.showModal());
 
+// 中/英双语切换
+function refreshLanguageUI() {
+  applyStaticI18n();
+  syncUIWithEngine();
+  renderCrate();
+  renderSetList();
+  coach.renderStep();
+  const explainBtnEl = document.getElementById('btn-explain-mode');
+  if (explainBtnEl) {
+    explainBtnEl.textContent = explainMode ? t('退出说明', 'Exit Explain') : t('说明模式', 'Explain');
+  }
+  const playedTab = document.getElementById('tab-set-played');
+  if (playedTab) {
+    const cnt = document.getElementById('played-count')?.textContent || '0';
+    playedTab.innerHTML = `${t('已播放', 'Played')} <span class="dim-num" id="played-count">${cnt}</span>`;
+  }
+  const badgeEl = document.getElementById('lesson-progress-badge');
+  const openLessonsBtn = document.getElementById('btn-open-lessons');
+  if (openLessonsBtn && badgeEl) {
+    const val = badgeEl.textContent;
+    openLessonsBtn.innerHTML = `${t('课程', 'Lessons')} <span class="dim-num" id="lesson-progress-badge">${val}</span>`;
+    ui.lessonBadge = document.getElementById('lesson-progress-badge');
+  }
+}
+
+document.getElementById('btn-lang-toggle').addEventListener('click', () => {
+  setLang(getLang() === 'en' ? 'zh' : 'en');
+  refreshLanguageUI();
+});
+
 // Web MIDI
 const midiDialog = document.getElementById('midi-dialog');
 const midiStatusEl = document.getElementById('midi-status');
@@ -1993,21 +2026,21 @@ function animate(now) {
     if (diff > 0.5) diff -= 1;
     if (diff < -0.5) diff += 1;
     const ms = Math.round(diff * (60000 / engine.getEffectiveBPM('A')));
-    ui.phaseMeter.textContent = Math.abs(ms) <= 22 ? '节拍已同步 ✓' : (ms > 0 ? `B 领先 ${ms} ms` : `B 落后 ${Math.abs(ms)} ms`);
+    ui.phaseMeter.textContent = Math.abs(ms) <= 22
+      ? t('节拍已同步 ✓', 'Beats Synced ✓')
+      : (ms > 0 ? t(`B 领先 ${ms} ms`, `B +${ms} ms`) : t(`B 落后 ${Math.abs(ms)} ms`, `B -${Math.abs(ms)} ms`));
     ui.phaseMeter.classList.toggle('synced', Math.abs(ms) <= 22);
     if (phaseDot) phaseDot.style.left = `${Math.max(8, Math.min(92, 50 + diff * 80))}%`;
   } else {
-    ui.phaseMeter.textContent = '播放双盘可实时对比节拍';
+    ui.phaseMeter.textContent = t('播放双盘可实时对比节拍', 'Play both decks to compare beats');
     ui.phaseMeter.classList.remove('synced');
     if (phaseDot) phaseDot.style.left = '50%';
   }
   requestAnimationFrame(animate);
 }
 
-renderCrate();
-renderSetList();
-syncUIWithEngine();
-coach.renderStep();
+setLang(getLang());
+refreshLanguageUI();
 requestAnimationFrame(animate);
 
 // 开屏自动预装两首内置练习曲，呈现饱满波形与可立即播放的桌面状态
