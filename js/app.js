@@ -42,7 +42,9 @@ const coach = new CoachEngine(engine, {
     const txt = document.getElementById('lesson-meter-text');
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
     if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
-    ui.coachTag.textContent = `第 ${lesson.number} / ${totalLessons} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`;
+    ui.coachTag.textContent = lesson.number === 0
+      ? `第 0 课（入门）· ${lesson.title} (${stepNumber}/${totalSteps})`
+      : `第 ${lesson.number} / ${totalLessons - 1} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`;
     ui.coachTitle.textContent = isLessonActive ? step.title : `${lesson.title}（自由练习模式）`;
     ui.coachDesc.textContent = isLessonActive ? step.instruction : '点击右侧「继续上课」开启高亮引导，或自由打碟练习。';
     const toggleBtn = document.getElementById('btn-coach-toggle');

@@ -1,11 +1,215 @@
 /**
- * 5 节核心互动课程定义
+ * 22 节全流程互动课程定义（第 0 课盘面认知 + 第 1~21 课混音实战）
  * 每一步均包含：高亮目标、Show me 自动演示脚本、语义化纠错规则
  */
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const LESSONS = [
+  {
+    id: 'lesson-0',
+    number: 0,
+    title: '认识打碟机盘面功能',
+    duration: '3 分钟',
+    summary: '零基础入门第一站：逐一认识波形、唱盘、调速、播控、热标点、循环、混音台、采样器与曲库的名称、作用与操作方法。',
+    steps: [
+      {
+        id: 'l0-s1',
+        title: '1/10 · 顶部双轨同步波形条（Waveforms）',
+        instruction: '【名称与作用】上方蓝/橙双轨波形条实时展示 A/B 两首曲子的鼓点与能量起伏，中间白线是当前播放位置，用于肉眼判断两首歌节奏是否对齐。【操作】点击波形任意位置可立即跳转进度，请点击上方波形条试试。',
+        highlightSelector: '.waveforms-strip',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#wave-scroll-A');
+          await cursor.click();
+          engine.seek('A', 2.4, { silentAction: true });
+          await wait(700);
+          engine.seek('A', 0, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'SEEK') {
+            return { pass: true, praise: '很好！点击或拖动波形条可随时精准跳转歌曲位置。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s2',
+        title: '2/10 · 黑胶唱盘与唱臂（Turntable）',
+        instruction: '【名称与作用】模拟 33⅓ 转黑胶唱盘，播放时持续旋转，既能轻推盘边微调快慢，也能按住前后搓碟制造 Scratch 音效。【操作】按住左侧 A 盘黑胶盘面画圈转动一下。',
+        highlightSelector: '#platter-A',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#platter-A');
+          await cursor.click();
+          engine.beginScratch('A');
+          for (let i = 0; i < 3; i++) {
+            engine.moveScratch('A', 0.08, 1.3);
+            await wait(130);
+            engine.moveScratch('A', -0.08, -1.3);
+            await wait(130);
+          }
+          engine.endScratch('A');
+        },
+        validate(action) {
+          if (action.type === 'SCRATCH') {
+            return { pass: true, praise: '漂亮！你刚刚体验了真实物理角度的搓碟手势。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s3',
+        title: '3/10 · 调速推子与 BPM（Tempo Fader）',
+        instruction: '【名称与作用】唱盘右侧「调速」竖推改变播放速度（±8%），右上角 BPM 数字随之变化，用于手动对齐两首歌的速度。【操作】上下拖动左侧 Deck A 的调速推子。',
+        highlightSelector: '#tempo-A',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#tempo-A');
+          await cursor.click();
+          engine.setTempo('A', 3.2, { silentAction: true });
+          await wait(700);
+          engine.setTempo('A', 0, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'TEMPO') {
+            return { pass: true, praise: '掌握了！调速推子是手动对拍（Beatmatching）的核心。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s4',
+        title: '4/10 · 核心播控三键（CUE / ▶ / SYNC）',
+        instruction: '【名称与作用】「CUE」暂停时定起点、播放时按立即弹回起点；「▶」控制播放与黑胶刹车暂停；「SYNC」一键同步对盘速度。【操作】按下左侧 Deck A 的「▶」播放键听一下。',
+        highlightSelector: '[data-control="deck-A-play"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-play"]');
+          await cursor.click();
+          engine.play('A', { silentAction: true });
+          await wait(1600);
+          engine.pause('A', { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'PLAY' && action.deck === 'A') {
+            return { pass: true, praise: '声音响起来了！再按一次 ▶ 会带出真实的黑胶停转尾音。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s5',
+        title: '5/10 · 热标点矩阵（Hot Cues 1~4）',
+        instruction: '【名称与作用】给歌曲的精彩段落（前奏、人声、Drop）打上彩色书签；点亮后随时点击可瞬间跳回并播放，右键可清除。【操作】点击 Deck A 的「1」号热标点按钮打下你的第一个标记。',
+        highlightSelector: '[data-control="deck-A-hotcue-0"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-hotcue-0"]');
+          await cursor.click();
+          engine.triggerHotCue('A', 0, { silentAction: true });
+          await wait(700);
+          engine.clearHotCue('A', 0);
+        },
+        validate(action) {
+          if (action.type === 'HOT_CUE') {
+            return { pass: true, praise: '颜色亮起来了！随时点击这个色块就能一秒闪回标记点。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s6',
+        title: '6/10 · 循环与黑胶特技（Loop / 刹车 / 倒转）',
+        instruction: '【名称与作用】「循环 4 拍」锁定当前 4 拍无限循环，两侧 ½ / ×2 可缩放拍数；右侧「刹车」缓慢停转、「倒转」瞬间倒带。【操作】点击 Deck A 的「循环 4 拍」按钮试试。',
+        highlightSelector: '[data-control="deck-A-loop4"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-loop4"]');
+          await cursor.click();
+          engine.toggleLoop4('A', { silentAction: true });
+          await wait(900);
+          engine.toggleLoop4('A', { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'LOOP4') {
+            return { pass: true, praise: '干得漂亮！再次点击「循环 4 拍」即可退出循环继续往下播。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s7',
+        title: '7/10 · 三段均衡与滤波（HIGH / MID / BASS / FILTER）',
+        instruction: '【名称与作用】中央混音台的「高频/中频/低频」分别控制镲片、人声与底鼓贝斯；「滤波」向左变闷、向右变空灵，双击可归中。【操作】上下拖动左侧「低频」旋钮体验切低音。',
+        highlightSelector: '[data-control="deck-A-eq-low"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-eq-low"]');
+          await cursor.click();
+          engine.setEQ('A', 'low', -16, { silentAction: true });
+          await wait(700);
+          engine.setEQ('A', 'low', 0, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'EQ') {
+            return { pass: true, praise: '掌握了！接歌时两首歌的低频不能同时开满，否则会浑浊打架。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s8',
+        title: '8/10 · 通道推子、电平表与交叉推子（Crossfader）',
+        instruction: '【名称与作用】竖向通道推子控制单盘音量（左侧灯柱防爆音红灯）；底部横向「交叉推子」在 A 盘与 B 盘之间切换声音输出。【操作】左右拖动底部中间的交叉推子。',
+        highlightSelector: '[data-control="crossfader"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="crossfader"]');
+          for (let v = -1; v <= 0.6; v += 0.4) {
+            engine.setCrossfader(v, { silentAction: true });
+            await wait(180);
+          }
+          engine.setCrossfader(-1, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'CROSSFADER') {
+            return { pass: true, praise: '很好！左端只听 A 盘，中间双盘融合，右端只听 B 盘。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s9',
+        title: '9/10 · 8 键独立采样器（Sampler）',
+        instruction: '【名称与作用】空气喇叭、警笛、上升音效等 8 个独立音效垫，不占唱盘通道随时叠加气氛，还支持拖放本地音频文件自定义。【操作】点击任意一个采样垫（或按 Shift+1~8）。',
+        highlightSelector: '.sampler-pads-grid',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('.sampler-pad[data-sampler="airhorn"]');
+          await cursor.click();
+          engine.triggerSampler('airhorn');
+        },
+        validate(action) {
+          if (action.type === 'SAMPLER') {
+            return { pass: true, praise: '气势拉满！随时把本地音效拖到任意采样垫上就能替换成你的专属音效。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s10',
+        title: '10/10 · 曲库与待播清单（Crate & Set）',
+        instruction: '【名称与作用】下方左侧「曲库」内置 14 首零版权舞曲并支持本地导入，按调性与 BPM 智能推荐接歌；右侧「待播清单」可排歌单自动连播。【操作】在曲库中点击任意歌曲的「→ B」装入右盘，即完成第 0 课！',
+        highlightSelector: '.crate-panel',
+        async runDemo(engine, cursor) {
+          const btn = document.querySelector('#crate-list [data-load^="B:"]');
+          if (btn) {
+            await cursor.moveTo('#crate-list [data-load^="B:"]');
+            await cursor.click();
+          }
+          await engine.loadTrack('B', 'velvet-deep', { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'LOAD_TRACK') {
+            return { pass: true, praise: '恭喜！你已全面掌握打碟机盘面的全部功能，接下来进入第 1 课正式切歌实战！' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
   {
     id: 'lesson-1',
     number: 1,
