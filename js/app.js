@@ -201,6 +201,8 @@ function syncUIWithEngine() {
     playBtn.classList.toggle('active', d.isPlaying);
     playBtn.textContent = d.isPlaying ? '❚❚' : '▶';
     loopBtn.classList.toggle('active', d.loop4);
+    const deckEl = document.querySelector(`.deck-panel[data-deck="${id}"]`);
+    if (deckEl) deckEl.classList.toggle('playing', d.isPlaying);
 
     // 同步圆形旋钮角度
     const gainKnob = document.querySelector(`[data-knob="gain:${id}"]`);

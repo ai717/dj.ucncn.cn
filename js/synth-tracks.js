@@ -452,91 +452,184 @@ export async function getRenderedTrack(trackId) {
 }
 
 /**
- * 采样垫一次性音效（空气喇叭 / 倒带 / 激光 / 上升）
+ * 俱乐部级 8 键 DJ 采样器音效引擎（Web Audio 高拟真合成）
  */
 export function playSamplerPad(ctx, dest, padId) {
   const now = ctx.currentTime;
+  const noiseBuf = createNoiseBuffer(ctx, 1.2);
+
   if (padId === 'airhorn') {
-    const freqs = [392, 493.88, 587.33];
+    // 经典牙买加/夜店三和弦失谐空气喇叭 + 起音滑音 + 亮频共振
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1150, now);
+    bp.Q.value = 1.2;
+
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.001, now);
-    g.gain.linearRampToValueAtTime(0.22, now + 0.02);
-    g.gain.setValueAtTime(0.22, now + 0.22);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    g.gain.linearRampToValueAtTime(0.32, now + 0.015);
+    g.gain.setValueAtTime(0.3, now + 0.28);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    bp.connect(g);
     g.connect(dest);
+
+    const freqs = [369.99, 466.16, 554.37, 739.99];
     for (const f of freqs) {
       const osc = ctx.createOscillator();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(f, now);
-      osc.connect(g);
+      osc.frequency.setValueAtTime(f * 0.94, now);
+      osc.frequency.exponentialRampToValueAtTime(f, now + 0.035);
+      osc.detune.value = (Math.random() - 0.5) * 14;
+      osc.connect(bp);
       osc.start(now);
-      osc.stop(now + 0.58);
+      osc.stop(now + 0.68);
     }
-  } else if (padId === 'laser') {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1600, now);
-    osc.frequency.exponentialRampToValueAtTime(180, now + 0.26);
-    g.gain.setValueAtTime(0.28, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    osc.connect(g);
-    g.connect(dest);
-    osc.start(now);
-    osc.stop(now + 0.3);
-  } else if (padId === 'rewind') {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(95, now + 0.42);
-    g.gain.setValueAtTime(0.2, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    osc.connect(g);
-    g.connect(dest);
-    osc.start(now);
-    osc.stop(now + 0.47);
   } else if (padId === 'siren') {
+    // 经典 Dub Siren 警笛 + 回声衰减
     const osc = ctx.createOscillator();
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
+    const lp = ctx.createBiquadFilter();
     const g = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(660, now);
-    lfo.frequency.value = 6;
-    lfoGain.gain.value = 180;
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(720, now);
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(5.5, now);
+    lfoGain.gain.setValueAtTime(240, now);
     lfo.connect(lfoGain);
     lfoGain.connect(osc.frequency);
-    g.gain.setValueAtTime(0.16, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-    osc.connect(g);
+
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(2200, now);
+
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(0.18, now + 0.02);
+    g.gain.setValueAtTime(0.16, now + 0.55);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+
+    osc.connect(lp);
+    lp.connect(g);
     g.connect(dest);
     lfo.start(now);
     osc.start(now);
-    lfo.stop(now + 0.68);
-    osc.stop(now + 0.68);
-  } else if (padId === 'boom') {
-    triggerKick(ctx, dest, now, 120, 0.55, 0.75);
-  } else if (padId === 'snareroll') {
-    const nb = createNoiseBuffer(ctx, 0.2);
-    for (let i = 0; i < 6; i++) {
-      triggerSnare(ctx, dest, nb, now + i * 0.075, 0.22);
+    lfo.stop(now + 0.98);
+    osc.stop(now + 0.98);
+  } else if (padId === 'laser') {
+    // 锐利双发 DJ 激光射线
+    for (let k = 0; k < 2; k++) {
+      const t0 = now + k * 0.14;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(2800, t0);
+      osc.frequency.exponentialRampToValueAtTime(120, t0 + 0.18);
+      g.gain.setValueAtTime(0.24, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+      osc.connect(g);
+      g.connect(dest);
+      osc.start(t0);
+      osc.stop(t0 + 0.22);
     }
-  } else if (padId === 'aah') {
-    triggerVocalChop(ctx, dest, now, 69, 0.48, 'a', 0.28);
-  } else {
-    // riser
+  } else if (padId === 'rewind') {
+    // 真实黑胶倒带 Pull-up（噪音扫频 + 高速颤音上冲）
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 3.5;
+    bp.frequency.setValueAtTime(300, now);
+    bp.frequency.exponentialRampToValueAtTime(3600, now + 0.28);
+    bp.frequency.exponentialRampToValueAtTime(240, now + 0.52);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.26);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.52);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.24, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    noise.connect(bp);
+    bp.connect(g);
+    osc.connect(bp);
+    g.connect(dest);
+    noise.start(now);
+    osc.start(now);
+    noise.stop(now + 0.58);
+    osc.stop(now + 0.58);
+  } else if (padId === 'boom') {
+    // 808 超低音冲击波 Impact Boom
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
-    g.gain.setValueAtTime(0.02, now);
-    g.gain.linearRampToValueAtTime(0.24, now + 0.52);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(135, now);
+    osc.frequency.exponentialRampToValueAtTime(34, now + 0.72);
+    g.gain.setValueAtTime(0.95, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
     osc.connect(g);
     g.connect(dest);
     osc.start(now);
-    osc.stop(now + 0.68);
+    osc.stop(now + 0.88);
+    triggerSnare(ctx, dest, noiseBuf, now, 0.22);
+  } else if (padId === 'snareroll') {
+    // 渐强加速 8 连击军鼓滚奏
+    const offsets = [0, 0.14, 0.26, 0.36, 0.44, 0.51, 0.57, 0.62];
+    offsets.forEach((off, idx) => {
+      triggerSnare(ctx, dest, noiseBuf, now + off, 0.14 + idx * 0.045);
+    });
+  } else if (padId === 'aah') {
+    // 三共振峰人声 "Aah!" 切片 + 气息感
+    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 730; f1.Q.value = 5;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1090; f2.Q.value = 6;
+    const f3 = ctx.createBiquadFilter(); f3.type = 'bandpass'; f3.frequency.value = 2440; f3.Q.value = 7;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(0.36, now + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
+
+    f1.connect(g); f2.connect(g); f3.connect(g);
+    g.connect(dest);
+
+    for (const freq of [220, 440, 554.37]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.connect(f1); osc.connect(f2); osc.connect(f3);
+      osc.start(now);
+      osc.stop(now + 0.55);
+    }
+  } else {
+    // EDM 白噪音扫频 + 合成器上升 Riser (1.0s)
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 2.2;
+    bp.frequency.setValueAtTime(280, now);
+    bp.frequency.exponentialRampToValueAtTime(6200, now + 0.95);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(1280, now + 0.95);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.02, now);
+    g.gain.linearRampToValueAtTime(0.28, now + 0.9);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 1.05);
+
+    noise.connect(bp);
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(dest);
+    noise.start(now);
+    osc.start(now);
+    noise.stop(now + 1.08);
+    osc.stop(now + 1.08);
   }
 }
