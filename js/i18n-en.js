@@ -390,7 +390,7 @@ export const STEP_EN = {
   'l21-s1': {
     title: 'Graduation: Fire the Air Horn!',
     instruction: 'Hit the Air Horn sampler pad (⇧1) to celebrate completing all 22 lessons!',
-    praise: 'Congratulations! You completed the entire Backspin DJ Academy!'
+    praise: 'Congratulations! You completed the entire SpinLab DJ Academy!'
   }
 };
 

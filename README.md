@@ -1,12 +1,18 @@
-# Backspin 中文版 · 浏览器互动 DJ 教练 (dj.ucncn.cn)
+# SpinLab 指尖打碟台 (dj.ucncn.cn)
 
-零门槛、免注册、免设备的浏览器端交互式 DJ 混音教练（MVP v1）。
+> 打开浏览器，3 分钟学会第一场 DJ 混音。  
+> Drop beats, learn live — right in your browser.
+
+零门槛、免注册、免设备的浏览器端交互式 DJ 混音台与教学平台。
 
 ## 核心特性
-- **双黑胶唱机 + 中央混音台**：Web Audio API 实时驱动双轨播放、±8% 调速、等功率 Crossfader、三段 EQ（High / Mid / Bass）与 Filter。
-- **4 首零版权内置合成舞曲**：基于 Web Audio 离线/程序化合成（House / Techno / Hip-Hop / Progressive），秒开零版权风险。
-- **5 节互动式课程**：每节课支持「演示给我看 (Show me)」虚拟光标自动示范，以及基于状态机的**语义化实时纠错**。
-- **零后端持久化**：课程进度保存在 `localStorage`（`ucncn_dj_progress_v1`）。
+- **双黑胶唱机 + 中央混音台**：Web Audio API 实时驱动双轨播放、实时搓碟 (Vinyl Scratch)、±8% 调速、等功率 Crossfader、三段 EQ（High / Mid / Bass）与双极性滤波器。
+- **30 首零版权内置合成舞曲**：涵盖 86~174 BPM、Camelot 1A~12A 完整调性网络，涵盖 House、Techno、Hip-Hop、Dubstep、Afro House 等 16 种音乐流派。
+- **22 节互动式教程**：包含第 0 课新手硬件认识与 21 节专业对拍、EQ过渡、循环、切音与搓碟课程，支持「演示给我看 (Show me)」虚拟光标自动演示与实时语义纠错。
+- **学分进阶体系**：按课程难度奖励学分，小红花通关庆祝动画与持久化成就系统。
+- **10 键即发采样器**：内置空气喇叭、警笛、激光、倒带、重低音等专业采样，支持拖放本地音频自定义。
+- **全端支持**：针对手机触屏优化三面板联动抽屉，支持全套 68 键键盘快捷键与 Web MIDI 控制器。
+- **中英双语无缝切换**：全量界面、曲目、教程与专业术语中英双语支持。
 
 ## 架构归属
-本项目为 `ucncn` 仓库**模式 A** 独立二级域名项目（已在主站 `.gitignore` 排除），拥有独立 Git 仓库与发布配置。
+本项目为 `ucncn` 仓库**模式 A** 独立二级域名项目（已在主站 `.gitignore` 排除），拥有独立 Git 仓库 (`ai717/dj.ucncn.cn`) 与发布配置。

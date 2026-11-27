@@ -28,12 +28,13 @@ export function setLang(lang) {
   try { localStorage.setItem(LANG_KEY, currentLang); } catch (_) {}
   document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
   document.title = currentLang === 'en'
-    ? 'Backspin — Learn to DJ in Your Browser'
-    : 'Backspin — 浏览器里学 DJ';
+    ? 'SpinLab · Drop beats, learn live — right in your browser | Free Online DJ'
+    : 'SpinLab 指尖打碟台 · 打开浏览器，3 分钟学会第一场 DJ 混音';
 }
 
 const SELECTOR_TEXT_MAP = [
-  ['.brand-sub', '浏览器里学 DJ', 'Learn to DJ in your browser'],
+  ['.brand-name', 'SpinLab', 'SpinLab'],
+  ['.brand-sub', '指尖打碟台', 'Drop beats, learn live'],
   ['#btn-premix-demo', '高手示范', 'Premixes'],
   ['#btn-load-demo-pair', '重置曲目', 'Reset tracks'],
   ['#btn-mode-simple', '新手', 'Simple'],
@@ -212,8 +213,8 @@ export function applyStaticI18n() {
   const premixIntro = document.querySelector('#premix-dialog .coach-desc');
   if (premixIntro) {
     premixIntro.textContent = t(
-      '基于内置曲目的精选示范演出。系统会在真实双唱机上自动执行每一步推子、EQ、循环与搓碟操作，让你直观看到每个混音手法。',
-      'Short performances on the built-in songs. Backspin plays them on the real decks, so you can see every move.'
+      '基于内置曲目的精选示范演出。SpinLab 会在真实双唱机上自动执行每一步推子、EQ、循环与搓碟操作，让你直观看到每个混音手法。',
+      'Short performances on the built-in songs. SpinLab plays them on the real decks, so you can see every move.'
     );
   }
   const PREMIX_ZH = {

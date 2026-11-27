@@ -873,7 +873,7 @@ export class DJAudioEngine {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backspin-mix-${Date.now()}.webm`;
+      a.download = `spinlab-mix-${Date.now()}.webm`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     };
