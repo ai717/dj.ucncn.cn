@@ -521,10 +521,10 @@ body {
   -webkit-appearance: none;
   appearance: none;
   width: 30px;
-  height: 22px;
+  height: 26px;
   margin-left: 3px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #d8d8dc 0%, #f2f2f5 44%, #18181b 48%, #18181b 52%, #e4e4e7 56%, #9f9fa8 100%);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #dcdce0 0%, #f0f0f3 44%, #18181b 48%, #18181b 52%, #e4e4e7 56%, #9f9fa8 100%);
   border: 1px solid #09090b;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.75);
 }
@@ -735,6 +735,17 @@ body {
   border-radius: 999px;
 }
 
+.phase-track::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  bottom: -5px;
+  width: 1px;
+  background: #35353c;
+  transform: translateX(-50%);
+}
+
 .phase-dot {
   position: absolute;
   top: -2px;
@@ -804,8 +815,28 @@ body {
   margin-top: 4px;
 }
 
+.vu-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.vu-clip {
+  width: 6px;
+  height: 4px;
+  border-radius: 2px;
+  background: #2b2020;
+  transition: background 0.08s;
+}
+
+.vu-clip.hot {
+  background: var(--bad);
+  box-shadow: 0 0 6px var(--bad);
+}
+
 .vu-track {
-  width: 5px;
+  width: 6px;
   height: 92px;
   background: #08080a;
   border-radius: 3px;
@@ -889,10 +920,10 @@ body {
 .h-fader-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 30px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #d8d8dc 0%, #f2f2f5 45%, #18181b 48%, #18181b 52%, #e4e4e7 55%, #9f9fa8 100%);
+  width: 30px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #dcdce0 0%, #f0f0f3 45%, #18181b 48%, #18181b 52%, #e4e4e7 55%, #9f9fa8 100%);
   border: 1px solid #09090b;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.75);
 }

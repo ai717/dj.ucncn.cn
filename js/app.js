@@ -210,6 +210,21 @@ function renderLessonsModal() {
   });
 }
 
+function describeKnobArc(deg) {
+  if (Math.abs(deg) < 1) return '';
+  const r = 19;
+  const cx = 24;
+  const cy = 24;
+  const startRad = -Math.PI / 2;
+  const endRad = ((deg - 90) * Math.PI) / 180;
+  const x1 = cx + r * Math.cos(startRad);
+  const y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad);
+  const y2 = cy + r * Math.sin(endRad);
+  const sweep = deg > 0 ? 1 : 0;
+  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 0 ${sweep} ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+
 function updateKnobVisual(knobUnit, val) {
   const min = Number(knobUnit.dataset.min);
   const max = Number(knobUnit.dataset.max);
@@ -225,6 +240,24 @@ function updateKnobVisual(knobUnit, val) {
   knobUnit.dataset.val = String(val);
   const rotor = knobUnit.querySelector('.knob-rotor');
   if (rotor) rotor.setAttribute('transform', `rotate(${deg.toFixed(1)} 24 24)`);
+
+  // 动态外环亮色弧线（CH A 冰蓝 #8ecfe0，CH B 暖橙 #eab88c）
+  const svg = knobUnit.querySelector('.knob-svg');
+  if (svg) {
+    let arc = svg.querySelector('.knob-arc');
+    if (!arc) {
+      arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      arc.setAttribute('class', 'knob-arc');
+      arc.setAttribute('fill', 'none');
+      arc.setAttribute('stroke-width', '2.6');
+      arc.setAttribute('stroke-linecap', 'round');
+      const key = knobUnit.dataset.knob || '';
+      const color = key.includes(':A') ? '#8ecfe0' : key.includes(':B') ? '#eab88c' : '#ecebe8';
+      arc.setAttribute('stroke', color);
+      svg.insertBefore(arc, svg.querySelector('.knob-rotor'));
+    }
+    arc.setAttribute('d', describeKnobArc(deg));
+  }
 }
 
 function setLayoutMode(isPro) {
@@ -980,7 +1013,10 @@ function animate(now) {
     document.querySelectorAll(`#phrase-${id} span`).forEach((barEl, idx) => {
       barEl.classList.toggle('on', Boolean(d.track && idx < beatInfo.barInPhrase));
     });
-    document.getElementById(`vu-${id}`).style.height = `${Math.round(engine.getLevel(id) * 100)}%`;
+    const lvl = engine.getLevel(id);
+    document.getElementById(`vu-${id}`).style.height = `${Math.round(lvl * 100)}%`;
+    const clipEl = document.getElementById(`clip-${id}`);
+    if (clipEl) clipEl.classList.toggle('hot', lvl > 0.92);
   }
   const phaseDot = document.getElementById('phase-dot');
   if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.decks.A.track && engine.decks.B.track) {
