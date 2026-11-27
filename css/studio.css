@@ -1458,14 +1458,14 @@ kbd { background: #0d0d0f; border: 1px solid var(--line-2); border-radius: 5px; 
   font-size: 13px;
 }
 
-/* Pro 模式下 1-8 Hot Cue 变为紧凑 4x2 矩阵，总高度保持 52px 对齐 CUE/PLAY/SYNC */
+/* Pro 模式下 1-8 Hot Cue 变为胶囊 4x2 矩阵，总高度保持 52px 对齐 CUE/PLAY/SYNC */
 body.pro-mode .hc-matrix {
-  gap: 4px;
+  gap: 5px;
 }
 
 body.pro-mode .hc-btn {
-  height: 24px;
-  border-radius: 6px;
+  height: 23px;
+  border-radius: 999px;
   font-size: 11px;
 }
 
