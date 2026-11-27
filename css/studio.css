@@ -1338,22 +1338,44 @@ body.pro-mode .hw-sm.pro-only {
 }
 
 .premix-active-ctl {
-  outline: 2px solid #f5c97b !important;
+  outline: 2px solid #ffd584 !important;
   outline-offset: 2px;
   border-radius: 10px;
-  box-shadow: 0 0 0 5px rgba(245, 201, 123, 0.32), 0 0 18px rgba(245, 201, 123, 0.5) !important;
-  animation: premixPulse 0.9s ease-in-out infinite;
+  box-shadow: 0 0 0 5px rgba(245, 201, 123, 0.36), 0 0 22px rgba(245, 201, 123, 0.65) !important;
+  animation: premixPulse 0.85s ease-in-out infinite;
   position: relative;
-  z-index: 4;
+  z-index: 6;
 }
 
-.vinyl-platter.premix-active-ctl {
+.premix-active-ctl::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: rgba(245, 201, 123, 0.28);
+  pointer-events: none;
+  z-index: 2;
+  animation: premixOverlayGlow 0.85s ease-in-out infinite;
+}
+
+.vinyl-platter.premix-active-ctl,
+.vinyl-platter.premix-active-ctl::after {
   border-radius: 50%;
 }
 
+.knob-unit.premix-active-ctl {
+  border-radius: 12px;
+  padding: 2px 4px;
+}
+
 @keyframes premixPulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 201, 123, 0.45), 0 0 14px rgba(245, 201, 123, 0.55); }
-  50% { box-shadow: 0 0 0 7px rgba(245, 201, 123, 0.16), 0 0 22px rgba(245, 201, 123, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 201, 123, 0.5), 0 0 18px rgba(245, 201, 123, 0.65); }
+  50% { box-shadow: 0 0 0 7px rgba(245, 201, 123, 0.18), 0 0 28px rgba(245, 201, 123, 0.35); }
+}
+
+@keyframes premixOverlayGlow {
+  0%, 100% { background: rgba(245, 201, 123, 0.32); }
+  50% { background: rgba(245, 201, 123, 0.16); }
 }
 
 .virtual-cursor {

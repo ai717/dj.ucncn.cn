@@ -455,8 +455,12 @@ function setPremixCue(demoName, selectors, title, desc) {
   ui.coachDesc.textContent = desc;
   let firstVisible = null;
   for (const sel of selectors) {
-    const el = document.querySelector(sel);
+    let el = document.querySelector(sel);
     if (!el) continue;
+    // range input 无法渲染 ::after 透明高亮层，自动提升到其包裹容器
+    if (el.tagName === 'INPUT' && el.type === 'range' && el.parentElement) {
+      el = el.parentElement;
+    }
     el.classList.add('premix-active-ctl');
     const r = el.getBoundingClientRect();
     if (!firstVisible && r.width > 0 && r.height > 0) firstVisible = r;
