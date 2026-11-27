@@ -8,8 +8,11 @@ function samplePeak(peaks, duration, timeSec) {
   const exact = (t / duration) * peaks.length;
   const i0 = Math.floor(exact) % peaks.length;
   const i1 = (i0 + 1) % peaks.length;
+  const iPrev = (i0 - 1 + peaks.length) % peaks.length;
   const frac = exact - Math.floor(exact);
-  return peaks[i0] * (1 - frac) + peaks[i1] * frac;
+  const raw = peaks[i0] * (1 - frac) + peaks[i1] * frac;
+  // 轻量保持包络平滑，消除合成鼓点间隙的“糖葫芦”细颈感
+  return Math.max(0.22, raw * 0.72 + peaks[iPrev] * 0.28);
 }
 
 export function drawScrollingWaveform(canvas, engine, deckId) {

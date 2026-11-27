@@ -74,13 +74,17 @@ function renderCrate() {
     list = [...list].sort((a, b) => (crateSortAsc ? a[crateSort] - b[crateSort] : b[crateSort] - a[crateSort]));
   }
   for (const t of list) {
+    const onA = engine.decks.A.track?.id === t.id;
+    const onB = engine.decks.B.track?.id === t.id;
+    const badgeA = onA ? '<span class="crate-deck-pill deck-a">A</span>' : '';
+    const badgeB = onB ? '<span class="crate-deck-pill deck-b">B</span>' : '';
     const row = document.createElement('div');
     row.className = 'crate-item compact-row';
     row.innerHTML = `
-      <span class="crate-song"><strong>${t.title}</strong> <small>${t.genre}</small></span>
+      <span class="crate-song">${badgeA}${badgeB}<strong>${t.title}</strong> <small>${t.genre}</small></span>
       <span class="crate-col">${t.key}</span>
       <span class="crate-col">${t.bpm}</span>
-      <span class="crate-col">E${t.energy}</span>
+      <span class="crate-col">${t.energy}</span>
       <div class="crate-item-btns">
         <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
         <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
@@ -196,6 +200,12 @@ function syncUIWithEngine() {
     const cueMonBtn = document.querySelector(`[data-cue-mon="${id}"]`);
     if (cueMonBtn) cueMonBtn.classList.toggle('active', d.cueMonitor);
 
+    // Hot Cue 1-3 已设点视觉高亮（与原版 Deck A 一致）
+    document.querySelectorAll(`[data-hotcue^="${id}:"]`).forEach((btn) => {
+      const idx = Number(btn.dataset.hotcue.split(':')[1]);
+      btn.classList.toggle('set', Boolean(d.track && id === 'A' && idx < 3));
+    });
+
     // FX 按钮激活态
     const fxMode = activeFxMode[id];
     document.querySelectorAll(`[data-fx-toggle^="${id}:"]`).forEach((btn) => {
@@ -206,6 +216,9 @@ function syncUIWithEngine() {
     if (fxSlider) fxSlider.value = String(d[fxMode] || 0);
   }
 
+  const masterKnob = document.querySelector('[data-knob="master"]');
+  if (masterKnob) updateKnobVisual(masterKnob, engine.masterVolume);
+  renderCrate();
   ui.crossfader.value = String(engine.crossfader);
   const recBtn = document.getElementById('btn-rec');
   if (recBtn) {
@@ -237,6 +250,7 @@ document.querySelectorAll('.knob-unit').forEach((unit) => {
     if (parts[0] === 'gain') engine.setGainTrim(parts[1], clamped);
     else if (parts[0] === 'eq') engine.setEQ(parts[1], parts[2], clamped);
     else if (parts[0] === 'filter') engine.setFilter(parts[1], clamped);
+    else if (parts[0] === 'master') engine.setMasterVolume(clamped);
   };
 
   unit.addEventListener('pointerdown', (e) => {
@@ -329,7 +343,6 @@ document.getElementById('btn-rec').addEventListener('click', () => {
   engine._emitAction({ type: 'REC_TOGGLE' });
 });
 
-document.getElementById('master-volume').addEventListener('input', (e) => engine.setMasterVolume(Number(e.target.value)));
 ui.crossfader.addEventListener('input', (e) => engine.setCrossfader(Number(e.target.value)));
 
 for (const id of ['A', 'B']) {

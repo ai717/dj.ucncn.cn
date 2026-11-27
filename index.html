@@ -48,10 +48,10 @@
       <button type="button" id="btn-open-midi" class="top-pill pro-only">MIDI</button>
       <button type="button" id="btn-rec" class="top-pill rec-pill">● REC</button>
 
-      <label class="master-control">
-        <span>MASTER</span>
-        <input type="range" id="master-volume" min="0" max="1" step="0.01" value="0.85" aria-label="主音量">
-      </label>
+      <div class="knob-unit master-knob-unit" data-knob="master" data-min="0" data-max="1" data-val="0.85" data-default="0.85" title="上下拖动调节主音量">
+        <div class="rotary-knob master-knob"><div class="knob-dial"></div></div>
+        <span class="knob-label">MASTER</span>
+      </div>
       <button type="button" id="btn-open-shortcuts" class="top-pill icon-pill" aria-label="快捷键">?</button>
     </div>
   </header>
@@ -402,6 +402,13 @@
             <button type="button" class="hw-sm" data-sort="bpm">BPM↕</button>
             <button type="button" class="hw-sm" data-sort="energy">能量↕</button>
           </div>
+        </div>
+        <div class="crate-table-head">
+          <span>SONG</span>
+          <span>KEY</span>
+          <span>BPM</span>
+          <span>ENERGY</span>
+          <span></span>
         </div>
         <div class="crate-list" id="crate-list"></div>
       </div>
