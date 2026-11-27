@@ -119,6 +119,7 @@
 
     <div class="topbar-actions">
       <span class="top-btn credit-pill" id="credit-badge" aria-label="学习学分">学分 <strong id="credit-score">0</strong></span>
+      <button type="button" id="btn-shuffle-dj" class="top-btn shuffle-dj-btn" title="随机打碟模式：智能挑选舞曲、自动对拍与无缝低音置换，纯享听歌">🔀 随机打碟</button>
       <button type="button" id="btn-premix-demo" class="top-btn">高手示范</button>
       <button type="button" id="btn-open-lessons" class="top-btn">
         课程 <span class="dim-num" id="lesson-progress-badge">0/22</span>
@@ -853,6 +854,14 @@
       <strong>怎么操作 &amp; 技巧</strong>
       <p id="explain-pop-how">说明模式下点击面板不会打断当前音频；点右上角「说明模式」或「退出说明 ×」可随时恢复正常打碟。</p>
     </div>
+  </div>
+
+  <!-- 随机打碟（Shuffle DJ）浮动控制条 -->
+  <div id="shuffle-dj-hud" class="shuffle-hud" role="status" aria-live="polite" hidden>
+    <span class="shuffle-pulse-dot" aria-hidden="true"></span>
+    <span class="shuffle-hud-text" id="shuffle-hud-text">🔀 随机打碟中 · 正在为您智能编排舞曲...</span>
+    <button type="button" class="shuffle-hud-skip" id="btn-shuffle-skip" title="立即混入下一曲">⏭ 即刻混入下首</button>
+    <button type="button" class="shuffle-hud-stop" id="btn-shuffle-stop" title="退出随机打碟模式">⏹ 停止</button>
   </div>
 
   <script type="module" src="./js/app.js"></script>

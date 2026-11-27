@@ -98,6 +98,95 @@ body {
   animation: coachPulse 1.2s infinite;
 }
 
+.shuffle-dj-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shuffle-dj-btn.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.22), rgba(255, 51, 102, 0.22));
+  border-color: #00f0ff;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+  animation: shuffleGlow 2s infinite alternate;
+}
+
+@keyframes shuffleGlow {
+  0% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.35); }
+  100% { box-shadow: 0 0 16px rgba(255, 51, 102, 0.5); }
+}
+
+.shuffle-hud {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(14, 16, 24, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 999px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 240, 255, 0.25);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.shuffle-hud[hidden] {
+  display: none !important;
+}
+
+.shuffle-pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff;
+  animation: coachPulse 1s infinite;
+  flex-shrink: 0;
+}
+
+.shuffle-hud-skip {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.shuffle-hud-skip:hover {
+  background: rgba(0, 240, 255, 0.35);
+  border-color: #00f0ff;
+}
+
+.shuffle-hud-stop {
+  background: rgba(255, 75, 75, 0.2);
+  border: 1px solid rgba(255, 75, 75, 0.4);
+  color: #ff9999;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.shuffle-hud-stop:hover {
+  background: rgba(255, 75, 75, 0.45);
+}
+
 .segmented-toggle {
   display: inline-flex;
   background: #101013;
@@ -1397,6 +1486,15 @@ button, .hw-btn, .hw-sm, .hc-btn, .sampler-pad, .top-btn, .seg-btn, .mobile-tab 
     gap: 8px;
   }
   .brand-sub { display: none; }
+  .shuffle-hud {
+    bottom: 68px;
+    width: calc(100% - 24px);
+    max-width: 400px;
+    font-size: 11px;
+    padding: 6px 12px;
+    gap: 8px;
+    justify-content: space-between;
+  }
   .topbar-actions {
     width: 100%;
     overflow-x: auto;

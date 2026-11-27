@@ -4,6 +4,12 @@
 
 export const EXPLAIN_ENTRIES = [
   {
+    match: '#btn-shuffle-dj',
+    name: '随机打碟模式（Shuffle DJ）',
+    role: '智能无人值守打碟电台。自动挑选调性与速度匹配的舞曲，执行平滑低音置换与对拍过渡，让用户纯享高能量DJ音乐。',
+    how: '点击开启或关闭；打碟进行中可随时在悬浮卡片上点击「即刻混入下首」立即跳过当前歌曲混入下一首。'
+  },
+  {
     match: '#btn-wave-zoom-out, #btn-wave-zoom-in',
     name: '波形缩放（− / +）',
     role: '调节顶部双轨主波形的时间视野范围（1.5 秒 ~ 24 秒）。',

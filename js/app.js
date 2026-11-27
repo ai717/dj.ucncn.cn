@@ -1399,49 +1399,192 @@ ui.setList.addEventListener('click', (e) => {
   engine.loadTrack(deck, trackId);
 });
 
-let autoDjController = null;
+// ==========================================
+// 随机打碟模式（Shuffle DJ / Endless Party Radio）
+// 智能无人值守打碟电台：智能选曲、对拍调速、低音置换无缝混音
+// ==========================================
+let shuffleDjController = null;
+let shuffleSkipTrigger = null;
+const shuffleDjBtn = document.getElementById('btn-shuffle-dj');
 const autoDjBtn = document.getElementById('btn-auto-dj');
-autoDjBtn.addEventListener('click', async () => {
-  if (autoDjController) {
-    autoDjController.abort();
-    return;
-  }
-  const list = setQueue.length >= 2 ? [...setQueue] : TRACK_CATALOG.slice(0, 3);
-  autoDjController = new AbortController();
-  const { signal } = autoDjController;
-  autoDjBtn.textContent = '⏹ 停止连播';
+const shuffleHud = document.getElementById('shuffle-dj-hud');
+const shuffleHudText = document.getElementById('shuffle-hud-text');
+const btnShuffleSkip = document.getElementById('btn-shuffle-skip');
+const btnShuffleStop = document.getElementById('btn-shuffle-stop');
 
+function selectNextShuffleTrack(curTrack, playedIds) {
+  let pool = TRACK_CATALOG.filter((t) => !playedIds.includes(t.id));
+  if (pool.length === 0) {
+    playedIds.length = 0;
+    pool = TRACK_CATALOG.filter((t) => t.id !== curTrack?.id);
+  }
+  if (!curTrack || pool.length === 0) {
+    return pool[Math.floor(Math.random() * pool.length)] || TRACK_CATALOG[0];
+  }
+
+  const curKey = (curTrack.key || '').split('·')[0].trim();
+  const curBpm = curTrack.bpm || 124;
+
+  const scored = pool.map((track) => {
+    let score = 0;
+    const k = (track.key || '').split('·')[0].trim();
+    if (k && curKey) {
+      if (k === curKey) score += 6;
+      else if (k.slice(-1) === curKey.slice(-1)) {
+        const numA = parseInt(curKey, 10);
+        const numB = parseInt(k, 10);
+        if (Math.abs(numA - numB) === 1 || Math.abs(numA - numB) === 11) score += 5;
+      } else if (parseInt(k, 10) === parseInt(curKey, 10)) {
+        score += 4;
+      }
+    }
+    const bpmDiff = Math.abs(track.bpm - curBpm);
+    if (bpmDiff <= 4) score += 5;
+    else if (bpmDiff <= 8) score += 3;
+    else if (bpmDiff <= 16) score += 1;
+    score += Math.random() * 2.5;
+    return { track, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.track || pool[0];
+}
+
+function updateShuffleHud(curDeck, curTrack, nextDeck, nextTrack, isTransitioning = false) {
+  if (!shuffleHud || !shuffleHudText) return;
+  if (isTransitioning) {
+    shuffleHudText.textContent = t(
+      `🔀 正在对拍混入: Deck ${nextDeck} · ${getTrackTitle(nextTrack)}...`,
+      `🔀 Beatmatching & mixing into: Deck ${nextDeck} · ${getTrackTitle(nextTrack)}...`
+    );
+  } else {
+    shuffleHudText.textContent = t(
+      `🔀 随机打碟中 · 正在播放 [Deck ${curDeck}: ${getTrackTitle(curTrack)}] ➔ 下一首 [Deck ${nextDeck}: ${getTrackTitle(nextTrack)}]`,
+      `🔀 Shuffle DJ · Now Playing [Deck ${curDeck}: ${getTrackTitle(curTrack)}] ➔ Next [Deck ${nextDeck}: ${getTrackTitle(nextTrack)}]`
+    );
+  }
+}
+
+async function startShuffleDJ() {
+  if (shuffleDjController) return;
+  shuffleDjController = new AbortController();
+  const { signal } = shuffleDjController;
+
+  if (shuffleDjBtn) {
+    shuffleDjBtn.classList.add('active');
+    shuffleDjBtn.textContent = t('⏹ 停止打碟', '⏹ Stop DJ');
+  }
+  if (autoDjBtn) {
+    autoDjBtn.textContent = t('⏹ 停止连播', '⏹ Stop DJ');
+  }
+  if (shuffleHud) shuffleHud.hidden = false;
+
+  const playedIds = [];
   try {
     let curDeck = 'A';
-    await engine.loadTrack(curDeck, list[0].id, { silentAction: true });
-    engine.setCrossfader(-1, { silentAction: true });
-    engine.play(curDeck, { silentAction: true });
+    if (engine.decks.B.isPlaying && !engine.decks.A.isPlaying) {
+      curDeck = 'B';
+    } else if (!engine.decks.A.isPlaying && !engine.decks.B.isPlaying) {
+      const startTrack = TRACK_CATALOG[Math.floor(Math.random() * TRACK_CATALOG.length)];
+      await engine.loadTrack('A', startTrack.id, { silentAction: true });
+      engine.setCrossfader(-1, { silentAction: true });
+      engine.play('A', { silentAction: true });
+    }
+    playedIds.push(engine.decks[curDeck].track?.id);
 
-    for (let i = 1; i < list.length; i++) {
-      await abortableSleep(5000, signal);
+    while (!signal.aborted) {
+      const curTrack = engine.decks[curDeck].track;
       const nextDeck = curDeck === 'A' ? 'B' : 'A';
-      await engine.loadTrack(nextDeck, list[i].id, { silentAction: true });
+      const nextTrack = selectNextShuffleTrack(curTrack, playedIds);
+      playedIds.push(nextTrack.id);
+
+      await engine.loadTrack(nextDeck, nextTrack.id, { silentAction: true });
       if (signal.aborted) break;
+
+      updateShuffleHud(curDeck, curTrack, nextDeck, nextTrack, false);
+
+      // 等待播放：满足 35 秒，或歌曲接近尾奏，或用户手动触发跳过
+      const playWaitMs = 36000;
+      await Promise.race([
+        abortableSleep(playWaitMs, signal),
+        new Promise((resolve) => {
+          shuffleSkipTrigger = resolve;
+        })
+      ]);
+      shuffleSkipTrigger = null;
+      if (signal.aborted) break;
+
+      // 开始平滑混音与对拍（执行专业低音置换 Bass Swap）
+      updateShuffleHud(curDeck, curTrack, nextDeck, nextTrack, true);
       engine.syncDeck(nextDeck, { silentAction: true });
       engine.play(nextDeck, { silentAction: true });
-      const start = engine.crossfader;
-      const end = nextDeck === 'B' ? 1 : -1;
-      for (let s = 1; s <= 16; s++) {
-        engine.setCrossfader(start + ((end - start) * s) / 16, { silentAction: true });
-        await abortableSleep(160, signal);
+
+      const startCross = engine.crossfader;
+      const endCross = nextDeck === 'B' ? 1 : -1;
+      const transitionSteps = 30;
+      const stepIntervalMs = 120; // 约 3.6 秒全自动平滑交接
+
+      for (let s = 1; s <= transitionSteps; s++) {
+        if (signal.aborted) break;
+        const prog = s / transitionSteps;
+        engine.setCrossfader(startCross + (endCross - startCross) * prog, { silentAction: true });
+        // 低音置换：出歌盘逐渐切除低音 (-24dB)，入歌盘低音平滑拉起 (0dB)
+        engine.setEQ(curDeck, 'low', -24 * prog, { silentAction: true });
+        engine.setEQ(nextDeck, 'low', -24 * (1 - prog), { silentAction: true });
+        await abortableSleep(stepIntervalMs, signal);
       }
+
+      if (signal.aborted) break;
       engine.pause(curDeck, { silentAction: true, instant: true });
+      engine.setEQ(curDeck, 'low', 0, { silentAction: true });
+      engine.setEQ(nextDeck, 'low', 0, { silentAction: true });
       curDeck = nextDeck;
     }
   } catch (err) {
-    if (err.name !== 'AbortError') throw err;
+    if (err.name !== 'AbortError') {
+      console.error('Shuffle DJ error:', err);
+    }
   } finally {
-    engine.pause('A', { silentAction: true, instant: true });
-    engine.pause('B', { silentAction: true, instant: true });
-    autoDjController = null;
-    autoDjBtn.textContent = '▶ 自动连播';
+    stopShuffleDJ();
   }
-});
+}
+
+function stopShuffleDJ() {
+  if (shuffleDjController) {
+    const c = shuffleDjController;
+    shuffleDjController = null;
+    c.abort();
+  }
+  shuffleSkipTrigger = null;
+  if (shuffleDjBtn) {
+    shuffleDjBtn.classList.remove('active');
+    shuffleDjBtn.textContent = t('🔀 随机打碟', '🔀 Shuffle DJ');
+  }
+  if (autoDjBtn) {
+    autoDjBtn.textContent = t('▶ 自动连播', '▶ Auto DJ');
+  }
+  if (shuffleHud) shuffleHud.hidden = true;
+}
+
+function toggleShuffleDJ() {
+  if (shuffleDjController) {
+    stopShuffleDJ();
+  } else {
+    startShuffleDJ();
+  }
+}
+
+if (shuffleDjBtn) shuffleDjBtn.addEventListener('click', toggleShuffleDJ);
+if (autoDjBtn) autoDjBtn.addEventListener('click', toggleShuffleDJ);
+if (btnShuffleStop) btnShuffleStop.addEventListener('click', stopShuffleDJ);
+if (btnShuffleSkip) {
+  btnShuffleSkip.addEventListener('click', () => {
+    if (shuffleSkipTrigger) {
+      shuffleSkipTrigger();
+      shuffleSkipTrigger = null;
+    }
+  });
+}
 
 // 波形跳转（概览波形按全曲比例跳转 + 顶部滚动波形按视窗相对时间点击/拖动跳转）
 document.querySelectorAll('.overview-canvas').forEach((canvas) => {

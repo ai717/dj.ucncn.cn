@@ -35,6 +35,9 @@ export function setLang(lang) {
 const SELECTOR_TEXT_MAP = [
   ['.brand-name', 'SpinLab', 'SpinLab'],
   ['.brand-sub', '指尖打碟台', 'Drop beats, learn live'],
+  ['#btn-shuffle-dj', '🔀 随机打碟', '🔀 Shuffle DJ'],
+  ['#btn-shuffle-skip', '⏭ 即刻混入下首', '⏭ Mix Next'],
+  ['#btn-shuffle-stop', '⏹ 停止', '⏹ Stop'],
   ['#btn-premix-demo', '高手示范', 'Premixes'],
   ['#btn-load-demo-pair', '重置曲目', 'Reset tracks'],
   ['#btn-mode-simple', '新手', 'Simple'],

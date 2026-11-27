@@ -413,6 +413,11 @@ export const PREMIX_EN = {
 };
 
 export const EXPLAIN_EN = {
+  '#btn-shuffle-dj': {
+    name: 'Shuffle DJ Mode',
+    role: 'Autonomous AI DJ party radio. Intelligently picks matching songs, beatmatches, and executes seamless bass-swap transitions automatically.',
+    how: 'Click to start or stop; click "Mix Next" on the floating HUD to trigger an immediate transition anytime.'
+  },
   '#btn-wave-zoom-out, #btn-wave-zoom-in': {
     name: 'Waveform Zoom (− / +)',
     role: 'Adjusts the visible time window of the top dual scrolling waveforms (1.5s to 24s).',
