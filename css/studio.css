@@ -183,8 +183,8 @@ body {
   flex-wrap: wrap;
 }
 
-.coach-title { font-size: 14px; color: var(--text); }
-.coach-desc { font-size: 12px; color: var(--dim); }
+.coach-title { font-size: 16px; font-weight: 800; color: #ffffff; }
+.coach-desc { font-size: 14px; font-weight: 500; line-height: 1.45; color: #d6dce6; }
 
 .coach-top-right {
   display: flex;
