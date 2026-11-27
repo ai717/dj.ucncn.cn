@@ -159,6 +159,19 @@ export class CoachEngine {
           document.getElementById('btn-mode-simple')?.classList.remove('active');
           document.getElementById('btn-mode-pro')?.classList.add('active');
         }
+        // 移动端自动切换 Deck A / 混音台 / Deck B 标签页，确保当前步骤高亮控件立即可见
+        if (window.innerWidth <= 960) {
+          const grid = document.querySelector('.workspace-grid');
+          const panelView = el.closest('.deck-panel[data-deck="A"]') ? 'A'
+            : el.closest('.deck-panel[data-deck="B"]') ? 'B'
+            : el.closest('.mixer-panel') ? 'mixer' : null;
+          if (grid && panelView && grid.dataset.mobileView !== panelView) {
+            grid.dataset.mobileView = panelView;
+            document.querySelectorAll('.mobile-tab').forEach((t) => {
+              t.classList.toggle('active', t.dataset.mobilePanel === panelView);
+            });
+          }
+        }
         // range input 无法直接渲染 ::after 透明层，提升至包裹容器
         if (el.tagName === 'INPUT' && el.type === 'range' && el.parentElement) {
           el = el.parentElement;

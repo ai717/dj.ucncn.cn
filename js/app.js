@@ -533,10 +533,45 @@ document.querySelectorAll('.knob-unit').forEach((unit) => {
   });
 
   const stop = () => { dragging = false; };
-  unit.addEventListener('pointerup', stop);
+  unit.addEventListener('pointerup', (e) => {
+    const moved = Math.abs(e.clientY - startY);
+    stop();
+    if (moved < 6) {
+      const now = performance.now();
+      if (now - (unit._lastTapAt || 0) < 320) {
+        unit._lastTapAt = 0;
+        applyVal(Number(unit.dataset.default));
+      } else {
+        unit._lastTapAt = now;
+      }
+    }
+  });
   unit.addEventListener('pointercancel', stop);
   unit.addEventListener('dblclick', () => applyVal(Number(unit.dataset.default)));
 });
+
+// 触屏双连击归零（调速推子 & 交叉推子）
+function bindTouchDoubleReset(el, onReset) {
+  if (!el) return;
+  let lastTap = 0;
+  let downX = 0;
+  let downY = 0;
+  el.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
+  el.addEventListener('pointerup', (e) => {
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 8) return;
+    const now = performance.now();
+    if (now - lastTap < 320) {
+      lastTap = 0;
+      onReset();
+    } else {
+      lastTap = now;
+    }
+  });
+  el.addEventListener('dblclick', onReset);
+}
+bindTouchDoubleReset(document.getElementById('tempo-A'), () => engine.setTempo('A', 0));
+bindTouchDoubleReset(document.getElementById('tempo-B'), () => engine.setTempo('B', 0));
+bindTouchDoubleReset(ui.crossfader, () => engine.setCrossfader(0));
 
 // 顶部 Premixes / 模式切换 / 装盘 / 录音
 let premixController = null;
