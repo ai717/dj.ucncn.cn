@@ -15,6 +15,11 @@ export class DJAudioEngine {
     this.masterVolume = 0.85;
     this.splitCue = false;
     this.cutCurve = false; // false = smooth blend, true = sharp scratch cut
+    this.quantize = true;
+    this.autoMixBeats = 16;
+    this.waveformWindowSec = 9;
+    this.cueMix = 0.5;
+    this.phonesVol = 0.85;
     this.isRecording = false;
     this.mediaRecorder = null;
     this.recordedChunks = [];
@@ -36,7 +41,12 @@ export class DJAudioEngine {
       source: null,
       offset: 0,           // 当前播放偏移（秒）
       startedAtCtx: 0,     // 上次 start 的 AudioContext.currentTime
-      tempoPercent: 0,     // -8 to +8 (%)
+      tempoPercent: 0,     // -8 to +8 (or ±16 in Pro)
+      tempoRange: 8,
+      keyLock: true,
+      slipMode: false,
+      fxBeatDiv: 0.5,      // 0.25, 0.5, 1
+      stems: { vocal: true, drums: true, bass: true, other: true },
       scratchOffsetRate: 0,// 临时搓碟速率叠加
       volume: 1.0,         // 0..1 通道推子
       gainTrim: 1.0,       // Pro Gain 旋钮 (0.2..1.8)
@@ -403,7 +413,8 @@ export class DJAudioEngine {
 
   setTempo(deckId, percent, { silentAction = false } = {}) {
     const d = this.decks[deckId];
-    const clamped = Math.max(-8, Math.min(8, percent));
+    const limit = d.tempoRange || 8;
+    const clamped = Math.max(-limit, Math.min(limit, percent));
     if (d.isPlaying) {
       d.offset = this.getCurrentTime(deckId);
       d.startedAtCtx = this.ctx.currentTime;
@@ -546,7 +557,7 @@ export class DJAudioEngine {
     if (d.nodes && this.ctx) {
       if (d.track) {
         const beatDur = 60 / this.getEffectiveBPM(deckId);
-        d.nodes.echoDelay.delayTime.setTargetAtTime(beatDur * 0.75, this.ctx.currentTime, 0.02);
+        d.nodes.echoDelay.delayTime.setTargetAtTime(beatDur * (d.fxBeatDiv || 0.5), this.ctx.currentTime, 0.02);
       }
       d.nodes.echoSend.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.02);
     }
@@ -554,6 +565,48 @@ export class DJAudioEngine {
     if (!silentAction) {
       this._emitAction({ type: 'ECHO', deck: deckId, value: clamped });
     }
+  }
+
+  toggleTempoRange(deckId) {
+    const d = this.decks[deckId];
+    d.tempoRange = d.tempoRange === 8 ? 16 : 8;
+    this.setTempo(deckId, d.tempoPercent, { silentAction: true });
+    this._notify();
+  }
+
+  cycleFxBeatDiv(deckId) {
+    const d = this.decks[deckId];
+    const seq = [0.25, 0.5, 1];
+    d.fxBeatDiv = seq[(seq.indexOf(d.fxBeatDiv) + 1) % seq.length];
+    if (d.echo > 0) this.setEcho(deckId, d.echo, { silentAction: true });
+    this._notify();
+  }
+
+  scaleTrackBpm(deckId, factor) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.track = { ...d.track, bpm: Math.max(50, Math.min(220, d.track.bpm * factor)) };
+    this._notify();
+  }
+
+  toggleStem(deckId, stemName) {
+    const d = this.decks[deckId];
+    d.stems[stemName] = !d.stems[stemName];
+    // 基于三段频带滤波实时模拟分轨静音（贝斯切低频、人声切中频、鼓组/旋律切高频）
+    if (d.nodes && this.ctx) {
+      const lowDb = d.stems.bass ? d.eq.low : -24;
+      const midDb = d.stems.vocal ? d.eq.mid : -20;
+      const highDb = (d.stems.drums && d.stems.other) ? d.eq.high : -16;
+      d.nodes.eqLow.gain.setTargetAtTime(lowDb, this.ctx.currentTime, 0.02);
+      d.nodes.eqMid.gain.setTargetAtTime(midDb, this.ctx.currentTime, 0.02);
+      d.nodes.eqHigh.gain.setTargetAtTime(highDb, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  zoomWaveform(delta) {
+    this.waveformWindowSec = Math.max(4, Math.min(16, this.waveformWindowSec + delta));
+    this._notify();
   }
 
   setReverb(deckId, amount) {

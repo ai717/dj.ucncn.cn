@@ -1346,3 +1346,88 @@ kbd { background: #0d0d0f; border: 1px solid var(--line-2); border-radius: 5px; 
 .midi-status { background: #101013; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--dim); }
 .midi-map-list { display: flex; flex-direction: column; gap: 6px; }
 .midi-map-row { display: flex; justify-content: space-between; align-items: center; background: #101013; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px; }
+
+/* Pro（专业）模式专属样式与紧凑视图 */
+.waveforms-strip {
+  position: relative;
+}
+
+.wave-zoom-controls {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+}
+
+.wave-zoom-controls .hw-sm {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* Pro 模式下 1-8 Hot Cue 变为紧凑 4x2 矩阵，总高度保持 52px 对齐 CUE/PLAY/SYNC */
+body.pro-mode .hc-matrix {
+  gap: 4px;
+}
+
+body.pro-mode .hc-btn {
+  height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.range-btn {
+  height: 20px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+.automix-beats {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.automix-beats .hw-sm {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.pro-phones-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.mini-knob-svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* 紧凑视图（Compact Mode） */
+body.compact-mode .turntable-box {
+  height: 186px;
+  width: min(100%, 196px);
+}
+body.compact-mode .vinyl-platter {
+  width: 164px;
+  height: 164px;
+}
+body.compact-mode .vinyl-label {
+  width: 58px;
+  height: 58px;
+  font-size: 8px;
+  padding: 8px 0;
+}
+body.compact-mode .tonearm-svg {
+  height: 156px;
+  width: 56px;
+}
+body.compact-mode .tempo-fader-wrap {
+  height: 152px;
+}

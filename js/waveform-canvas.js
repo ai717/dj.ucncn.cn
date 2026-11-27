@@ -38,7 +38,7 @@ export function drawScrollingWaveform(canvas, engine, deckId) {
 
   const { peaks, duration, bpm } = deck.track;
   const curTime = engine.getCurrentTime(deckId);
-  const windowSec = 9;
+  const windowSec = engine.waveformWindowSec || 9;
   const pxPerSec = w / windowSec;
 
   // Loop 区间微弱绿底

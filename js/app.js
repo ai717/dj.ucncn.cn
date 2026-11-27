@@ -329,7 +329,35 @@ function syncUIWithEngine() {
     });
     const fxSlider = document.querySelector(`[data-fx-wet="${id}"]`);
     if (fxSlider) fxSlider.value = String(d[fxMode] || 0);
+
+    // Pro 模式状态同步：调速范围、效果拍数、锁调/滑移、分轨
+    const rangeBtn = document.querySelector(`[data-tempo-range="${id}"]`);
+    if (rangeBtn) {
+      rangeBtn.textContent = `±${d.tempoRange}%`;
+      tempoSlider.min = String(-d.tempoRange);
+      tempoSlider.max = String(d.tempoRange);
+    }
+    const fxDivBtn = document.querySelector(`[data-fx-div="${id}"]`);
+    if (fxDivBtn) fxDivBtn.textContent = d.fxBeatDiv === 0.25 ? '1/4' : d.fxBeatDiv === 0.5 ? '1/2' : '1';
+    for (const mKey of ['keyLock', 'slipMode']) {
+      const mBtn = document.querySelector(`[data-mode-toggle="${id}:${mKey}"]`);
+      if (mBtn) mBtn.classList.toggle('active', Boolean(d[mKey]));
+    }
+    for (const sKey of ['vocal', 'drums', 'bass', 'other']) {
+      const sBtn = document.querySelector(`[data-stem="${id}:${sKey}"]`);
+      if (sBtn) sBtn.classList.toggle('active', Boolean(d.stems[sKey]));
+    }
   }
+
+  document.querySelectorAll('[data-automix-beats]').forEach((b) => {
+    b.classList.toggle('active', Number(b.dataset.automixBeats) === engine.autoMixBeats);
+  });
+  const qBtn = document.getElementById('btn-quantize-toggle');
+  if (qBtn) qBtn.classList.toggle('active', engine.quantize);
+  const cueMixKnob = document.querySelector('[data-knob="cuemix"]');
+  if (cueMixKnob) updateKnobVisual(cueMixKnob, engine.cueMix);
+  const phonesKnob = document.querySelector('[data-knob="phones"]');
+  if (phonesKnob) updateKnobVisual(phonesKnob, engine.phonesVol);
 
   const masterKnob = document.querySelector('[data-knob="master"]');
   if (masterKnob) updateKnobVisual(masterKnob, engine.masterVolume);
@@ -366,6 +394,8 @@ document.querySelectorAll('.knob-unit').forEach((unit) => {
     else if (parts[0] === 'eq') engine.setEQ(parts[1], parts[2], clamped);
     else if (parts[0] === 'filter') engine.setFilter(parts[1], clamped);
     else if (parts[0] === 'master') engine.setMasterVolume(clamped);
+    else if (parts[0] === 'cuemix') { engine.cueMix = clamped; syncUIWithEngine(); }
+    else if (parts[0] === 'phones') { engine.phonesVol = clamped; syncUIWithEngine(); }
   };
 
   unit.addEventListener('pointerdown', (e) => {
@@ -446,6 +476,77 @@ premixBtn.addEventListener('click', async () => {
 
 ui.btnSimple.addEventListener('click', () => setLayoutMode(false));
 ui.btnPro.addEventListener('click', () => setLayoutMode(true));
+
+// Pro 模式专属交互：紧凑视图、波形缩放、调速范围、网格/测速、效果拍数、分轨、自动混音拍数、量化
+const compactBtn = document.getElementById('btn-compact-mode');
+compactBtn.addEventListener('click', () => {
+  const on = document.body.classList.toggle('compact-mode');
+  compactBtn.classList.toggle('active', on);
+});
+
+document.getElementById('btn-wave-zoom-out').addEventListener('click', () => engine.zoomWaveform(2));
+document.getElementById('btn-wave-zoom-in').addEventListener('click', () => engine.zoomWaveform(-2));
+
+document.querySelectorAll('[data-tempo-range]').forEach((b) => {
+  b.addEventListener('click', () => engine.toggleTempoRange(b.dataset.tempoRange));
+});
+
+document.querySelectorAll('[data-bpm-scale]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, factor] = b.dataset.bpmScale.split(':');
+    engine.scaleTrackBpm(deck, Number(factor));
+  });
+});
+
+const tapTimes = { A: [], B: [] };
+document.querySelectorAll('[data-tap]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const deck = b.dataset.tap;
+    const now = performance.now();
+    const arr = tapTimes[deck];
+    if (arr.length && now - arr[arr.length - 1] > 2000) arr.length = 0;
+    arr.push(now);
+    if (arr.length >= 3) {
+      const avgMs = (arr[arr.length - 1] - arr[0]) / (arr.length - 1);
+      const bpm = Math.round(Math.max(60, Math.min(200, 60000 / avgMs)));
+      if (engine.decks[deck].track) {
+        engine.decks[deck].track = { ...engine.decks[deck].track, bpm };
+        syncUIWithEngine();
+      }
+    }
+  });
+});
+
+document.querySelectorAll('[data-mode-toggle]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, key] = b.dataset.modeToggle.split(':');
+    engine.decks[deck][key] = !engine.decks[deck][key];
+    syncUIWithEngine();
+  });
+});
+
+document.querySelectorAll('[data-fx-div]').forEach((b) => {
+  b.addEventListener('click', () => engine.cycleFxBeatDiv(b.dataset.fxDiv));
+});
+
+document.querySelectorAll('[data-stem]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, stem] = b.dataset.stem.split(':');
+    engine.toggleStem(deck, stem);
+  });
+});
+
+document.querySelectorAll('[data-automix-beats]').forEach((b) => {
+  b.addEventListener('click', () => {
+    engine.autoMixBeats = Number(b.dataset.automixBeats);
+    syncUIWithEngine();
+  });
+});
+
+document.getElementById('btn-quantize-toggle').addEventListener('click', () => {
+  engine.quantize = !engine.quantize;
+  syncUIWithEngine();
+});
 
 document.getElementById('btn-load-demo-pair').addEventListener('click', async () => {
   await engine.loadTrack('A', 'sunrise-house');

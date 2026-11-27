@@ -50,6 +50,7 @@
       </div>
 
       <button type="button" id="btn-open-midi" class="top-btn pro-only">MIDI 映射</button>
+      <button type="button" id="btn-compact-mode" class="top-btn pro-only">紧凑视图</button>
       <button type="button" id="btn-rec" class="top-btn rec-btn"><span class="rec-dot"></span>录音</button>
 
       <div class="knob-unit master-knob-unit" data-knob="master" data-min="0" data-max="1" data-val="0.85" data-default="0.85" title="上下拖动调节主音量">
@@ -101,6 +102,10 @@
 
     <!-- 顶部双轨连续高解析波形 -->
     <section class="waveforms-strip" aria-label="双轨同步波形">
+      <div class="wave-zoom-controls pro-only">
+        <button type="button" class="hw-sm" id="btn-wave-zoom-out" title="缩小波形 ([)">−</button>
+        <button type="button" class="hw-sm" id="btn-wave-zoom-in" title="放大波形 (])">+</button>
+      </div>
       <canvas id="wave-scroll-A" class="wave-canvas" data-deck="A"></canvas>
       <canvas id="wave-scroll-B" class="wave-canvas" data-deck="B"></canvas>
     </section>
@@ -161,6 +166,7 @@
 
           <div class="tempo-col">
             <span class="mini-label">调速</span>
+            <button type="button" class="hw-sm range-btn pro-only" data-tempo-range="A">±8%</button>
             <div class="v-fader-wrap tempo-fader-wrap">
               <div class="v-fader-slot"></div>
               <input type="range" class="v-fader-input tempo-slider" id="tempo-A" data-control="deck-A-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck A 调速">
@@ -208,11 +214,27 @@
             </div>
           </div>
           <div class="tagged-row pro-only">
+            <span class="row-label">网格</span>
+            <button type="button" class="hw-sm" data-bpm-scale="A:0.5">÷2</button>
+            <button type="button" class="hw-sm" data-bpm-scale="A:2">×2</button>
+            <button type="button" class="hw-sm" data-tap="A">手动测速</button>
+            <button type="button" class="hw-sm active" data-mode-toggle="A:keyLock">锁调</button>
+            <button type="button" class="hw-sm" data-mode-toggle="A:slipMode">滑移</button>
+          </div>
+          <div class="tagged-row pro-only">
             <span class="row-label">效果</span>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:echo">回声</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:reverb">混响</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:flanger">镶边</button>
             <input type="range" class="h-mini-slider" data-control="deck-A-echo" data-fx-wet="A" min="0" max="0.85" step="0.05" value="0" aria-label="Deck A 效果强度">
+            <button type="button" class="hw-sm" data-fx-div="A">1/2</button>
+          </div>
+          <div class="tagged-row pro-only">
+            <span class="row-label">分轨</span>
+            <button type="button" class="hw-sm active" data-stem="A:vocal">人声</button>
+            <button type="button" class="hw-sm active" data-stem="A:drums">鼓组</button>
+            <button type="button" class="hw-sm active" data-stem="A:bass">贝斯</button>
+            <button type="button" class="hw-sm active" data-stem="A:other">旋律</button>
           </div>
         </div>
       </article>
@@ -220,6 +242,11 @@
       <!-- Center Mixer (292px · SVG 硬件旋钮与精准对齐推子) -->
       <article class="mixer-panel" aria-label="中央混音台">
         <button type="button" id="btn-automix" class="hw-btn automix-btn">▶ 自动混音 A → B</button>
+        <div class="automix-beats pro-only" role="group" aria-label="自动混音过渡拍数">
+          <button type="button" class="hw-sm" data-automix-beats="8">8 拍</button>
+          <button type="button" class="hw-sm active" data-automix-beats="16">16 拍</button>
+          <button type="button" class="hw-sm" data-automix-beats="32">32 拍</button>
+        </div>
 
         <div class="phase-box">
           <div class="phase-track"><div class="phase-dot" id="phase-dot"></div></div>
@@ -311,7 +338,18 @@
           </div>
           <div class="pro-mixer-opts pro-only">
             <button type="button" class="hw-sm" id="btn-curve-toggle">平滑曲线</button>
+            <button type="button" class="hw-sm active" id="btn-quantize-toggle">节拍量化</button>
             <button type="button" class="hw-sm" id="btn-split-cue">分路预听</button>
+          </div>
+          <div class="pro-phones-row pro-only">
+            <div class="knob-unit" data-knob="cuemix" data-min="0" data-max="1" data-val="0.5" data-default="0.5" title="上下拖动调节预听混合">
+              <svg class="knob-svg mini-knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
+              <span class="knob-label">预听混合</span>
+            </div>
+            <div class="knob-unit" data-knob="phones" data-min="0" data-max="1" data-val="0.85" data-default="0.85" title="上下拖动调节耳机音量">
+              <svg class="knob-svg mini-knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
+              <span class="knob-label">耳机音量</span>
+            </div>
           </div>
         </div>
       </article>
@@ -363,6 +401,7 @@
 
           <div class="tempo-col">
             <span class="mini-label">调速</span>
+            <button type="button" class="hw-sm range-btn pro-only" data-tempo-range="B">±8%</button>
             <div class="v-fader-wrap tempo-fader-wrap">
               <div class="v-fader-slot"></div>
               <input type="range" class="v-fader-input tempo-slider" id="tempo-B" data-control="deck-B-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck B 调速">
@@ -410,11 +449,27 @@
             </div>
           </div>
           <div class="tagged-row pro-only">
+            <span class="row-label">网格</span>
+            <button type="button" class="hw-sm" data-bpm-scale="B:0.5">÷2</button>
+            <button type="button" class="hw-sm" data-bpm-scale="B:2">×2</button>
+            <button type="button" class="hw-sm" data-tap="B">手动测速</button>
+            <button type="button" class="hw-sm active" data-mode-toggle="B:keyLock">锁调</button>
+            <button type="button" class="hw-sm" data-mode-toggle="B:slipMode">滑移</button>
+          </div>
+          <div class="tagged-row pro-only">
             <span class="row-label">效果</span>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:echo">回声</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:reverb">混响</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:flanger">镶边</button>
             <input type="range" class="h-mini-slider" data-control="deck-B-echo" data-fx-wet="B" min="0" max="0.85" step="0.05" value="0" aria-label="Deck B 效果强度">
+            <button type="button" class="hw-sm" data-fx-div="B">1/2</button>
+          </div>
+          <div class="tagged-row pro-only">
+            <span class="row-label">分轨</span>
+            <button type="button" class="hw-sm active" data-stem="B:vocal">人声</button>
+            <button type="button" class="hw-sm active" data-stem="B:drums">鼓组</button>
+            <button type="button" class="hw-sm active" data-stem="B:bass">贝斯</button>
+            <button type="button" class="hw-sm active" data-stem="B:other">旋律</button>
           </div>
         </div>
       </article>
