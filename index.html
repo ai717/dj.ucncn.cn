@@ -656,23 +656,78 @@
     </div>
   </dialog>
 
-  <!-- 快捷键说明弹窗 -->
-  <dialog id="shortcuts-dialog" closedby="any" aria-labelledby="shortcuts-dialog-title">
+  <!-- 快捷键说明弹窗（1:1 对齐 Backspin 5 大分组全键盘快捷键） -->
+  <dialog id="shortcuts-dialog" class="shortcuts-dialog" closedby="any" aria-labelledby="shortcuts-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="shortcuts-dialog-title">键盘快捷键与使用提示</h1>
+        <h1 id="shortcuts-dialog-title">键盘快捷键 · 全键盘打碟</h1>
         <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
       </header>
-      <ul class="shortcuts-list">
-        <li><kbd>Space</kbd> <span>播放 / 暂停 Deck A</span></li>
-        <li><kbd>Enter</kbd> <span>播放 / 暂停 Deck B</span></li>
-        <li><kbd>S</kbd> <span>用 SYNC 自动对齐 Deck B 速度</span></li>
-        <li><kbd>←</kbd> / <kbd>→</kbd> <span>向左 / 向右微调 Crossfader</span></li>
-        <li><kbd>`</kbd> <span>切换 Simple / Pro 界面模式</span></li>
-        <li><kbd>1</kbd> ~ <kbd>8</kbd> <span>触发 8 键采样垫</span></li>
-        <li><kbd>?</kbd> <span>打开 / 关闭此帮助面板</span></li>
-      </ul>
-      <p class="dialog-note">提示：所有课程进度自动保存在本地浏览器中，无需注册账号；6 首内置舞曲由 Web Audio API 本地合成，零版权限制。</p>
+      <div class="shortcuts-grid">
+        <section class="shortcuts-sec">
+          <h2>A / B 唱盘主控（左手 A · 右手 B）</h2>
+          <ul class="shortcuts-list">
+            <li><span>播放 / 暂停</span><span><kbd>W</kbd> · <kbd>O</kbd></span></li>
+            <li><span>CUE 定位</span><span><kbd>Q</kbd> · <kbd>I</kbd></span></li>
+            <li><span>SYNC 同步</span><span><kbd>E</kbd> · <kbd>P</kbd></span></li>
+            <li><span>热标点 1~4</span><span><kbd>1</kbd>~<kbd>4</kbd> · <kbd>7</kbd>~<kbd>0</kbd></span></li>
+            <li><span>按住向后 / 向前搓碟</span><span><kbd>D</kbd>/<kbd>F</kbd> · <kbd>H</kbd>/<kbd>J</kbd></span></li>
+            <li><span>按住减速 / 加速推拍</span><span><kbd>A</kbd>/<kbd>S</kbd> · <kbd>K</kbd>/<kbd>L</kbd></span></li>
+            <li><span>调速推子 − / +</span><span><kbd>R</kbd>/<kbd>T</kbd> · <kbd>Y</kbd>/<kbd>U</kbd></span></li>
+            <li><span>4 拍循环开关</span><span><kbd>Z</kbd> · <kbd>M</kbd></span></li>
+            <li><span>循环减半 / 翻倍</span><span><kbd>X</kbd>/<kbd>C</kbd> · <kbd>,</kbd>/<kbd>.</kbd></span></li>
+            <li><span>黑胶刹车 / 倒转</span><span><kbd>G</kbd>/<kbd>V</kbd> · <kbd>;</kbd>/<kbd>/</kbd></span></li>
+          </ul>
+        </section>
+
+        <section class="shortcuts-sec">
+          <h2>按住 Shift：第二功能</h2>
+          <ul class="shortcuts-list">
+            <li><span>反向播放（REV）</span><span><kbd>⇧W</kbd> · <kbd>⇧O</kbd></span></li>
+            <li><span>回到曲目开头</span><span><kbd>⇧Q</kbd> · <kbd>⇧I</kbd></span></li>
+            <li><span>调性匹配对盘</span><span><kbd>⇧E</kbd> · <kbd>⇧P</kbd></span></li>
+            <li><span>锁调（KEY LOCK）</span><span><kbd>⇧T</kbd> · <kbd>⇧U</kbd></span></li>
+            <li><span>升降半音（− / +）</span><span><kbd>⇧A</kbd>/<kbd>⇧S</kbd> · <kbd>⇧K</kbd>/<kbd>⇧L</kbd></span></li>
+            <li><span>滑移模式（SLIP）</span><span><kbd>⇧Z</kbd> · <kbd>⇧M</kbd></span></li>
+            <li><span>向后 / 向前跳 4 拍</span><span><kbd>⇧X</kbd>/<kbd>⇧C</kbd> · <kbd>⇧,</kbd>/<kbd>⇧.</kbd></span></li>
+            <li><span>切换效果 / 关</span><span><kbd>⇧G</kbd> · <kbd>⇧;</kbd></span></li>
+            <li><span>效果强度 − / +</span><span><kbd>⇧D</kbd>/<kbd>⇧F</kbd> · <kbd>⇧H</kbd>/<kbd>⇧J</kbd></span></li>
+            <li><span>效果拍数 / 耳机监听</span><span><kbd>⇧V</kbd>/<kbd>⇧B</kbd> · <kbd>⇧'</kbd>/<kbd>⇧N</kbd></span></li>
+          </ul>
+        </section>
+
+        <section class="shortcuts-sec">
+          <h2>按住 Alt：混音台与分轨</h2>
+          <ul class="shortcuts-list">
+            <li><span>通道音量 ↑ / ↓</span><span><kbd>Alt A/Z</kbd> · <kbd>Alt ;//</kbd></span></li>
+            <li><span>低频 EQ ↑ / ↓</span><span><kbd>Alt S/X</kbd> · <kbd>Alt L/.</kbd></span></li>
+            <li><span>中频 EQ ↑ / ↓</span><span><kbd>Alt D/C</kbd> · <kbd>Alt K/,</kbd></span></li>
+            <li><span>高频 EQ ↑ / ↓</span><span><kbd>Alt F/V</kbd> · <kbd>Alt J/M</kbd></span></li>
+            <li><span>滤波 Filter ↑ / ↓</span><span><kbd>Alt G/B</kbd> · <kbd>Alt H/N</kbd></span></li>
+            <li><span>增益 Gain ↑ / ↓</span><span><kbd>Alt 5/T</kbd> · <kbd>Alt 6/Y</kbd></span></li>
+            <li><span>热标点 5~8</span><span><kbd>Alt 1~4</kbd> · <kbd>Alt 7~0</kbd></span></li>
+            <li><span>分轨开关（人/鼓/贝/旋）</span><span><kbd>Alt Q W E R</kbd> · <kbd>U I O P</kbd></span></li>
+            <li><span>单轨独奏 / 旋钮归中</span><span><kbd>⇧Alt</kbd> + 对应键</span></li>
+          </ul>
+        </section>
+
+        <section class="shortcuts-sec">
+          <h2>曲目准备与全局控制</h2>
+          <ul class="shortcuts-list">
+            <li><span>网格左移 / 右移</span><span><kbd>Alt [ / ]</kbd>（<kbd>⇧</kbd> B 盘）</span></li>
+            <li><span>BPM ÷2 / ×2</span><span><kbd>Alt ⌫ / \</kbd>（<kbd>⇧</kbd> B 盘）</span></li>
+            <li><span>手动测速 / 调速范围</span><span><kbd>Alt '</kbd> / <kbd>Alt `</kbd>（<kbd>⇧</kbd> B 盘）</span></li>
+            <li><span>拆分分轨 / 清热标点</span><span><kbd>Alt Enter</kbd> / <kbd>⌫</kbd>+标点键</span></li>
+            <li><span>8 键采样器</span><span><kbd>⇧1</kbd> ~ <kbd>⇧8</kbd></span></li>
+            <li><span>交叉推子 / 自动混音</span><span><kbd>←</kbd>/<kbd>→</kbd> · <kbd>Space</kbd></span></li>
+            <li><span>主音量 − / + · 波形缩放</span><span><kbd>-</kbd>/<kbd>=</kbd> · <kbd>[</kbd>/<kbd>]</kbd></span></li>
+            <li><span>选曲 / 装入 A·B / 待播</span><span><kbd>↑</kbd><kbd>↓</kbd> · <kbd>⇧←</kbd><kbd>⇧→</kbd> · <kbd>Enter</kbd></span></li>
+            <li><span>搜索 / 自动连播 / 录音</span><span><kbd>'</kbd> · <kbd>⇧Enter</kbd> · <kbd>⇧R</kbd></span></li>
+            <li><span>新手·专业 / 示范 / 课程 / 帮助</span><span><kbd>`</kbd> · <kbd>5</kbd> · <kbd>\</kbd> · <kbd>?</kbd></span></li>
+          </ul>
+        </section>
+      </div>
+      <p class="dialog-note">提示：左手控制 A 盘，右手控制 B 盘；按住 Shift 切换第二功能，按住 Alt 化身混音台。双击任意旋钮或推子可快速归中复位。</p>
     </div>
   </dialog>
 

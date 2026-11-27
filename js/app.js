@@ -29,6 +29,8 @@ const ui = {
 let crateFilter = '';
 let crateSort = null;
 let crateSortAsc = true;
+let selectedCrateIdx = 0;
+let visibleCrateList = [];
 const setQueue = [];
 const customSamplerBuffers = new Map();
 const activeFxMode = { A: 'echo', B: 'echo' };
@@ -112,11 +114,14 @@ function renderCrate() {
     });
   }
   if (list.length === 0) {
+    visibleCrateList = [];
     ui.crateList.innerHTML = '<div class="crate-item-meta" style="padding:10px;">暂无匹配的曲目，点击「+ 添加音乐」或「+ 添加文件夹」导入本地音频。</div>';
     renderMixesWellNext();
     return;
   }
-  for (const t of list) {
+  visibleCrateList = list;
+  selectedCrateIdx = Math.max(0, Math.min(selectedCrateIdx, list.length - 1));
+  list.forEach((t, idx) => {
     const onA = engine.decks.A.track?.id === t.id;
     const onB = engine.decks.B.track?.id === t.id;
     const played = playedTracks.some((p) => p.id === t.id);
@@ -125,7 +130,8 @@ function renderCrate() {
     const check = played ? '<span class="crate-check">✓</span>' : '';
     const keyShort = (t.key || '—').split('·')[0].trim();
     const row = document.createElement('div');
-    row.className = `crate-item compact-row ${onA || onB ? 'loaded' : ''}`;
+    row.className = `crate-item compact-row ${onA || onB ? 'loaded' : ''} ${idx === selectedCrateIdx ? 'selected' : ''}`;
+    row.dataset.crateIdx = String(idx);
     row.innerHTML = `
       <span class="crate-song">${badgeA}${badgeB}<strong>${t.title}</strong>${check}</span>
       <span class="crate-col">${keyShort}</span>
@@ -139,7 +145,7 @@ function renderCrate() {
       </div>
     `;
     ui.crateList.appendChild(row);
-  }
+  });
   renderMixesWellNext();
 }
 
@@ -1085,6 +1091,12 @@ document.querySelectorAll('[data-sort]').forEach((btn) => {
 });
 
 ui.crateList.addEventListener('click', (e) => {
+  const rowEl = e.target.closest('.crate-item[data-crate-idx]');
+  if (rowEl) {
+    selectedCrateIdx = Number(rowEl.dataset.crateIdx);
+    ui.crateList.querySelectorAll('.crate-item.selected').forEach((el) => el.classList.remove('selected'));
+    rowEl.classList.add('selected');
+  }
   const loadBtn = e.target.closest('[data-load]');
   if (loadBtn) {
     const [deck, trackId] = loadBtn.dataset.load.split(':');
@@ -1343,22 +1355,312 @@ if (!('closedBy' in HTMLDialogElement.prototype)) {
   }
 }
 
-// 快捷键
+// 全键盘快捷键（1:1 对齐 Backspin 68 组快捷键）
 const SAMPLER_KEYS = ['airhorn', 'siren', 'laser', 'rewind', 'boom', 'riser', 'snareroll', 'aah'];
-window.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
-  if (e.code === 'Space') { e.preventDefault(); engine.togglePlay('A'); }
-  else if (e.code === 'Enter' && !ui.lessonsDialog.open && !ui.shortcutsDialog.open) { e.preventDefault(); engine.togglePlay('B'); }
-  else if (e.key === 's' || e.key === 'S') engine.syncDeck('B');
-  else if (e.key === 'ArrowLeft') engine.setCrossfader(engine.crossfader - 0.1);
-  else if (e.key === 'ArrowRight') engine.setCrossfader(engine.crossfader + 0.1);
-  else if (e.code === 'Backquote') setLayoutMode(!document.body.classList.contains('pro-mode'));
-  else if (e.key === '[') engine.zoomWaveform(1.35);
-  else if (e.key === ']') engine.zoomWaveform(1 / 1.35);
-  else if (e.key === '?') { if (ui.shortcutsDialog.open) ui.shortcutsDialog.close(); else ui.shortcutsDialog.showModal(); }
-  else if (/^Digit[1-8]$/.test(e.code) && (e.shiftKey || !e.ctrlKey && !e.altKey)) {
-    triggerPad(SAMPLER_KEYS[Number(e.code.replace('Digit', '')) - 1]);
+const FX_CYCLE = ['echo', 'reverb', 'flanger', null];
+let backspaceHeld = false;
+const heldScratchIntervals = new Map();
+
+function stopHeldScratch(code) {
+  const item = heldScratchIntervals.get(code);
+  if (!item) return;
+  clearInterval(item.iv);
+  heldScratchIntervals.delete(code);
+  engine.endScratch(item.deck);
+}
+
+function startHeldScratch(code, deck, speedRatio) {
+  if (heldScratchIntervals.has(code)) return;
+  engine.beginScratch(deck);
+  const stepSec = 0.03 * speedRatio;
+  engine.moveScratch(deck, stepSec, speedRatio);
+  const iv = setInterval(() => engine.moveScratch(deck, stepSec, speedRatio), 32);
+  heldScratchIntervals.set(code, { iv, deck });
+}
+
+function cycleDeckFx(deck) {
+  const cur = activeFxMode[deck];
+  const curVal = engine.decks[deck][cur] || 0;
+  const idx = curVal > 0 ? FX_CYCLE.indexOf(cur) : -1;
+  const next = FX_CYCLE[(idx + 1) % FX_CYCLE.length];
+  engine.setEcho(deck, 0);
+  engine.setReverb(deck, 0);
+  engine.setFlanger(deck, 0);
+  if (next) {
+    activeFxMode[deck] = next;
+    if (next === 'echo') engine.setEcho(deck, 0.45);
+    else if (next === 'reverb') engine.setReverb(deck, 0.45);
+    else engine.setFlanger(deck, 0.45);
   }
+}
+
+function nudgeDeckFxWet(deck, delta) {
+  const mode = activeFxMode[deck] || 'echo';
+  const next = Math.max(0, Math.min(0.85, (engine.decks[deck][mode] || 0) + delta));
+  if (mode === 'echo') engine.setEcho(deck, next);
+  else if (mode === 'reverb') engine.setReverb(deck, next);
+  else engine.setFlanger(deck, next);
+}
+
+function soloStem(deck, targetStem) {
+  const stems = engine.decks[deck].stems;
+  const onlyTargetOn = stems[targetStem] && Object.entries(stems).every(([k, v]) => (k === targetStem ? v : !v));
+  for (const s of ['vocal', 'drums', 'bass', 'other']) {
+    const shouldOn = onlyTargetOn ? true : s === targetStem;
+    if (Boolean(stems[s]) !== shouldOn) engine.toggleStem(deck, s);
+  }
+}
+
+function moveCrateSelection(delta) {
+  if (!visibleCrateList.length) return;
+  selectedCrateIdx = Math.max(0, Math.min(visibleCrateList.length - 1, selectedCrateIdx + delta));
+  renderCrate();
+  const row = ui.crateList.querySelector(`.crate-item[data-crate-idx="${selectedCrateIdx}"]`);
+  if (row) row.scrollIntoView({ block: 'nearest' });
+}
+
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Backspace') backspaceHeld = false;
+  stopHeldScratch(e.code);
+  if (e.code === 'KeyA' || e.code === 'KeyS') engine.setScratchDelta('A', 0);
+  if (e.code === 'KeyK' || e.code === 'KeyL') engine.setScratchDelta('B', 0);
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Backspace') backspaceHeld = true;
+
+  const isEditable = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable;
+  if (e.key === 'Escape') {
+    const openDialog = document.querySelector('dialog[open]');
+    if (openDialog) { openDialog.close(); e.preventDefault(); }
+    else if (isEditable) e.target.blur();
+    return;
+  }
+  if (isEditable) return;
+
+  const openDialog = document.querySelector('dialog[open]');
+  if (openDialog) {
+    if (e.key === '?' && ui.shortcutsDialog.open) { e.preventDefault(); ui.shortcutsDialog.close(); }
+    return;
+  }
+
+  const { code, shiftKey, altKey, ctrlKey, metaKey } = e;
+  if (ctrlKey || metaKey) return;
+
+  // 按住 Backspace + Hot Cue 键：清除对应 Hot Cue
+  if (backspaceHeld && !altKey && !shiftKey) {
+    const hcA = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 };
+    const hcB = { Digit7: 0, Digit8: 1, Digit9: 2, Digit0: 3 };
+    if (code in hcA) { e.preventDefault(); engine.clearHotCue('A', hcA[code]); return; }
+    if (code in hcB) { e.preventDefault(); engine.clearHotCue('B', hcB[code]); return; }
+  }
+
+  // 1. Alt 组合键：混音台、分轨、Hot Cue 5-8、曲目准备、耳机调节
+  if (altKey) {
+    e.preventDefault();
+    const reset = shiftKey;
+    const stepVol = 0.08;
+    const stepEq = 3;
+    const stepFilter = 0.14;
+    const stepGain = 0.12;
+
+    // 混音台旋钮与推子
+    if (code === 'KeyA') engine.setChannelVolume('A', reset ? 1 : engine.decks.A.volume + stepVol);
+    else if (code === 'KeyZ') engine.setChannelVolume('A', reset ? 1 : engine.decks.A.volume - stepVol);
+    else if (code === 'Semicolon') engine.setChannelVolume('B', reset ? 1 : engine.decks.B.volume + stepVol);
+    else if (code === 'Slash') engine.setChannelVolume('B', reset ? 1 : engine.decks.B.volume - stepVol);
+
+    else if (code === 'KeyS') engine.setEQ('A', 'low', reset ? 0 : engine.decks.A.eq.low + stepEq);
+    else if (code === 'KeyX') engine.setEQ('A', 'low', reset ? 0 : engine.decks.A.eq.low - stepEq);
+    else if (code === 'KeyL') engine.setEQ('B', 'low', reset ? 0 : engine.decks.B.eq.low + stepEq);
+    else if (code === 'Period') engine.setEQ('B', 'low', reset ? 0 : engine.decks.B.eq.low - stepEq);
+
+    else if (code === 'KeyD') engine.setEQ('A', 'mid', reset ? 0 : engine.decks.A.eq.mid + stepEq);
+    else if (code === 'KeyC') engine.setEQ('A', 'mid', reset ? 0 : engine.decks.A.eq.mid - stepEq);
+    else if (code === 'KeyK') engine.setEQ('B', 'mid', reset ? 0 : engine.decks.B.eq.mid + stepEq);
+    else if (code === 'Comma') engine.setEQ('B', 'mid', reset ? 0 : engine.decks.B.eq.mid - stepEq);
+
+    else if (code === 'KeyF') engine.setEQ('A', 'high', reset ? 0 : engine.decks.A.eq.high + stepEq);
+    else if (code === 'KeyV') engine.setEQ('A', 'high', reset ? 0 : engine.decks.A.eq.high - stepEq);
+    else if (code === 'KeyJ') engine.setEQ('B', 'high', reset ? 0 : engine.decks.B.eq.high + stepEq);
+    else if (code === 'KeyM') engine.setEQ('B', 'high', reset ? 0 : engine.decks.B.eq.high - stepEq);
+
+    else if (code === 'KeyG') engine.setFilter('A', reset ? 0 : engine.decks.A.filter + stepFilter);
+    else if (code === 'KeyB') engine.setFilter('A', reset ? 0 : engine.decks.A.filter - stepFilter);
+    else if (code === 'KeyH') engine.setFilter('B', reset ? 0 : engine.decks.B.filter + stepFilter);
+    else if (code === 'KeyN') engine.setFilter('B', reset ? 0 : engine.decks.B.filter - stepFilter);
+
+    else if (code === 'Digit5') engine.setGainTrim('A', reset ? 1 : engine.decks.A.gainTrim + stepGain);
+    else if (code === 'KeyT') engine.setGainTrim('A', reset ? 1 : engine.decks.A.gainTrim - stepGain);
+    else if (code === 'Digit6') engine.setGainTrim('B', reset ? 1 : engine.decks.B.gainTrim + stepGain);
+    else if (code === 'KeyY') engine.setGainTrim('B', reset ? 1 : engine.decks.B.gainTrim - stepGain);
+
+    // Hot Cues 5..8
+    else if (code === 'Digit1') engine.triggerHotCue('A', 4);
+    else if (code === 'Digit2') engine.triggerHotCue('A', 5);
+    else if (code === 'Digit3') engine.triggerHotCue('A', 6);
+    else if (code === 'Digit4') engine.triggerHotCue('A', 7);
+    else if (code === 'Digit7') engine.triggerHotCue('B', 4);
+    else if (code === 'Digit8') engine.triggerHotCue('B', 5);
+    else if (code === 'Digit9') engine.triggerHotCue('B', 6);
+    else if (code === 'Digit0') engine.triggerHotCue('B', 7);
+
+    // 分轨开关 / 独奏（Shift+Alt）
+    else if (code === 'KeyQ') (shiftKey ? soloStem('A', 'vocal') : engine.toggleStem('A', 'vocal'));
+    else if (code === 'KeyW') (shiftKey ? soloStem('A', 'drums') : engine.toggleStem('A', 'drums'));
+    else if (code === 'KeyE') (shiftKey ? soloStem('A', 'bass') : engine.toggleStem('A', 'bass'));
+    else if (code === 'KeyR') (shiftKey ? soloStem('A', 'other') : engine.toggleStem('A', 'other'));
+    else if (code === 'KeyU') (shiftKey ? soloStem('B', 'vocal') : engine.toggleStem('B', 'vocal'));
+    else if (code === 'KeyI') (shiftKey ? soloStem('B', 'drums') : engine.toggleStem('B', 'drums'));
+    else if (code === 'KeyO') (shiftKey ? soloStem('B', 'bass') : engine.toggleStem('B', 'bass'));
+    else if (code === 'KeyP') (shiftKey ? soloStem('B', 'other') : engine.toggleStem('B', 'other'));
+
+    // 曲目准备（不加 Shift 为 A 盘，加 Shift 为 B 盘）
+    else if (code === 'BracketLeft') engine.shiftGrid(shiftKey ? 'B' : 'A', -0.015);
+    else if (code === 'BracketRight') engine.shiftGrid(shiftKey ? 'B' : 'A', 0.015);
+    else if (code === 'Minus') engine.nudgeTrackBpm(shiftKey ? 'B' : 'A', -0.1);
+    else if (code === 'Equal') engine.nudgeTrackBpm(shiftKey ? 'B' : 'A', 0.1);
+    else if (code === 'Backspace') engine.scaleTrackBpm(shiftKey ? 'B' : 'A', 0.5);
+    else if (code === 'Backslash') engine.scaleTrackBpm(shiftKey ? 'B' : 'A', 2);
+    else if (code === 'Quote') document.querySelector(`[data-tap="${shiftKey ? 'B' : 'A'}"]`)?.click();
+    else if (code === 'Backquote') engine.toggleTempoRange(shiftKey ? 'B' : 'A');
+    else if (code === 'Enter') engine.toggleStemsSplit(shiftKey ? 'B' : 'A');
+
+    // 耳机音量与预听混合
+    else if (code === 'ArrowUp') engine.setPhonesVol(engine.phonesVol + 0.08);
+    else if (code === 'ArrowDown') engine.setPhonesVol(engine.phonesVol - 0.08);
+    else if (code === 'ArrowLeft') engine.setCueMix(engine.cueMix - 0.1);
+    else if (code === 'ArrowRight') engine.setCueMix(engine.cueMix + 0.1);
+    return;
+  }
+
+  // 2. Shift 组合键：第二功能 + 采样垫 ⇧1~⇧8 + 全局副功能
+  if (shiftKey) {
+    if (e.key === '?') {
+      e.preventDefault();
+      if (ui.shortcutsDialog.open) ui.shortcutsDialog.close();
+      else ui.shortcutsDialog.showModal();
+      return;
+    }
+    if (/^Digit[1-8]$/.test(code)) {
+      e.preventDefault();
+      triggerPad(SAMPLER_KEYS[Number(code.replace('Digit', '')) - 1]);
+      return;
+    }
+    if (code === 'KeyW') { e.preventDefault(); engine.toggleReverse('A'); return; }
+    if (code === 'KeyO') { e.preventDefault(); engine.toggleReverse('B'); return; }
+    if (code === 'KeyQ') { e.preventDefault(); engine.seek('A', 0); return; }
+    if (code === 'KeyI') { e.preventDefault(); engine.seek('B', 0); return; }
+    if (code === 'KeyE') { e.preventDefault(); engine.matchKey('A'); return; }
+    if (code === 'KeyP') { e.preventDefault(); engine.matchKey('B'); return; }
+    if (code === 'KeyT') { e.preventDefault(); engine.decks.A.keyLock = !engine.decks.A.keyLock; syncUIWithEngine(); return; }
+    if (code === 'KeyU') { e.preventDefault(); engine.decks.B.keyLock = !engine.decks.B.keyLock; syncUIWithEngine(); return; }
+    if (code === 'KeyA') { e.preventDefault(); engine.setKeyShift('A', (engine.decks.A.keyShift || 0) - 1); return; }
+    if (code === 'KeyS') { e.preventDefault(); engine.setKeyShift('A', (engine.decks.A.keyShift || 0) + 1); return; }
+    if (code === 'KeyK') { e.preventDefault(); engine.setKeyShift('B', (engine.decks.B.keyShift || 0) - 1); return; }
+    if (code === 'KeyL') { e.preventDefault(); engine.setKeyShift('B', (engine.decks.B.keyShift || 0) + 1); return; }
+    if (code === 'KeyZ') { e.preventDefault(); engine.decks.A.slipMode = !engine.decks.A.slipMode; syncUIWithEngine(); return; }
+    if (code === 'KeyM') { e.preventDefault(); engine.decks.B.slipMode = !engine.decks.B.slipMode; syncUIWithEngine(); return; }
+    if (code === 'KeyX') { e.preventDefault(); engine.beatJump('A', -4); return; }
+    if (code === 'KeyC') { e.preventDefault(); engine.beatJump('A', 4); return; }
+    if (code === 'Comma') { e.preventDefault(); engine.beatJump('B', -4); return; }
+    if (code === 'Period') { e.preventDefault(); engine.beatJump('B', 4); return; }
+    if (code === 'KeyG') { e.preventDefault(); cycleDeckFx('A'); return; }
+    if (code === 'Semicolon') { e.preventDefault(); cycleDeckFx('B'); return; }
+    if (code === 'KeyD') { e.preventDefault(); nudgeDeckFxWet('A', -0.1); return; }
+    if (code === 'KeyF') { e.preventDefault(); nudgeDeckFxWet('A', 0.1); return; }
+    if (code === 'KeyH') { e.preventDefault(); nudgeDeckFxWet('B', -0.1); return; }
+    if (code === 'KeyJ') { e.preventDefault(); nudgeDeckFxWet('B', 0.1); return; }
+    if (code === 'KeyV') { e.preventDefault(); engine.cycleFxBeatDiv('A'); return; }
+    if (code === 'Quote') { e.preventDefault(); engine.cycleFxBeatDiv('B'); return; }
+    if (code === 'KeyB') { e.preventDefault(); engine.toggleCueMonitor('A'); return; }
+    if (code === 'KeyN') { e.preventDefault(); engine.toggleCueMonitor('B'); return; }
+
+    // 全局与曲库 Shift 快捷键
+    if (code === 'ArrowLeft' && visibleCrateList[selectedCrateIdx]) { e.preventDefault(); engine.loadTrack('A', visibleCrateList[selectedCrateIdx].id); return; }
+    if (code === 'ArrowRight' && visibleCrateList[selectedCrateIdx]) { e.preventDefault(); engine.loadTrack('B', visibleCrateList[selectedCrateIdx].id); return; }
+    if (code === 'Enter') { e.preventDefault(); document.getElementById('btn-auto-dj').click(); return; }
+    if (code === 'KeyR') { e.preventDefault(); engine.toggleRecording(); return; }
+    if (code === 'BracketLeft') { e.preventDefault(); engine.setSplitCue(!engine.splitCue); return; }
+    if (code === 'Space') { e.preventDefault(); engine.setCutCurve(!engine.cutCurve); return; }
+    if (code === 'Backquote') { e.preventDefault(); engine.quantize = !engine.quantize; syncUIWithEngine(); return; }
+    if (code === 'Minus') {
+      e.preventDefault();
+      engine.autoMixBeats = engine.autoMixBeats === 32 ? 16 : 8;
+      syncUIWithEngine();
+      return;
+    }
+    if (code === 'Equal') {
+      e.preventDefault();
+      engine.autoMixBeats = engine.autoMixBeats === 8 ? 16 : 32;
+      syncUIWithEngine();
+      return;
+    }
+    if (code === 'Backslash') { e.preventDefault(); document.getElementById('btn-open-midi').click(); return; }
+    return;
+  }
+
+  // 3. 无修饰键：Deck A / B 主控与全局操作
+  if (code === 'KeyW') { e.preventDefault(); engine.togglePlay('A'); }
+  else if (code === 'KeyO') { e.preventDefault(); engine.togglePlay('B'); }
+  else if (code === 'KeyQ') { e.preventDefault(); engine.cueAction('A'); }
+  else if (code === 'KeyI') { e.preventDefault(); engine.cueAction('B'); }
+  else if (code === 'KeyE') { e.preventDefault(); engine.syncDeck('A'); }
+  else if (code === 'KeyP') { e.preventDefault(); engine.syncDeck('B'); }
+  else if (code === 'Digit1') { e.preventDefault(); engine.triggerHotCue('A', 0); }
+  else if (code === 'Digit2') { e.preventDefault(); engine.triggerHotCue('A', 1); }
+  else if (code === 'Digit3') { e.preventDefault(); engine.triggerHotCue('A', 2); }
+  else if (code === 'Digit4') { e.preventDefault(); engine.triggerHotCue('A', 3); }
+  else if (code === 'Digit7') { e.preventDefault(); engine.triggerHotCue('B', 0); }
+  else if (code === 'Digit8') { e.preventDefault(); engine.triggerHotCue('B', 1); }
+  else if (code === 'Digit9') { e.preventDefault(); engine.triggerHotCue('B', 2); }
+  else if (code === 'Digit0') { e.preventDefault(); engine.triggerHotCue('B', 3); }
+  else if (code === 'KeyD') { e.preventDefault(); startHeldScratch('KeyD', 'A', -1.2); }
+  else if (code === 'KeyF') { e.preventDefault(); startHeldScratch('KeyF', 'A', 1.2); }
+  else if (code === 'KeyH') { e.preventDefault(); startHeldScratch('KeyH', 'B', -1.2); }
+  else if (code === 'KeyJ') { e.preventDefault(); startHeldScratch('KeyJ', 'B', 1.2); }
+  else if (code === 'KeyA') { e.preventDefault(); engine.setScratchDelta('A', -0.06); }
+  else if (code === 'KeyS') { e.preventDefault(); engine.setScratchDelta('A', 0.06); }
+  else if (code === 'KeyK') { e.preventDefault(); engine.setScratchDelta('B', -0.06); }
+  else if (code === 'KeyL') { e.preventDefault(); engine.setScratchDelta('B', 0.06); }
+  else if (code === 'KeyR') { e.preventDefault(); engine.setTempo('A', engine.decks.A.tempoPercent - 0.4); }
+  else if (code === 'KeyT') { e.preventDefault(); engine.setTempo('A', engine.decks.A.tempoPercent + 0.4); }
+  else if (code === 'KeyY') { e.preventDefault(); engine.setTempo('B', engine.decks.B.tempoPercent - 0.4); }
+  else if (code === 'KeyU') { e.preventDefault(); engine.setTempo('B', engine.decks.B.tempoPercent + 0.4); }
+  else if (code === 'KeyZ') { e.preventDefault(); engine.toggleLoop4('A'); }
+  else if (code === 'KeyM') { e.preventDefault(); engine.toggleLoop4('B'); }
+  else if (code === 'KeyX') { e.preventDefault(); engine.halveLoop('A'); }
+  else if (code === 'KeyC') { e.preventDefault(); engine.doubleLoop('A'); }
+  else if (code === 'Comma') { e.preventDefault(); engine.halveLoop('B'); }
+  else if (code === 'Period') { e.preventDefault(); engine.doubleLoop('B'); }
+  else if (code === 'KeyG') { e.preventDefault(); engine.vinylBrake('A'); }
+  else if (code === 'Semicolon') { e.preventDefault(); engine.vinylBrake('B'); }
+  else if (code === 'KeyV') { e.preventDefault(); engine.vinylSpinback('A'); }
+  else if (code === 'Slash') { e.preventDefault(); engine.vinylSpinback('B'); }
+
+  // 全局控制与曲库导航
+  else if (code === 'Space') { e.preventDefault(); document.getElementById('btn-automix').click(); }
+  else if (code === 'ArrowLeft') { e.preventDefault(); engine.setCrossfader(engine.crossfader - 0.1); }
+  else if (code === 'ArrowRight') { e.preventDefault(); engine.setCrossfader(engine.crossfader + 0.1); }
+  else if (code === 'ArrowUp') { e.preventDefault(); moveCrateSelection(-1); }
+  else if (code === 'ArrowDown') { e.preventDefault(); moveCrateSelection(1); }
+  else if (code === 'PageUp') { e.preventDefault(); moveCrateSelection(-10); }
+  else if (code === 'PageDown') { e.preventDefault(); moveCrateSelection(10); }
+  else if (code === 'Enter' && visibleCrateList[selectedCrateIdx]) {
+    e.preventDefault();
+    const track = visibleCrateList[selectedCrateIdx];
+    setQueue.push(track);
+    renderSetList();
+    engine._emitAction({ type: 'ADD_TO_SET', trackId: track.id });
+  }
+  else if (code === 'Quote') { e.preventDefault(); document.getElementById('crate-search').focus(); }
+  else if (code === 'Minus') { e.preventDefault(); engine.setMasterVolume(engine.masterVolume - 0.05); }
+  else if (code === 'Equal') { e.preventDefault(); engine.setMasterVolume(engine.masterVolume + 0.05); }
+  else if (code === 'BracketLeft') { e.preventDefault(); engine.zoomWaveform(1.35); }
+  else if (code === 'BracketRight') { e.preventDefault(); engine.zoomWaveform(1 / 1.35); }
+  else if (code === 'Backquote') { e.preventDefault(); setLayoutMode(!document.body.classList.contains('pro-mode')); }
+  else if (code === 'Digit5') { e.preventDefault(); premixBtn.click(); }
+  else if (code === 'Backslash') { e.preventDefault(); document.getElementById('btn-open-lessons').click(); }
 });
 
 // 60fps 动画循环
