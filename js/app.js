@@ -750,3 +750,10 @@ renderSetList();
 syncUIWithEngine();
 coach.renderStep();
 requestAnimationFrame(animate);
+
+// 开屏自动预装两首内置练习曲，呈现饱满波形与可立即播放的桌面状态
+(async () => {
+  await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+  await engine.loadTrack('B', 'night-shift', { silentAction: true });
+  syncUIWithEngine();
+})();

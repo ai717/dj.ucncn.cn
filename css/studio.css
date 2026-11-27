@@ -177,14 +177,15 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
   accent-color: #d1d5db;
 }
 
-/* 主布局 */
+/* 主布局：全宽贴边（对齐 Backspin 桌面端宽屏比例） */
 .studio-main {
-  max-width: 1240px;
+  max-width: 1580px;
+  width: 100%;
   margin: 0 auto;
-  padding: 10px 14px;
+  padding: 8px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* 顶部双轨波形 */
@@ -332,49 +333,51 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
 
 .turntable-box {
   position: relative;
-  width: 214px;
-  height: 176px;
+  width: 268px;
+  height: 236px;
   background: #101116;
   border: 1px solid #262934;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  padding-left: 10px;
+  padding-left: 14px;
 }
 
+/* 220px 大黑胶 + 外圈银白频闪刻度点阵 (Strobe Dots) */
 .vinyl-platter {
-  width: 160px;
-  height: 160px;
+  width: 214px;
+  height: 214px;
   border-radius: 50%;
   background:
-    conic-gradient(from 35deg, rgba(255,255,255,0.06) 0deg, transparent 45deg, rgba(255,255,255,0.05) 180deg, transparent 225deg),
+    conic-gradient(from 35deg, rgba(255,255,255,0.07) 0deg, transparent 40deg, rgba(255,255,255,0.05) 180deg, transparent 220deg),
     repeating-radial-gradient(circle, #171920 0px, #090a0d 3px, #12141a 5px);
-  border: 2px solid #2f3342;
+  border: 4px dashed rgba(203, 213, 225, 0.32);
   position: relative;
   display: grid;
   place-items: center;
   cursor: grab;
   user-select: none;
   touch-action: none;
-  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8), 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.85), 0 4px 16px rgba(0, 0, 0, 0.55);
 }
 
 .vinyl-grooves {
   position: absolute;
-  inset: 14px;
+  inset: 18px;
   border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .vinyl-label {
-  width: 44px;
-  height: 44px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 18px;
   color: #0f1014;
+  border: 3px solid rgba(0, 0, 0, 0.25);
 }
 
 .vinyl-label.deck-a { background: var(--deck-a); }
@@ -382,18 +385,18 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
 
 .vinyl-spindle {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #e5e7eb;
 }
 
 .tonearm-svg {
   position: absolute;
-  right: 4px;
-  top: 8px;
-  width: 46px;
-  height: 130px;
+  right: 8px;
+  top: 10px;
+  width: 56px;
+  height: 190px;
   pointer-events: none;
 }
 
@@ -448,7 +451,7 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
 .tempo-slider {
   writing-mode: vertical-lr;
   direction: rtl;
-  height: 102px;
+  height: 175px;
   accent-color: #d1d5db;
 }
 
@@ -469,13 +472,35 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
   line-height: 1;
 }
 
-/* CUE / PLAY / SYNC + 4x2 Hot Cues 并排 */
+/* CUE / PLAY / SYNC + 彩色 Hot Cues */
 .transport-hc-row {
   display: grid;
-  grid-template-columns: 1fr 1.3fr 1fr 1.4fr;
+  grid-template-columns: 0.9fr 1.1fr 0.9fr 2fr;
   gap: 6px;
   align-items: stretch;
 }
+
+.hc-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.hc-btn {
+  background: #1b1d26;
+  color: #e5e7eb;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.hc-btn[data-hotcue$=":0"] { border-color: rgba(248, 113, 113, 0.55); color: #fca5a5; }
+.hc-btn[data-hotcue$=":1"] { border-color: rgba(250, 204, 21, 0.55); color: #fde047; }
+.hc-btn[data-hotcue$=":2"] { border-color: rgba(74, 222, 128, 0.55); color: #86efac; }
+.hc-btn[data-hotcue$=":3"] { border-color: rgba(167, 139, 250, 0.55); color: #c4b5fd; }
 
 .hw-btn {
   background: var(--panel-alt);
@@ -761,13 +786,13 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 7px 6px;
+  padding: 6px 10px;
+  height: 36px;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  text-align: left;
   transition: border-color 0.12s, background 0.12s;
 }
 
@@ -782,22 +807,18 @@ input[type="range"].vol-slider::-webkit-slider-thumb {
 }
 
 .pad-key {
+  position: absolute;
+  top: 4px;
+  left: 6px;
   font-size: 9px;
   color: var(--muted);
-  background: #13141a;
-  border: 1px solid #2c2f3c;
-  border-radius: 3px;
-  padding: 1px 4px;
   font-family: monospace;
 }
 
 .pad-name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
 }
 
 .sampler-hint {
