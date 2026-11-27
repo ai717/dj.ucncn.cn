@@ -47,6 +47,7 @@
         <button type="button" id="btn-mode-simple" class="seg-btn active">新手</button>
         <button type="button" id="btn-mode-pro" class="seg-btn">专业</button>
       </div>
+      <button type="button" id="btn-explain-mode" class="top-btn" title="开启后点击下方任意控件即可查看详细功能与操作说明">说明模式</button>
 
       <button type="button" id="btn-open-midi" class="top-btn pro-only">MIDI 映射</button>
       <button type="button" id="btn-compact-mode" class="top-btn pro-only">紧凑视图</button>
@@ -752,6 +753,23 @@
     <div class="reward-flower" aria-hidden="true">🌺</div>
     <div class="reward-title" id="reward-title">真棒！</div>
     <div class="reward-sub" id="reward-sub">完成这一步啦</div>
+  </div>
+
+  <!-- 「说明模式」详细百科浮层 -->
+  <div id="explain-popover" class="explain-popover" role="dialog" aria-label="控件功能说明" hidden>
+    <div class="explain-pop-head">
+      <span class="explain-pop-badge">说明模式 · 点击任意控件查看</span>
+      <button type="button" class="coach-float-close" id="btn-explain-exit" title="退出说明模式">退出说明 ×</button>
+    </div>
+    <h3 class="explain-pop-title" id="explain-pop-title">已开启说明模式（专业界面）</h3>
+    <div class="explain-pop-section">
+      <strong>核心作用</strong>
+      <p id="explain-pop-role">点击波形、黑胶唱盘、混音台旋钮/推子、专业功能键或采样器的任意位置，即可查看详细的功能原理与操作方法。</p>
+    </div>
+    <div class="explain-pop-section">
+      <strong>怎么操作 &amp; 技巧</strong>
+      <p id="explain-pop-how">说明模式下点击面板不会打断当前音频；点右上角「说明模式」或「退出说明 ×」可随时恢复正常打碟。</p>
+    </div>
   </div>
 
   <script type="module" src="./js/app.js"></script>

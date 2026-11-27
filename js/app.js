@@ -3,6 +3,7 @@ import { DJAudioEngine } from './audio-engine.js';
 import { drawScrollingWaveform, drawOverviewWaveform } from './waveform-canvas.js';
 import { LESSONS } from './lessons-data.js';
 import { CoachEngine } from './coach-engine.js';
+import { findExplainEntry } from './explain-data.js';
 
 const engine = new DJAudioEngine();
 
@@ -802,6 +803,101 @@ document.querySelectorAll('[data-premix-id]').forEach((btn) => {
 
 ui.btnSimple.addEventListener('click', () => setLayoutMode(false));
 ui.btnPro.addEventListener('click', () => setLayoutMode(true));
+
+// 「说明模式」：开启后默认进入专业模式，点击截图内任意硬件控件即弹出详细功能与操作百科
+let explainMode = false;
+let explainHighlightEl = null;
+const explainBtn = document.getElementById('btn-explain-mode');
+const explainPopover = document.getElementById('explain-popover');
+const explainTitleEl = document.getElementById('explain-pop-title');
+const explainRoleEl = document.getElementById('explain-pop-role');
+const explainHowEl = document.getElementById('explain-pop-how');
+
+function clearExplainHighlight() {
+  if (explainHighlightEl) {
+    explainHighlightEl.classList.remove('explain-target-highlight');
+    explainHighlightEl = null;
+  }
+}
+
+function positionExplainPopover(targetEl) {
+  if (!explainPopover || explainPopover.hidden) return;
+  const popW = explainPopover.offsetWidth || 360;
+  const popH = explainPopover.offsetHeight || 220;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const pad = 12;
+
+  if (!targetEl) {
+    explainPopover.style.left = `${Math.round((vw - popW) / 2)}px`;
+    explainPopover.style.top = `${Math.round(Math.min(vh - popH - pad, 160))}px`;
+    return;
+  }
+  const r = targetEl.getBoundingClientRect();
+  let left = r.left + r.width / 2 - popW / 2;
+  left = Math.max(pad, Math.min(vw - popW - pad, left));
+
+  let top = r.bottom + 12;
+  if (top + popH > vh - pad && r.top - popH - 12 >= pad) {
+    top = r.top - popH - 12;
+  }
+  top = Math.max(pad, Math.min(vh - popH - pad, top));
+  explainPopover.style.left = `${Math.round(left)}px`;
+  explainPopover.style.top = `${Math.round(top)}px`;
+}
+
+function setExplainMode(on) {
+  explainMode = Boolean(on);
+  explainBtn.classList.toggle('active', explainMode);
+  explainBtn.textContent = explainMode ? '退出说明' : '说明模式';
+  clearExplainHighlight();
+  if (explainMode) {
+    setLayoutMode(true); // 点击后默认专业模式
+    explainTitleEl.textContent = '已开启说明模式（专业界面）';
+    explainRoleEl.textContent = '点击下方波形、黑胶唱盘、混音台旋钮/推子、专业功能键或采样器的任意位置，即可查看详细功能原理与操作方法。';
+    explainHowEl.textContent = '说明模式下点击面板控件仅做讲解，不会误触打碟；随时点击顶部「退出说明」即可恢复正常操作。';
+    explainPopover.hidden = false;
+    requestAnimationFrame(() => positionExplainPopover(null));
+  } else {
+    explainPopover.hidden = true;
+  }
+}
+
+explainBtn.addEventListener('click', () => setExplainMode(!explainMode));
+document.getElementById('btn-explain-exit').addEventListener('click', () => setExplainMode(false));
+
+// 在捕获阶段拦截截图区域（波形 + 双唱盘 + 中央混音台 + 10 键采样器）点击，仅展示说明不触发真实操作
+function handleExplainInspect(e) {
+  if (!explainMode) return;
+  if (e.target.closest('#explain-popover') || e.target.closest('.topbar') || e.target.closest('.coach-topbar')) return;
+  const inInspectArea = e.target.closest('.waveforms-strip, .workspace-grid, .sampler-strip');
+  if (!inInspectArea) return;
+
+  const hit = findExplainEntry(e.target);
+  if (!hit) return;
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  if (e.type !== 'click') return; // pointerdown 仅阻止默认行为，click 时更新弹窗
+
+  let highlightNode = hit.el;
+  if (highlightNode.tagName === 'INPUT' && highlightNode.type === 'range' && highlightNode.parentElement) {
+    highlightNode = highlightNode.parentElement;
+  }
+  clearExplainHighlight();
+  highlightNode.classList.add('explain-target-highlight');
+  explainHighlightEl = highlightNode;
+
+  explainTitleEl.textContent = hit.entry.name;
+  explainRoleEl.textContent = hit.entry.role;
+  explainHowEl.textContent = hit.entry.how;
+  explainPopover.hidden = false;
+  requestAnimationFrame(() => positionExplainPopover(highlightNode));
+}
+
+document.addEventListener('pointerdown', handleExplainInspect, true);
+document.addEventListener('click', handleExplainInspect, true);
 
 // Pro 模式专属交互：紧凑视图、波形缩放、调速范围、网格/测速、效果拍数、分轨、自动混音拍数、量化
 const compactBtn = document.getElementById('btn-compact-mode');
