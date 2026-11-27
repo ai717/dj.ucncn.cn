@@ -682,6 +682,7 @@ body {
 
 .row-label {
   width: 30px;
+  flex-shrink: 0;
   font-size: 9px;
   font-weight: 700;
   color: var(--dim);
