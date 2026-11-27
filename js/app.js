@@ -18,6 +18,7 @@ const ui = {
   phaseMeter: document.getElementById('phase-meter'),
   crossfader: document.getElementById('crossfader'),
   crateList: document.getElementById('crate-list'),
+  setList: document.getElementById('set-list'),
   lessonsDialog: document.getElementById('lessons-dialog'),
   lessonsDialogList: document.getElementById('lessons-dialog-list'),
   shortcutsDialog: document.getElementById('shortcuts-dialog'),
@@ -27,17 +28,24 @@ const ui = {
   challengeResult: document.getElementById('challenge-result'),
   challengeGrade: document.getElementById('challenge-grade'),
   challengeStats: document.getElementById('challenge-stats'),
-  layoutModeBtn: document.getElementById('btn-layout-mode')
+  btnSimple: document.getElementById('btn-mode-simple'),
+  btnPro: document.getElementById('btn-mode-pro')
 };
 
 let blindChallengeActive = false;
 let blindTimerId = null;
 let blindRemaining = 30;
+let crateFilter = '';
+let crateSort = null;
+let crateSortAsc = true;
+const setQueue = [];
+const customSamplerBuffers = new Map();
+const activeFxMode = { A: 'echo', B: 'echo' };
 
 const coach = new CoachEngine(engine, {
   updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isDemoRunning, feedback }) {
     ui.lessonBadge.textContent = `${completedCount} / ${totalLessons}`;
-    ui.coachTag.textContent = `第 ${lesson.number} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`;
+    ui.coachTag.textContent = `LESSON ${lesson.number} · ${lesson.title} (${stepNumber}/${totalSteps})`;
     ui.coachTitle.textContent = step.title;
     ui.coachDesc.textContent = step.instruction;
 
@@ -55,12 +63,6 @@ const coach = new CoachEngine(engine, {
   }
 });
 
-let crateFilter = '';
-let crateSort = null;
-let crateSortAsc = true;
-const setQueue = [];
-const setListEl = document.getElementById('set-list');
-
 function renderCrate() {
   ui.crateList.innerHTML = '';
   let list = TRACK_CATALOG.filter((t) => {
@@ -71,7 +73,6 @@ function renderCrate() {
   if (crateSort) {
     list = [...list].sort((a, b) => (crateSortAsc ? a[crateSort] - b[crateSort] : b[crateSort] - a[crateSort]));
   }
-  document.getElementById('crate-count').textContent = String(list.length);
   for (const t of list) {
     const row = document.createElement('div');
     row.className = 'crate-item';
@@ -81,9 +82,9 @@ function renderCrate() {
         <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM · ${t.key} · 能量 ${t.energy}</span>
       </div>
       <div class="crate-item-btns">
-        <button type="button" class="mini-btn" data-load="A:${t.id}">→ A</button>
-        <button type="button" class="mini-btn" data-load="B:${t.id}">→ B</button>
-        <button type="button" class="mini-btn" data-add-set="${t.id}">+ Set</button>
+        <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
+        <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
+        <button type="button" class="hw-sm" data-add-set="${t.id}">+ Set</button>
       </div>
     `;
     ui.crateList.appendChild(row);
@@ -92,9 +93,9 @@ function renderCrate() {
 
 function renderSetList() {
   document.getElementById('set-count').textContent = String(setQueue.length);
-  setListEl.innerHTML = '';
+  ui.setList.innerHTML = '';
   if (setQueue.length === 0) {
-    setListEl.innerHTML = '<div class="crate-item-meta" style="padding:8px;">待播清单为空，请在曲库点击「+ Set」添加曲目。</div>';
+    ui.setList.innerHTML = '<div class="crate-item-meta" style="padding:8px;">待播清单为空，请在左侧曲库点击「+ Set」添加曲目。</div>';
     return;
   }
   setQueue.forEach((t, idx) => {
@@ -106,11 +107,11 @@ function renderSetList() {
         <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM</span>
       </div>
       <div class="crate-item-btns">
-        <button type="button" class="mini-btn" data-load="A:${t.id}">→ A</button>
-        <button type="button" class="mini-btn" data-load="B:${t.id}">→ B</button>
+        <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
+        <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
       </div>
     `;
-    setListEl.appendChild(row);
+    ui.setList.appendChild(row);
   });
 }
 
@@ -134,6 +135,22 @@ function renderLessonsModal() {
     });
     ui.lessonsDialogList.appendChild(btn);
   });
+}
+
+function updateKnobVisual(knobUnit, val) {
+  const min = Number(knobUnit.dataset.min);
+  const max = Number(knobUnit.dataset.max);
+  const norm = Math.max(0, Math.min(1, (val - min) / (max - min)));
+  const deg = -135 + norm * 270;
+  knobUnit.dataset.val = String(val);
+  const dial = knobUnit.querySelector('.knob-dial');
+  if (dial) dial.style.transform = `rotate(${deg}deg)`;
+}
+
+function setLayoutMode(isPro) {
+  document.body.classList.toggle('pro-mode', isPro);
+  ui.btnSimple.classList.toggle('active', !isPro);
+  ui.btnPro.classList.toggle('active', isPro);
 }
 
 function syncUIWithEngine() {
@@ -163,105 +180,126 @@ function syncUIWithEngine() {
     tempoSlider.value = String(d.tempoPercent);
 
     playBtn.classList.toggle('active', d.isPlaying);
-    playBtn.textContent = d.isPlaying ? 'PAUSE' : 'PLAY';
+    playBtn.textContent = d.isPlaying ? '❚❚' : '▶';
     loopBtn.classList.toggle('active', d.loop4);
 
-    // 同步 EQ / Filter / Volume 控件值（如 Show me 自动演示改动时）
+    // 同步圆形旋钮角度
+    const gainKnob = document.querySelector(`[data-knob="gain:${id}"]`);
+    if (gainKnob) updateKnobVisual(gainKnob, d.gainTrim);
     for (const band of ['high', 'mid', 'low']) {
-      const el = document.querySelector(`[data-eq="${id}:${band}"]`);
-      if (el && Number(el.value) !== d.eq[band]) el.value = String(d.eq[band]);
+      const k = document.querySelector(`[data-knob="eq:${id}:${band}"]`);
+      if (k) updateKnobVisual(k, d.eq[band]);
     }
-    const filterEl = document.querySelector(`[data-filter="${id}"]`);
-    if (filterEl && Math.abs(Number(filterEl.value) - d.filter) > 0.01) {
-      filterEl.value = String(d.filter);
-    }
-    const echoEl = document.querySelector(`[data-echo="${id}"]`);
-    if (echoEl && Math.abs(Number(echoEl.value) - d.echo) > 0.01) {
-      echoEl.value = String(d.echo);
-    }
-    const revEl = document.querySelector(`[data-reverb="${id}"]`);
-    if (revEl && Math.abs(Number(revEl.value) - d.reverb) > 0.01) {
-      revEl.value = String(d.reverb);
-    }
-    const flgEl = document.querySelector(`[data-flanger="${id}"]`);
-    if (flgEl && Math.abs(Number(flgEl.value) - d.flanger) > 0.01) {
-      flgEl.value = String(d.flanger);
-    }
+    const filterKnob = document.querySelector(`[data-knob="filter:${id}"]`);
+    if (filterKnob) updateKnobVisual(filterKnob, d.filter);
+
     const cueMonBtn = document.querySelector(`[data-cue-mon="${id}"]`);
     if (cueMonBtn) cueMonBtn.classList.toggle('active', d.cueMonitor);
+
+    // FX 按钮激活态
+    const fxMode = activeFxMode[id];
+    document.querySelectorAll(`[data-fx-toggle^="${id}:"]`).forEach((btn) => {
+      const [, mode] = btn.dataset.fxToggle.split(':');
+      btn.classList.toggle('active', mode === fxMode && d[mode] > 0);
+    });
+    const fxSlider = document.querySelector(`[data-fx-wet="${id}"]`);
+    if (fxSlider) fxSlider.value = String(d[fxMode] || 0);
   }
+
   ui.crossfader.value = String(engine.crossfader);
-  const isPro = document.body.classList.contains('pro-mode');
-  ui.layoutModeBtn.textContent = isPro ? '模式: Pro' : '模式: Simple';
   const recBtn = document.getElementById('btn-rec');
   if (recBtn) {
     recBtn.classList.toggle('recording', engine.isRecording);
-    recBtn.textContent = engine.isRecording ? '⏹ 停止录音' : '● REC';
+    recBtn.textContent = engine.isRecording ? '⏹ REC' : '● REC';
   }
+  const curveBtn = document.getElementById('btn-curve-toggle');
+  if (curveBtn) {
+    curveBtn.textContent = engine.cutCurve ? 'CUT CURVE' : 'BLEND CURVE';
+    curveBtn.classList.toggle('active', engine.cutCurve);
+  }
+  const splitBtn = document.getElementById('btn-split-cue');
+  if (splitBtn) splitBtn.classList.toggle('active', engine.splitCue);
 }
 
 engine.onChange(syncUIWithEngine);
 
-// 事件绑定
+// 圆形硬件旋钮上下拖动 + 双击复位
+document.querySelectorAll('.knob-unit').forEach((unit) => {
+  let dragging = false;
+  let startY = 0;
+  let startVal = 0;
+
+  const applyVal = (v) => {
+    const min = Number(unit.dataset.min);
+    const max = Number(unit.dataset.max);
+    const clamped = Math.max(min, Math.min(max, v));
+    const parts = unit.dataset.knob.split(':');
+    if (parts[0] === 'gain') engine.setGainTrim(parts[1], clamped);
+    else if (parts[0] === 'eq') engine.setEQ(parts[1], parts[2], clamped);
+    else if (parts[0] === 'filter') engine.setFilter(parts[1], clamped);
+  };
+
+  unit.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    startY = e.clientY;
+    startVal = Number(unit.dataset.val);
+    unit.setPointerCapture(e.pointerId);
+  });
+
+  unit.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const min = Number(unit.dataset.min);
+    const max = Number(unit.dataset.max);
+    const delta = (startY - e.clientY) / 90;
+    applyVal(startVal + delta * (max - min));
+  });
+
+  const stop = () => { dragging = false; };
+  unit.addEventListener('pointerup', stop);
+  unit.addEventListener('pointercancel', stop);
+  unit.addEventListener('dblclick', () => applyVal(Number(unit.dataset.default)));
+});
+
+// 顶部 Premixes / 模式切换 / 装盘 / 录音
 let premixController = null;
 const premixBtn = document.getElementById('btn-premix-demo');
-
 function abortableSleep(ms, signal) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) return reject(new DOMException('Aborted', 'AbortError'));
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
-    function onAbort() {
-      clearTimeout(timer);
-      reject(new DOMException('Aborted', 'AbortError'));
-    }
+    const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+    function onAbort() { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }
     signal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
 premixBtn.addEventListener('click', async () => {
-  if (premixController) {
-    premixController.abort();
-    return;
-  }
+  if (premixController) { premixController.abort(); return; }
   premixController = new AbortController();
   const { signal } = premixController;
   premixBtn.textContent = '⏹ 停止示范';
-
   try {
     await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
     await engine.loadTrack('B', 'night-shift', { silentAction: true });
     if (signal.aborted) return;
-
     engine.setCrossfader(-1, { silentAction: true });
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', -18, { silentAction: true });
-    engine.setFilter('A', 0, { silentAction: true });
     engine.play('A', { silentAction: true });
-
     await abortableSleep(2200, signal);
-
     engine.syncDeck('B', { silentAction: true });
     engine.play('B', { silentAction: true });
-
     for (let v = -1; v <= 0; v += 0.1) {
       engine.setCrossfader(v, { silentAction: true });
       await abortableSleep(180, signal);
     }
-
-    // Bass Swap + Filter Sweep
     engine.setEQ('A', 'low', -18, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
     await abortableSleep(1200, signal);
-
     for (let i = 1; i <= 10; i++) {
       engine.setFilter('A', i * 0.06, { silentAction: true });
       engine.setCrossfader(i * 0.1, { silentAction: true });
       await abortableSleep(180, signal);
     }
-
     engine.triggerSampler('airhorn');
     await abortableSleep(1400, signal);
   } catch (err) {
@@ -273,11 +311,227 @@ premixBtn.addEventListener('click', async () => {
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
     premixController = null;
-    premixBtn.textContent = '🎧 高手示范';
+    premixBtn.textContent = 'Premixes · 高手示范';
   }
 });
 
-// 移动端面板切换
+ui.btnSimple.addEventListener('click', () => setLayoutMode(false));
+ui.btnPro.addEventListener('click', () => setLayoutMode(true));
+
+document.getElementById('btn-load-demo-pair').addEventListener('click', async () => {
+  await engine.loadTrack('A', 'sunrise-house');
+  await engine.loadTrack('B', 'night-shift');
+  engine.setCrossfader(-1, { silentAction: true });
+});
+
+document.getElementById('btn-rec').addEventListener('click', () => {
+  engine.toggleRecording();
+  engine._emitAction({ type: 'REC_TOGGLE' });
+});
+
+document.getElementById('master-volume').addEventListener('input', (e) => engine.setMasterVolume(Number(e.target.value)));
+ui.crossfader.addEventListener('input', (e) => engine.setCrossfader(Number(e.target.value)));
+
+for (const id of ['A', 'B']) {
+  document.getElementById(`play-${id}`).addEventListener('click', () => engine.togglePlay(id));
+  document.getElementById(`cue-${id}`).addEventListener('click', () => engine.cueAction(id));
+  document.getElementById(`sync-${id}`).addEventListener('click', () => engine.syncDeck(id));
+  document.getElementById(`loop4-${id}`).addEventListener('click', () => engine.toggleLoop4(id));
+  document.getElementById(`tempo-${id}`).addEventListener('input', (e) => engine.setTempo(id, Number(e.target.value)));
+}
+
+document.querySelectorAll('[data-nudge]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const [deck, delta] = b.dataset.nudge.split(':');
+    engine.setTempo(deck, engine.decks[deck].tempoPercent + Number(delta));
+  });
+});
+
+document.querySelectorAll('[data-hotcue]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const [deck, idx] = btn.dataset.hotcue.split(':');
+    engine.triggerHotCue(deck, Number(idx));
+  });
+});
+
+document.querySelectorAll('[data-vol]').forEach((input) => {
+  input.addEventListener('input', () => engine.setChannelVolume(input.dataset.vol, Number(input.value)));
+});
+
+document.querySelectorAll('[data-cue-mon]').forEach((btn) => {
+  btn.addEventListener('click', () => engine.toggleCueMonitor(btn.dataset.cueMon));
+});
+
+document.getElementById('btn-curve-toggle').addEventListener('click', () => engine.setCutCurve(!engine.cutCurve));
+document.getElementById('btn-split-cue').addEventListener('click', () => engine.setSplitCue(!engine.splitCue));
+
+// FX Toggle + 共享 Wet 滑块
+document.querySelectorAll('[data-fx-toggle]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const [deck, mode] = btn.dataset.fxToggle.split(':');
+    activeFxMode[deck] = mode;
+    const current = engine.decks[deck][mode];
+    const next = current > 0 ? 0 : 0.45;
+    if (mode === 'echo') engine.setEcho(deck, next);
+    else if (mode === 'reverb') engine.setReverb(deck, next);
+    else engine.setFlanger(deck, next);
+  });
+});
+
+document.querySelectorAll('[data-fx-wet]').forEach((input) => {
+  input.addEventListener('input', () => {
+    const deck = input.dataset.fxWet;
+    const mode = activeFxMode[deck];
+    const v = Number(input.value);
+    if (mode === 'echo') engine.setEcho(deck, v);
+    else if (mode === 'reverb') engine.setReverb(deck, v);
+    else engine.setFlanger(deck, v);
+  });
+});
+
+// 8 键 Sampler 点击与拖放自定义音频
+function triggerPad(padId) {
+  if (customSamplerBuffers.has(padId)) {
+    const ctx = engine.ensureContext();
+    const src = ctx.createBufferSource();
+    src.buffer = customSamplerBuffers.get(padId);
+    src.connect(engine.masterGain);
+    src.start();
+    engine._emitAction({ type: 'SAMPLER', padId });
+  } else {
+    engine.triggerSampler(padId);
+  }
+}
+
+document.querySelectorAll('.sampler-pad').forEach((pad) => {
+  const padId = pad.dataset.sampler;
+  pad.addEventListener('click', () => triggerPad(padId));
+  pad.addEventListener('dragover', (e) => { e.preventDefault(); pad.classList.add('drag-over'); });
+  pad.addEventListener('dragleave', () => pad.classList.remove('drag-over'));
+  pad.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    pad.classList.remove('drag-over');
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    try {
+      const ctx = engine.ensureContext();
+      const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+      customSamplerBuffers.set(padId, buf);
+      pad.querySelector('.pad-name').textContent = file.name.replace(/\.[^.]+$/, '');
+    } catch (err) {
+      console.error('采样音频解码失败:', err);
+    }
+  });
+});
+
+// Loop 倍数 / BeatJump / Vinyl 特技 / AutoMix
+document.querySelectorAll('[data-loop-half]').forEach((b) => b.addEventListener('click', () => engine.halveLoop(b.dataset.loopHalf)));
+document.querySelectorAll('[data-loop-double]').forEach((b) => b.addEventListener('click', () => engine.doubleLoop(b.dataset.loopDouble)));
+document.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => {
+  const [deck, beats] = b.dataset.jump.split(':');
+  engine.beatJump(deck, Number(beats));
+}));
+document.querySelectorAll('[data-brake]').forEach((b) => b.addEventListener('click', () => engine.vinylBrake(b.dataset.brake)));
+document.querySelectorAll('[data-spin]').forEach((b) => b.addEventListener('click', () => engine.vinylSpinback(b.dataset.spin)));
+
+document.getElementById('btn-automix').addEventListener('click', async () => {
+  if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+  if (!engine.decks.B.track) await engine.loadTrack('B', 'night-shift', { silentAction: true });
+  const fromAtoB = engine.crossfader <= 0;
+  engine.syncDeck(fromAtoB ? 'B' : 'A', { silentAction: true });
+  engine.play('A', { silentAction: true });
+  engine.play('B', { silentAction: true });
+  engine._emitAction({ type: 'AUTO_MIX', direction: fromAtoB ? 'A->B' : 'B->A' });
+  const start = engine.crossfader;
+  const end = fromAtoB ? 1 : -1;
+  for (let i = 1; i <= 16; i++) {
+    engine.setCrossfader(start + ((end - start) * i) / 16, { silentAction: true });
+    await new Promise((r) => setTimeout(r, 150));
+  }
+});
+
+// Crate & Set 曲库管理
+document.getElementById('input-local-audio').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  const ctx = engine.ensureContext();
+  for (const f of files) {
+    try { await registerLocalAudioFile(ctx, f); } catch (err) { console.error(err); }
+  }
+  renderCrate();
+  e.target.value = '';
+});
+
+document.getElementById('crate-search').addEventListener('input', (e) => { crateFilter = e.target.value; renderCrate(); });
+document.querySelectorAll('[data-sort]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.sort;
+    if (crateSort === field) crateSortAsc = !crateSortAsc;
+    else { crateSort = field; crateSortAsc = true; }
+    renderCrate();
+  });
+});
+
+ui.crateList.addEventListener('click', (e) => {
+  const loadBtn = e.target.closest('[data-load]');
+  if (loadBtn) {
+    const [deck, trackId] = loadBtn.dataset.load.split(':');
+    engine.loadTrack(deck, trackId);
+    return;
+  }
+  const addBtn = e.target.closest('[data-add-set]');
+  if (addBtn) {
+    const track = TRACK_CATALOG.find((t) => t.id === addBtn.dataset.addSet);
+    if (track) {
+      setQueue.push(track);
+      renderSetList();
+      engine._emitAction({ type: 'ADD_TO_SET', trackId: track.id });
+    }
+  }
+});
+
+ui.setList.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-load]');
+  if (!btn) return;
+  const [deck, trackId] = btn.dataset.load.split(':');
+  engine.loadTrack(deck, trackId);
+});
+
+document.getElementById('btn-auto-dj').addEventListener('click', async () => {
+  const list = setQueue.length >= 2 ? setQueue : TRACK_CATALOG.slice(0, 2);
+  await engine.loadTrack('A', list[0].id, { silentAction: true });
+  await engine.loadTrack('B', list[1].id, { silentAction: true });
+  document.getElementById('btn-automix').click();
+});
+
+// 波形跳转与黑胶搓碟
+document.querySelectorAll('.overview-canvas').forEach((canvas) => {
+  canvas.addEventListener('click', (e) => {
+    const deckId = canvas.dataset.deck;
+    const deck = engine.decks[deckId];
+    if (!deck.track) return;
+    const rect = canvas.getBoundingClientRect();
+    engine.seek(deckId, Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * deck.track.duration);
+  });
+});
+
+document.querySelectorAll('.vinyl-platter').forEach((platter) => {
+  const deckId = platter.dataset.deck;
+  let dragging = false;
+  let lastX = 0;
+  platter.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; platter.setPointerCapture(e.pointerId); });
+  platter.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    engine.setScratchDelta(deckId, Math.max(-0.6, Math.min(0.8, dx * 0.04)));
+  });
+  const endScratch = () => { if (!dragging) return; dragging = false; engine.setScratchDelta(deckId, 0); };
+  platter.addEventListener('pointerup', endScratch);
+  platter.addEventListener('pointercancel', endScratch);
+});
+
+// 移动端切换
 const workspaceGrid = document.querySelector('.workspace-grid');
 workspaceGrid.dataset.mobileView = 'A';
 document.querySelectorAll('.mobile-tab').forEach((tab) => {
@@ -288,224 +542,52 @@ document.querySelectorAll('.mobile-tab').forEach((tab) => {
   });
 });
 
-document.getElementById('input-local-audio').addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files || []);
-  if (!files.length) return;
-  const ctx = engine.ensureContext();
-  for (const f of files) {
-    try {
-      await registerLocalAudioFile(ctx, f);
-    } catch (err) {
-      console.error('本地音频解码失败:', f.name, err);
-    }
-  }
-  renderCrate();
-  e.target.value = '';
-});
-
-document.getElementById('btn-load-demo-pair').addEventListener('click', async () => {
-  await engine.loadTrack('A', 'sunrise-house');
-  await engine.loadTrack('B', 'night-shift');
-  engine.setCrossfader(-1, { silentAction: true });
-});
-
-document.getElementById('master-volume').addEventListener('input', (e) => {
-  engine.setMasterVolume(Number(e.target.value));
-});
-
-ui.crossfader.addEventListener('input', (e) => {
-  engine.setCrossfader(Number(e.target.value));
-});
-
-for (const id of ['A', 'B']) {
-  document.getElementById(`play-${id}`).addEventListener('click', () => engine.togglePlay(id));
-  document.getElementById(`cue-${id}`).addEventListener('click', () => engine.cueAction(id));
-  document.getElementById(`sync-${id}`).addEventListener('click', () => engine.syncDeck(id));
-  document.getElementById(`loop4-${id}`).addEventListener('click', () => engine.toggleLoop4(id));
-  document.getElementById(`tempo-${id}`).addEventListener('input', (e) => {
-    engine.setTempo(id, Number(e.target.value));
-  });
-}
-
-document.querySelectorAll('[data-hotcue]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const [deck, idx] = btn.dataset.hotcue.split(':');
-    engine.triggerHotCue(deck, Number(idx));
-  });
-});
-
-document.querySelectorAll('[data-eq]').forEach((input) => {
-  input.addEventListener('input', () => {
-    const [deck, band] = input.dataset.eq.split(':');
-    engine.setEQ(deck, band, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-filter]').forEach((input) => {
-  input.addEventListener('input', () => {
-    engine.setFilter(input.dataset.filter, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-echo]').forEach((input) => {
-  input.addEventListener('input', () => {
-    engine.setEcho(input.dataset.echo, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-reverb]').forEach((input) => {
-  input.addEventListener('input', () => {
-    engine.setReverb(input.dataset.reverb, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-flanger]').forEach((input) => {
-  input.addEventListener('input', () => {
-    engine.setFlanger(input.dataset.flanger, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-cue-mon]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    engine.toggleCueMonitor(btn.dataset.cueMon);
-  });
-});
-
-document.getElementById('chk-split-cue').addEventListener('change', (e) => {
-  engine.setSplitCue(e.target.checked);
-});
-
-ui.layoutModeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('pro-mode');
-  syncUIWithEngine();
-});
-
-document.querySelectorAll('[data-vol]').forEach((input) => {
-  input.addEventListener('input', () => {
-    engine.setChannelVolume(input.dataset.vol, Number(input.value));
-  });
-});
-
-document.querySelectorAll('[data-sampler]').forEach((btn) => {
-  btn.addEventListener('click', () => engine.triggerSampler(btn.dataset.sampler));
-});
-
-ui.crateList.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-load]');
-  if (!btn) return;
-  const [deck, trackId] = btn.dataset.load.split(':');
-  engine.loadTrack(deck, trackId);
-});
-
-// 波形点击/拖拽跳转
-document.querySelectorAll('.overview-canvas').forEach((canvas) => {
-  canvas.addEventListener('click', (e) => {
-    const deckId = canvas.dataset.deck;
-    const deck = engine.decks[deckId];
-    if (!deck.track) return;
-    const rect = canvas.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    engine.seek(deckId, ratio * deck.track.duration);
-  });
-});
-
-// 黑胶唱盘按住搓碟交互
-document.querySelectorAll('.vinyl-platter').forEach((platter) => {
-  const deckId = platter.dataset.deck;
-  let dragging = false;
-  let lastX = 0;
-
-  platter.addEventListener('pointerdown', (e) => {
-    dragging = true;
-    lastX = e.clientX;
-    platter.setPointerCapture(e.pointerId);
-  });
-
-  platter.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - lastX;
-    lastX = e.clientX;
-    engine.setScratchDelta(deckId, Math.max(-0.6, Math.min(0.8, dx * 0.04)));
-  });
-
-  const endScratch = () => {
-    if (!dragging) return;
-    dragging = false;
-    engine.setScratchDelta(deckId, 0);
-  };
-  platter.addEventListener('pointerup', endScratch);
-  platter.addEventListener('pointercancel', endScratch);
-});
-
-// 教练按钮与弹窗
+// 教练按钮与课程弹窗
 ui.btnShowMe.addEventListener('click', () => coach.runShowMe());
 ui.btnPrev.addEventListener('click', () => coach.prevStep());
 ui.btnSkip.addEventListener('click', () => coach.skipStep());
+document.getElementById('btn-coach-all').addEventListener('click', () => { renderLessonsModal(); ui.lessonsDialog.showModal(); });
+document.getElementById('btn-open-lessons').addEventListener('click', () => { renderLessonsModal(); ui.lessonsDialog.showModal(); });
+document.getElementById('btn-reset-progress').addEventListener('click', () => { coach.resetProgress(); renderLessonsModal(); });
+document.getElementById('btn-open-shortcuts').addEventListener('click', () => ui.shortcutsDialog.showModal());
 
-document.getElementById('btn-open-lessons').addEventListener('click', () => {
-  renderLessonsModal();
-  ui.lessonsDialog.showModal();
-});
-
-document.getElementById('btn-reset-progress').addEventListener('click', () => {
-  coach.resetProgress();
-  renderLessonsModal();
-});
-
-document.getElementById('btn-open-shortcuts').addEventListener('click', () => {
-  ui.shortcutsDialog.showModal();
-});
-
-// 30 秒盲听对拍挑战
+// 30 秒盲听挑战
 function finishBlindChallenge() {
   if (!blindChallengeActive) return;
   clearInterval(blindTimerId);
   blindChallengeActive = false;
   ui.challengeBanner.hidden = true;
-
   const bpmA = engine.getEffectiveBPM('A');
   const bpmB = engine.getEffectiveBPM('B');
   const diff = Math.abs(bpmA - bpmB);
   engine.pause('A', { silentAction: true });
   engine.pause('B', { silentAction: true });
   syncUIWithEngine();
-
   let grade = 'C';
   if (diff <= 0.4) grade = 'S';
   else if (diff <= 1.0) grade = 'A';
   else if (diff <= 2.2) grade = 'B';
-
   ui.challengeGrade.textContent = grade;
-  ui.challengeStats.innerHTML = `
-    <div>Deck A：<strong>${bpmA.toFixed(1)} BPM</strong> · 你的 Deck B：<strong>${bpmB.toFixed(1)} BPM</strong></div>
-    <div>BPM 误差：<strong>${diff.toFixed(2)} BPM</strong>（用时 ${30 - blindRemaining} 秒）</div>
-  `;
+  ui.challengeStats.innerHTML = `<div>Deck A：<strong>${bpmA.toFixed(1)} BPM</strong> · 你的 Deck B：<strong>${bpmB.toFixed(1)} BPM</strong></div><div>BPM 误差：<strong>${diff.toFixed(2)} BPM</strong>（用时 ${30 - blindRemaining} 秒）</div>`;
   ui.challengeResult.hidden = false;
   ui.challengeDialog.showModal();
 }
 
-document.getElementById('btn-challenge').addEventListener('click', () => {
-  ui.challengeResult.hidden = true;
-  ui.challengeDialog.showModal();
-});
-
+document.getElementById('btn-challenge').addEventListener('click', () => { ui.challengeResult.hidden = true; ui.challengeDialog.showModal(); });
 document.getElementById('btn-challenge-start').addEventListener('click', async () => {
   ui.challengeDialog.close();
   await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
   await engine.loadTrack('B', 'night-shift', { silentAction: true });
-  const randomOffset = (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random() * 3.5);
   engine.setTempo('A', 0, { silentAction: true });
-  engine.setTempo('B', randomOffset, { silentAction: true });
+  engine.setTempo('B', (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random() * 3.5), { silentAction: true });
   engine.setCrossfader(0, { silentAction: true });
   engine.play('A', { silentAction: true });
   engine.play('B', { silentAction: true });
-
   blindChallengeActive = true;
   blindRemaining = 30;
   ui.bannerTimerVal.textContent = '30';
   ui.challengeBanner.hidden = false;
   syncUIWithEngine();
-
   clearInterval(blindTimerId);
   blindTimerId = setInterval(() => {
     blindRemaining -= 1;
@@ -513,66 +595,28 @@ document.getElementById('btn-challenge-start').addEventListener('click', async (
     if (blindRemaining <= 0) finishBlindChallenge();
   }, 1000);
 });
-
 document.getElementById('btn-banner-submit').addEventListener('click', finishBlindChallenge);
-
 document.getElementById('btn-copy-challenge').addEventListener('click', async (e) => {
-  const grade = ui.challengeGrade.textContent;
-  const text = `🎧 我在 dj.ucncn.cn「30秒盲听对拍挑战」拿到 ${grade} 级！${ui.challengeStats.textContent.replace(/\s+/g, ' ').trim()}`;
-  try {
-    await navigator.clipboard.writeText(text);
-    e.target.textContent = '✓ 已复制战绩';
-    setTimeout(() => { e.target.textContent = '📋 复制战绩文案'; }, 1600);
-  } catch (_) {}
+  const text = `🎧 我在 dj.ucncn.cn「30秒盲听对拍挑战」拿到 ${ui.challengeGrade.textContent} 级！${ui.challengeStats.textContent.replace(/\s+/g, ' ').trim()}`;
+  try { await navigator.clipboard.writeText(text); e.target.textContent = '✓ 已复制'; setTimeout(() => { e.target.textContent = '📋 复制战绩文案'; }, 1600); } catch (_) {}
 });
-
-// 生成并下载战绩分享海报 (Canvas 720x420 PNG)
 document.getElementById('btn-download-poster').addEventListener('click', () => {
   const c = document.createElement('canvas');
-  c.width = 720;
-  c.height = 420;
+  c.width = 720; c.height = 420;
   const ctx = c.getContext('2d');
-
   const grad = ctx.createLinearGradient(0, 0, 720, 420);
-  grad.addColorStop(0, '#0b0e14');
-  grad.addColorStop(1, '#162032');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 720, 420);
-
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(18, 18, 684, 384);
-
-  ctx.fillStyle = '#38bdf8';
-  ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('BACKSPIN 中文版 · dj.ucncn.cn', 44, 68);
-
-  ctx.fillStyle = '#f1f5f9';
-  ctx.font = 'bold 34px sans-serif';
-  ctx.fillText('30 秒盲听对拍挑战 · 战绩卡', 44, 120);
-
-  ctx.fillStyle = '#facc15';
-  ctx.font = 'bold 110px sans-serif';
-  ctx.fillText(ui.challengeGrade.textContent, 530, 260);
-
-  ctx.fillStyle = '#cbd5e1';
-  ctx.font = '22px sans-serif';
-  const lines = ui.challengeStats.innerText.split('\n').filter(Boolean);
-  lines.forEach((line, idx) => {
-    ctx.fillText(line.trim(), 44, 210 + idx * 42);
-  });
-
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '16px sans-serif';
-  ctx.fillText('免设备 · 免注册 · 打开浏览器就能学的互动 DJ 教练', 44, 365);
-
-  const link = document.createElement('a');
-  link.download = 'dj-challenge-poster.png';
-  link.href = c.toDataURL('image/png');
-  link.click();
+  grad.addColorStop(0, '#0f1014'); grad.addColorStop(1, '#1a1d26');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 720, 420);
+  ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 4; ctx.strokeRect(18, 18, 684, 384);
+  ctx.fillStyle = '#7dd3fc'; ctx.font = 'bold 20px sans-serif'; ctx.fillText('BACKSPIN 中文版 · dj.ucncn.cn', 44, 68);
+  ctx.fillStyle = '#f3f4f6'; ctx.font = 'bold 34px sans-serif'; ctx.fillText('30 秒盲听对拍挑战 · 战绩卡', 44, 120);
+  ctx.fillStyle = '#facc15'; ctx.font = 'bold 110px sans-serif'; ctx.fillText(ui.challengeGrade.textContent, 530, 260);
+  ctx.fillStyle = '#d1d5db'; ctx.font = '22px sans-serif';
+  ui.challengeStats.innerText.split('\n').filter(Boolean).forEach((line, idx) => ctx.fillText(line.trim(), 44, 210 + idx * 42));
+  const link = document.createElement('a'); link.download = 'dj-challenge-poster.png'; link.href = c.toDataURL('image/png'); link.click();
 });
 
-// Web MIDI 硬件控制器支持
+// Web MIDI
 const midiDialog = document.getElementById('midi-dialog');
 const midiStatusEl = document.getElementById('midi-status');
 const midiMapListEl = document.getElementById('midi-map-list');
@@ -593,38 +637,20 @@ function renderMidiMappings() {
     const bound = midiBindings.get(t.id);
     const row = document.createElement('div');
     row.className = 'midi-map-row';
-    row.innerHTML = `
-      <span>${t.label}</span>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="crate-item-meta">${bound ? `CC/Note #${bound}` : '未绑定'}</span>
-        <button type="button" class="mini-btn" data-midi-learn="${t.id}">
-          ${learningTarget === t.id ? '等待触发…' : '学习'}
-        </button>
-      </div>
-    `;
+    row.innerHTML = `<span>${t.label}</span><div style="display:flex;align-items:center;gap:8px;"><span class="crate-item-meta">${bound ? `CC/Note #${bound}` : '未绑定'}</span><button type="button" class="hw-sm" data-midi-learn="${t.id}">${learningTarget === t.id ? '等待触发…' : '学习'}</button></div>`;
     midiMapListEl.appendChild(row);
   }
 }
-
 midiMapListEl.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-midi-learn]');
   if (!btn) return;
   learningTarget = btn.dataset.midiLearn;
   renderMidiMappings();
 });
-
 function handleMidiMessage(msg) {
   const [status, data1, data2] = msg.data;
-  const cmd = status & 0xf0;
-  const key = `${cmd}:${data1}`;
-
-  if (learningTarget) {
-    midiBindings.set(learningTarget, key);
-    learningTarget = null;
-    renderMidiMappings();
-    return;
-  }
-
+  const key = `${status & 0xf0}:${data1}`;
+  if (learningTarget) { midiBindings.set(learningTarget, key); learningTarget = null; renderMidiMappings(); return; }
   for (const [targetId, boundKey] of midiBindings.entries()) {
     if (boundKey !== key) continue;
     if (targetId === 'playA' && data2 > 0) engine.togglePlay('A');
@@ -634,39 +660,25 @@ function handleMidiMessage(msg) {
     else if (targetId === 'tempoB') engine.setTempo('B', ((data2 / 127) * 2 - 1) * 8);
   }
 }
-
-async function initWebMidi() {
+document.getElementById('btn-open-midi').addEventListener('click', async () => {
   renderMidiMappings();
-  if (!navigator.requestMIDIAccess) {
-    midiStatusEl.textContent = '当前浏览器不支持 Web MIDI API，请使用 Chrome 或 Edge。';
-    return;
-  }
+  midiDialog.showModal();
+  if (!navigator.requestMIDIAccess) { midiStatusEl.textContent = '当前浏览器不支持 Web MIDI API，请使用 Chrome 或 Edge。'; return; }
   if (midiInitialized) return;
   try {
     const access = await navigator.requestMIDIAccess();
     midiInitialized = true;
     const updateInputs = () => {
       const inputs = Array.from(access.inputs.values());
-      if (inputs.length === 0) {
-        midiStatusEl.textContent = '未检测到外接 MIDI 控制器。请插入 USB 打碟机后刷新或重新打开此面板。';
-      } else {
-        midiStatusEl.textContent = `已连接设备：${inputs.map((i) => i.name).join('、')}`;
-        inputs.forEach((input) => { input.onmidimessage = handleMidiMessage; });
-      }
+      midiStatusEl.textContent = inputs.length === 0 ? '未检测到外接 MIDI 控制器。' : `已连接：${inputs.map((i) => i.name).join('、')}`;
+      inputs.forEach((input) => { input.onmidimessage = handleMidiMessage; });
     };
     updateInputs();
     access.onstatechange = updateInputs;
-  } catch (_) {
-    midiStatusEl.textContent = '未能获取 MIDI 设备权限。';
-  }
-}
-
-document.getElementById('btn-open-midi').addEventListener('click', () => {
-  initWebMidi();
-  midiDialog.showModal();
+  } catch (_) { midiStatusEl.textContent = '未能获取 MIDI 设备权限。'; }
 });
 
-// Dialog closedby="any" 渐进增强兜底（遵循 modern-web-guidance dialog 规范）
+// Dialog closedby="any" 兜底
 if (!('closedBy' in HTMLDialogElement.prototype)) {
   const outside = (e, dialog) => {
     const r = dialog.getBoundingClientRect();
@@ -675,76 +687,48 @@ if (!('closedBy' in HTMLDialogElement.prototype)) {
   for (const dialog of document.querySelectorAll('dialog[closedby="any"]')) {
     let pressedOutside = false;
     dialog.addEventListener('pointerdown', (e) => { pressedOutside = outside(e, dialog); });
-    dialog.addEventListener('pointerup', (e) => {
-      if (pressedOutside && outside(e, dialog)) dialog.close();
-    });
+    dialog.addEventListener('pointerup', (e) => { if (pressedOutside && outside(e, dialog)) dialog.close(); });
   }
 }
 
-// 键盘快捷键
+// 快捷键
+const SAMPLER_KEYS = ['airhorn', 'siren', 'laser', 'rewind', 'boom', 'riser', 'snareroll', 'aah'];
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
-  if (e.code === 'Space') {
-    e.preventDefault();
-    engine.togglePlay('A');
-  } else if (e.code === 'Enter' && !ui.lessonsDialog.open && !ui.shortcutsDialog.open) {
-    e.preventDefault();
-    engine.togglePlay('B');
-  } else if (e.key === 's' || e.key === 'S') {
-    engine.syncDeck('B');
-  } else if (e.key === 'ArrowLeft') {
-    engine.setCrossfader(engine.crossfader - 0.1);
-  } else if (e.key === 'ArrowRight') {
-    engine.setCrossfader(engine.crossfader + 0.1);
-  } else if (e.code === 'Backquote') {
-    document.body.classList.toggle('pro-mode');
-    syncUIWithEngine();
-  } else if (e.key === '?') {
-    if (ui.shortcutsDialog.open) ui.shortcutsDialog.close();
-    else ui.shortcutsDialog.showModal();
-  } else if (['1', '2', '3', '4'].includes(e.key)) {
-    const pads = ['airhorn', 'rewind', 'laser', 'riser'];
-    engine.triggerSampler(pads[Number(e.key) - 1]);
-  }
+  if (e.code === 'Space') { e.preventDefault(); engine.togglePlay('A'); }
+  else if (e.code === 'Enter' && !ui.lessonsDialog.open && !ui.shortcutsDialog.open) { e.preventDefault(); engine.togglePlay('B'); }
+  else if (e.key === 's' || e.key === 'S') engine.syncDeck('B');
+  else if (e.key === 'ArrowLeft') engine.setCrossfader(engine.crossfader - 0.1);
+  else if (e.key === 'ArrowRight') engine.setCrossfader(engine.crossfader + 0.1);
+  else if (e.code === 'Backquote') setLayoutMode(!document.body.classList.contains('pro-mode'));
+  else if (e.key === '?') { if (ui.shortcutsDialog.open) ui.shortcutsDialog.close(); else ui.shortcutsDialog.showModal(); }
+  else if (['1','2','3','4','5','6','7','8'].includes(e.key)) triggerPad(SAMPLER_KEYS[Number(e.key) - 1]);
 });
 
-// 60fps 动画循环：波形、黑胶旋转、小节灯、相位差、VU 电平
+// 60fps 动画循环
 const platterAngles = { A: 0, B: 0 };
 let lastFrame = performance.now();
-
 function animate(now) {
   const dt = (now - lastFrame) / 1000;
   lastFrame = now;
-
   for (const id of ['A', 'B']) {
     drawScrollingWaveform(document.getElementById(`wave-scroll-${id}`), engine, id);
     drawOverviewWaveform(document.getElementById(`wave-overview-${id}`), engine, id);
-
     const d = engine.decks[id];
     if (d.isPlaying) {
       platterAngles[id] = (platterAngles[id] + dt * 120 * engine.getPlaybackRate(id)) % 360;
       document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
     }
-
-    // 4拍小节灯 + 8小节乐句条
     const beatInfo = engine.getBeatInfo(id);
-    const dots = document.querySelectorAll(`#beats-${id} span`);
-    dots.forEach((dot, idx) => {
-      const active = d.track && (idx + 1 === beatInfo.beatInBar);
-      dot.classList.toggle('on', Boolean(active));
+    document.querySelectorAll(`#beats-${id} span`).forEach((dot, idx) => {
+      dot.classList.toggle('on', Boolean(d.track && idx + 1 === beatInfo.beatInBar));
       dot.classList.toggle('bar-start', idx === 0);
     });
-    const phraseBars = document.querySelectorAll(`#phrase-${id} span`);
-    phraseBars.forEach((barEl, idx) => {
+    document.querySelectorAll(`#phrase-${id} span`).forEach((barEl, idx) => {
       barEl.classList.toggle('on', Boolean(d.track && idx < beatInfo.barInPhrase));
     });
-
-    // VU 电平表
-    const lvl = engine.getLevel(id);
-    document.getElementById(`vu-${id}`).style.height = `${Math.round(lvl * 100)}%`;
+    document.getElementById(`vu-${id}`).style.height = `${Math.round(engine.getLevel(id) * 100)}%`;
   }
-
-  // 相位对齐指示
   if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.decks.A.track && engine.decks.B.track) {
     const bA = engine.getBeatInfo('A').phase;
     const bB = engine.getBeatInfo('B').phase;
@@ -752,111 +736,15 @@ function animate(now) {
     if (diff > 0.5) diff -= 1;
     if (diff < -0.5) diff += 1;
     const ms = Math.round(diff * (60000 / engine.getEffectiveBPM('A')));
-    if (Math.abs(ms) <= 22) {
-      ui.phaseMeter.textContent = '节拍已同步 ✓';
-      ui.phaseMeter.classList.add('synced');
-    } else {
-      ui.phaseMeter.textContent = ms > 0 ? `B 领先 ${ms} ms` : `B 落后 ${Math.abs(ms)} ms`;
-      ui.phaseMeter.classList.remove('synced');
-    }
+    ui.phaseMeter.textContent = Math.abs(ms) <= 22 ? '节拍已同步 ✓' : (ms > 0 ? `B 领先 ${ms} ms` : `B 落后 ${Math.abs(ms)} ms`);
+    ui.phaseMeter.classList.toggle('synced', Math.abs(ms) <= 22);
   } else {
     ui.phaseMeter.textContent = '播放双盘可实时对比节拍';
     ui.phaseMeter.classList.remove('synced');
   }
-
   requestAnimationFrame(animate);
 }
 
-// REC 录音、AUTO MIX、Loop 倍数/BeatJump、黑胶特技、Gain、Cut 曲线、曲库搜索/排序与 Set 队列
-document.getElementById('btn-rec').addEventListener('click', () => {
-  engine.toggleRecording();
-  engine._emitAction({ type: 'REC_TOGGLE' });
-});
-
-document.getElementById('btn-automix').addEventListener('click', async () => {
-  if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
-  if (!engine.decks.B.track) await engine.loadTrack('B', 'night-shift', { silentAction: true });
-  const fromAtoB = engine.crossfader <= 0;
-  const targetDeck = fromAtoB ? 'B' : 'A';
-  engine.syncDeck(targetDeck, { silentAction: true });
-  engine.play('A', { silentAction: true });
-  engine.play('B', { silentAction: true });
-  engine._emitAction({ type: 'AUTO_MIX', direction: fromAtoB ? 'A->B' : 'B->A' });
-  const steps = 16;
-  const start = engine.crossfader;
-  const end = fromAtoB ? 1 : -1;
-  for (let i = 1; i <= steps; i++) {
-    engine.setCrossfader(start + ((end - start) * i) / steps, { silentAction: true });
-    await new Promise((r) => setTimeout(r, 150));
-  }
-});
-
-document.querySelectorAll('[data-loop-half]').forEach((b) => b.addEventListener('click', () => engine.halveLoop(b.dataset.loopHalf)));
-document.querySelectorAll('[data-loop-double]').forEach((b) => b.addEventListener('click', () => engine.doubleLoop(b.dataset.loopDouble)));
-document.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => {
-  const [deck, beats] = b.dataset.jump.split(':');
-  engine.beatJump(deck, Number(beats));
-}));
-document.querySelectorAll('[data-brake]').forEach((b) => b.addEventListener('click', () => engine.vinylBrake(b.dataset.brake)));
-document.querySelectorAll('[data-spin]').forEach((b) => b.addEventListener('click', () => engine.vinylSpinback(b.dataset.spin)));
-document.querySelectorAll('[data-gain]').forEach((input) => input.addEventListener('input', () => engine.setGainTrim(input.dataset.gain, Number(input.value))));
-document.getElementById('chk-cut-curve').addEventListener('change', (e) => engine.setCutCurve(e.target.checked));
-
-document.getElementById('crate-search').addEventListener('input', (e) => {
-  crateFilter = e.target.value;
-  renderCrate();
-});
-
-document.querySelectorAll('[data-sort]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const field = btn.dataset.sort;
-    if (crateSort === field) crateSortAsc = !crateSortAsc;
-    else { crateSort = field; crateSortAsc = true; }
-    renderCrate();
-  });
-});
-
-document.getElementById('tab-crate').addEventListener('click', () => {
-  document.getElementById('tab-crate').classList.add('active');
-  document.getElementById('tab-set').classList.remove('active');
-  ui.crateList.hidden = false;
-  setListEl.hidden = true;
-});
-
-document.getElementById('tab-set').addEventListener('click', () => {
-  document.getElementById('tab-set').classList.add('active');
-  document.getElementById('tab-crate').classList.remove('active');
-  ui.crateList.hidden = true;
-  setListEl.hidden = false;
-  renderSetList();
-});
-
-ui.crateList.addEventListener('click', (e) => {
-  const addBtn = e.target.closest('[data-add-set]');
-  if (!addBtn) return;
-  const track = TRACK_CATALOG.find((t) => t.id === addBtn.dataset.addSet);
-  if (track) {
-    setQueue.push(track);
-    renderSetList();
-    engine._emitAction({ type: 'ADD_TO_SET', trackId: track.id });
-  }
-});
-
-setListEl.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-load]');
-  if (!btn) return;
-  const [deck, trackId] = btn.dataset.load.split(':');
-  engine.loadTrack(deck, trackId);
-});
-
-document.getElementById('btn-auto-dj').addEventListener('click', async () => {
-  const list = setQueue.length >= 2 ? setQueue : TRACK_CATALOG.slice(0, 2);
-  await engine.loadTrack('A', list[0].id, { silentAction: true });
-  await engine.loadTrack('B', list[1].id, { silentAction: true });
-  document.getElementById('btn-automix').click();
-});
-
-// 初始化渲染
 renderCrate();
 renderSetList();
 syncUIWithEngine();
