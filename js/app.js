@@ -347,6 +347,8 @@ function syncUIWithEngine() {
       const sBtn = document.querySelector(`[data-stem="${id}:${sKey}"]`);
       if (sBtn) sBtn.classList.toggle('active', Boolean(d.stems[sKey]));
     }
+    const revBtn = document.querySelector(`[data-rev="${id}"]`);
+    if (revBtn) revBtn.classList.toggle('active', Boolean(d.reversePlay));
   }
 
   document.querySelectorAll('[data-automix-beats]').forEach((b) => {
@@ -398,8 +400,8 @@ document.querySelectorAll('.knob-unit').forEach((unit) => {
     else if (parts[0] === 'eq') engine.setEQ(parts[1], parts[2], clamped);
     else if (parts[0] === 'filter') engine.setFilter(parts[1], clamped);
     else if (parts[0] === 'master') engine.setMasterVolume(clamped);
-    else if (parts[0] === 'cuemix') { engine.cueMix = clamped; syncUIWithEngine(); }
-    else if (parts[0] === 'phones') { engine.phonesVol = clamped; syncUIWithEngine(); }
+    else if (parts[0] === 'cuemix') engine.setCueMix(clamped);
+    else if (parts[0] === 'phones') engine.setPhonesVol(clamped);
   };
 
   unit.addEventListener('pointerdown', (e) => {
@@ -683,6 +685,7 @@ document.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('clic
 }));
 document.querySelectorAll('[data-brake]').forEach((b) => b.addEventListener('click', () => engine.vinylBrake(b.dataset.brake)));
 document.querySelectorAll('[data-spin]').forEach((b) => b.addEventListener('click', () => engine.vinylSpinback(b.dataset.spin)));
+document.querySelectorAll('[data-rev]').forEach((b) => b.addEventListener('click', () => engine.toggleReverse(b.dataset.rev)));
 
 document.getElementById('btn-automix').addEventListener('click', async () => {
   if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
@@ -692,11 +695,15 @@ document.getElementById('btn-automix').addEventListener('click', async () => {
   engine.play('A', { silentAction: true });
   engine.play('B', { silentAction: true });
   engine._emitAction({ type: 'AUTO_MIX', direction: fromAtoB ? 'A->B' : 'B->A' });
+  const bpm = engine.getEffectiveBPM(fromAtoB ? 'A' : 'B') || 122;
+  const totalMs = (engine.autoMixBeats || 16) * (60000 / bpm);
+  const steps = 32;
+  const stepMs = Math.max(40, totalMs / steps);
   const start = engine.crossfader;
   const end = fromAtoB ? 1 : -1;
-  for (let i = 1; i <= 16; i++) {
-    engine.setCrossfader(start + ((end - start) * i) / 16, { silentAction: true });
-    await new Promise((r) => setTimeout(r, 150));
+  for (let i = 1; i <= steps; i++) {
+    engine.setCrossfader(start + ((end - start) * i) / steps, { silentAction: true });
+    await new Promise((r) => setTimeout(r, stepMs));
   }
 });
 
@@ -1152,7 +1159,8 @@ function animate(now) {
       timeEl.textContent = `${fmtTime(cur)}  -${fmtTime(rem)}`;
     }
     if (d.isPlaying && !d.isScratching) {
-      platterAngles[id] = (platterAngles[id] + dt * 200 * engine.getPlaybackRate(id)) % 360;
+      const dir = d.reversePlay ? -1 : 1;
+      platterAngles[id] = (platterAngles[id] + dir * dt * 200 * engine.getPlaybackRate(id)) % 360;
       document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
     }
     const beatInfo = engine.getBeatInfo(id);

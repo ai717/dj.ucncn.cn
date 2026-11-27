@@ -45,6 +45,9 @@ export class DJAudioEngine {
       tempoRange: 8,
       keyLock: true,
       slipMode: false,
+      slipOriginCtx: 0,
+      slipOriginOffset: 0,
+      reversePlay: false,
       fxBeatDiv: 0.5,      // 0.25, 0.5, 1
       stems: { vocal: true, drums: true, bass: true, other: true },
       scratchOffsetRate: 0,// 临时搓碟速率叠加
@@ -112,6 +115,25 @@ export class DJAudioEngine {
     const d = this.decks[deckId];
     const ctx = this.ctx;
 
+    // 独立 4 频段分轨滤波链（不与用户手动 EQ 冲突）
+    const stemBass = ctx.createBiquadFilter();
+    stemBass.type = 'lowshelf';
+    stemBass.frequency.value = 240;
+
+    const stemVocal = ctx.createBiquadFilter();
+    stemVocal.type = 'peaking';
+    stemVocal.frequency.value = 1200;
+    stemVocal.Q.value = 0.7;
+
+    const stemDrums = ctx.createBiquadFilter();
+    stemDrums.type = 'highshelf';
+    stemDrums.frequency.value = 4200;
+
+    const stemOther = ctx.createBiquadFilter();
+    stemOther.type = 'peaking';
+    stemOther.frequency.value = 500;
+    stemOther.Q.value = 0.9;
+
     const eqLow = ctx.createBiquadFilter();
     eqLow.type = 'lowshelf';
     eqLow.frequency.value = 320;
@@ -170,6 +192,10 @@ export class DJAudioEngine {
     const cueSend = ctx.createGain();
     cueSend.gain.value = 0;
 
+    stemBass.connect(stemVocal);
+    stemVocal.connect(stemDrums);
+    stemDrums.connect(stemOther);
+    stemOther.connect(eqLow);
     eqLow.connect(eqMid);
     eqMid.connect(eqHigh);
     eqHigh.connect(sweepFilter);
@@ -195,7 +221,7 @@ export class DJAudioEngine {
     flangerSend.connect(flangerDelay);
     flangerDelay.connect(xfGain);
 
-    d.nodes = { eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain, echoSend, echoDelay, reverbSend, flangerSend, cueSend };
+    d.nodes = { stemBass, stemVocal, stemDrums, stemOther, eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain, echoSend, echoDelay, reverbSend, flangerSend, cueSend };
   }
 
   _createReverbImpulse(duration = 1.8, decay = 2.4) {
@@ -284,6 +310,9 @@ export class DJAudioEngine {
     if (!d.isPlaying || d.isScratching || !this.ctx) return d.offset % dur;
 
     const elapsed = (this.ctx.currentTime - d.startedAtCtx) * this.getPlaybackRate(deckId);
+    if (d.reversePlay) {
+      return (((d.offset - elapsed) % dur) + dur) % dur;
+    }
     if (d.loop4 && d.loopEnd > d.loopStart) {
       const loopLen = d.loopEnd - d.loopStart;
       const raw = d.offset + elapsed;
@@ -382,18 +411,29 @@ export class DJAudioEngine {
     this._clearBrakingSource(deckId);
     const d = this.decks[deckId];
     const src = this.ctx.createBufferSource();
-    src.buffer = d.track.buffer;
-    src.loop = true;
-    if (d.loop4 && d.loopEnd > d.loopStart) {
-      src.loopStart = d.loopStart;
-      src.loopEnd = d.loopEnd;
-    } else {
+    const dur = d.track.duration;
+    if (d.reversePlay) {
+      src.buffer = this._getReversedBuffer(deckId);
+      src.loop = true;
       src.loopStart = 0;
-      src.loopEnd = d.track.duration;
+      src.loopEnd = dur;
+      src.playbackRate.value = this.getPlaybackRate(deckId);
+      src.connect(d.nodes.stemBass);
+      src.start(0, Math.max(0, dur - (offsetSec % dur)) % dur);
+    } else {
+      src.buffer = d.track.buffer;
+      src.loop = true;
+      if (d.loop4 && d.loopEnd > d.loopStart) {
+        src.loopStart = d.loopStart;
+        src.loopEnd = d.loopEnd;
+      } else {
+        src.loopStart = 0;
+        src.loopEnd = dur;
+      }
+      src.playbackRate.value = this.getPlaybackRate(deckId);
+      src.connect(d.nodes.stemBass);
+      src.start(0, offsetSec % dur);
     }
-    src.playbackRate.value = this.getPlaybackRate(deckId);
-    src.connect(d.nodes.eqLow);
-    src.start(0, offsetSec % d.track.duration);
     d.source = src;
     d.startedAtCtx = this.ctx.currentTime;
   }
@@ -598,14 +638,40 @@ export class DJAudioEngine {
   toggleStem(deckId, stemName) {
     const d = this.decks[deckId];
     d.stems[stemName] = !d.stems[stemName];
-    // 基于三段频带滤波实时模拟分轨静音（贝斯切低频、人声切中频、鼓组/旋律切高频）
     if (d.nodes && this.ctx) {
-      const lowDb = d.stems.bass ? d.eq.low : -24;
-      const midDb = d.stems.vocal ? d.eq.mid : -20;
-      const highDb = (d.stems.drums && d.stems.other) ? d.eq.high : -16;
-      d.nodes.eqLow.gain.setTargetAtTime(lowDb, this.ctx.currentTime, 0.02);
-      d.nodes.eqMid.gain.setTargetAtTime(midDb, this.ctx.currentTime, 0.02);
-      d.nodes.eqHigh.gain.setTargetAtTime(highDb, this.ctx.currentTime, 0.02);
+      d.nodes.stemBass.gain.setTargetAtTime(d.stems.bass ? 0 : -26, this.ctx.currentTime, 0.02);
+      d.nodes.stemVocal.gain.setTargetAtTime(d.stems.vocal ? 0 : -22, this.ctx.currentTime, 0.02);
+      d.nodes.stemDrums.gain.setTargetAtTime(d.stems.drums ? 0 : -22, this.ctx.currentTime, 0.02);
+      d.nodes.stemOther.gain.setTargetAtTime(d.stems.other ? 0 : -18, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  toggleReverse(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    const cur = this.getCurrentTime(deckId);
+    d.reversePlay = !d.reversePlay;
+    d.offset = cur;
+    if (d.isPlaying) {
+      this._stopSource(deckId);
+      this._startSource(deckId, d.offset);
+    }
+    this._notify();
+  }
+
+  setCueMix(val) {
+    this.cueMix = Math.max(0, Math.min(1, val));
+    if (this.splitCueMono && this.ctx) {
+      this.splitCueMono.gain.setTargetAtTime(this.phonesVol * (0.2 + this.cueMix * 0.8), this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+  }
+
+  setPhonesVol(val) {
+    this.phonesVol = Math.max(0, Math.min(1, val));
+    if (this.splitCueMono && this.ctx) {
+      this.splitCueMono.gain.setTargetAtTime(this.phonesVol * (0.2 + this.cueMix * 0.8), this.ctx.currentTime, 0.02);
     }
     this._notify();
   }
@@ -768,7 +834,12 @@ export class DJAudioEngine {
       this.seek(deckId, pos, { silentAction: true });
       if (!d.isPlaying) this.play(deckId, { silentAction: true });
     } else {
-      d.hotCues[index] = this.getCurrentTime(deckId);
+      let t = this.getCurrentTime(deckId);
+      if (this.quantize) {
+        const beatDur = 60 / d.track.bpm;
+        t = (Math.round(t / beatDur) * beatDur) % d.track.duration;
+      }
+      d.hotCues[index] = t;
     }
     this._notify();
     if (!silentAction) {
@@ -790,16 +861,23 @@ export class DJAudioEngine {
     if (d.loop4) {
       const beatDur = 60 / d.track.bpm;
       const cur = this.getCurrentTime(deckId);
-      const startBeat = Math.floor(cur / beatDur);
-      d.loopStart = startBeat * beatDur;
-      d.loopEnd = Math.min(d.track.duration, d.loopStart + beatDur * 4);
+      d.slipOriginCtx = this.ctx ? this.ctx.currentTime : 0;
+      d.slipOriginOffset = cur;
+      const startBeat = this.quantize ? Math.round(cur / beatDur) : Math.floor(cur / beatDur);
+      d.loopStart = Math.max(0, startBeat * beatDur);
+      d.loopEnd = Math.min(d.track.duration, d.loopStart + beatDur * d.loopBeats);
       if (d.isPlaying) {
         d.offset = cur;
         this._stopSource(deckId);
         this._startSource(deckId, d.offset);
       }
     } else if (d.isPlaying) {
-      d.offset = this.getCurrentTime(deckId);
+      let nextPos = this.getCurrentTime(deckId);
+      if (d.slipMode && this.ctx) {
+        const slipElapsed = (this.ctx.currentTime - d.slipOriginCtx) * this.getPlaybackRate(deckId);
+        nextPos = (d.slipOriginOffset + slipElapsed) % d.track.duration;
+      }
+      d.offset = nextPos;
       this._stopSource(deckId);
       this._startSource(deckId, d.offset);
     }
@@ -844,6 +922,8 @@ export class DJAudioEngine {
     d.wasPlayingBeforeScratch = d.isPlaying;
     if (d.isPlaying) {
       d.offset = this.getCurrentTime(deckId);
+      d.slipOriginCtx = this.ctx.currentTime;
+      d.slipOriginOffset = d.offset;
       this._stopSource(deckId);
     }
     this._stopScratchSource(deckId);
@@ -886,6 +966,10 @@ export class DJAudioEngine {
     d.isScratching = false;
     this._stopScratchSource(deckId);
     if (d.wasPlayingBeforeScratch && d.track) {
+      if (d.slipMode && this.ctx) {
+        const slipElapsed = (this.ctx.currentTime - d.slipOriginCtx) * this.getPlaybackRate(deckId);
+        d.offset = (d.slipOriginOffset + slipElapsed) % d.track.duration;
+      }
       this._startSource(deckId, d.offset);
       d.isPlaying = true;
     }
