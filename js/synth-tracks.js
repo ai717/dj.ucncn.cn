@@ -63,6 +63,86 @@ export const TRACK_CATALOG = [
     energy: 10,
     bars: 8,
     color: '#ef4444'
+  },
+  {
+    id: 'velvet-deep',
+    title: '丝绒深邃',
+    genre: '深邃浩室',
+    bpm: 121,
+    key: '9A · Em',
+    energy: 7,
+    bars: 8,
+    color: '#2dd4bf'
+  },
+  {
+    id: 'warehouse-tech',
+    title: '仓库节拍',
+    genre: '科技浩室',
+    bpm: 125,
+    key: '8A · Am',
+    energy: 9,
+    bars: 8,
+    color: '#34d399'
+  },
+  {
+    id: 'tokyo-lofi',
+    title: '东京雨夜',
+    genre: '柔和嘻哈',
+    bpm: 86,
+    key: '7A · Dm',
+    energy: 5,
+    bars: 8,
+    color: '#c084fc'
+  },
+  {
+    id: 'arcade-synth',
+    title: '街机霓虹',
+    genre: '合成器波',
+    bpm: 114,
+    key: '6A · Gm',
+    energy: 8,
+    bars: 8,
+    color: '#f472b6'
+  },
+  {
+    id: 'london-2step',
+    title: '伦敦车库',
+    genre: '英伦车库',
+    bpm: 130,
+    key: '7A · Dm',
+    energy: 8,
+    bars: 8,
+    color: '#60a5fa'
+  },
+  {
+    id: 'berlin-melodic',
+    title: '柏林天际线',
+    genre: '旋律铁克诺',
+    bpm: 132,
+    key: '9A · Em',
+    energy: 9,
+    bars: 8,
+    color: '#818cf8'
+  },
+  {
+    id: 'island-bounce',
+    title: '海岛律动',
+    genre: '热带舞曲',
+    bpm: 104,
+    key: '9A · Em',
+    energy: 7,
+    bars: 8,
+    color: '#fbbf24'
+  },
+  {
+    id: 'astral-trance',
+    title: '星际迷幻',
+    genre: '出神舞曲',
+    bpm: 138,
+    key: '8A · Am',
+    energy: 10,
+    bars: 8,
+    color: '#38bdf8'
   }
 ];
 
@@ -414,6 +494,90 @@ export async function getRenderedTrack(trackId) {
       triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, false, 0.12);
       const root = bar < 4 ? 33 : 36;
       triggerBass(offline, master, t, root, beatDur * 0.9, 'sawtooth', 380, 0.38);
+    } else if (meta.id === 'velvet-deep') {
+      // 121 BPM Deep House (9A · Em)
+      triggerKick(offline, master, t, 132, 0.28, 0.84);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.2);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.11);
+      const root = bar < 4 ? 28 : 33; // E1 -> A1
+      triggerBass(offline, master, t + beatDur * 0.5, root, beatDur * 0.45, 'sine', 360, 0.38);
+      if (beatInBar === 0) {
+        const chord = bar < 4 ? [52, 55, 59, 62] : [57, 60, 64, 67];
+        triggerChord(offline, master, t, chord, beatDur * 1.6, 'sine', 1500, 0.12);
+      }
+    } else if (meta.id === 'warehouse-tech') {
+      // 125 BPM Tech House (8A · Am) - 干净底鼓与反拍切分，适合对拍练习
+      triggerKick(offline, master, t, 155, 0.25, 0.92);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.32);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.16);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.75, false, 0.08);
+      const bassPattern = [33, 33, 36, 33];
+      triggerBass(offline, master, t + beatDur * 0.5, bassPattern[beatInBar], beatDur * 0.36, 'sawtooth', 520, 0.32);
+      if (beatInBar === 3) triggerGuitarPluck(offline, master, t + beatDur * 0.5, 69, beatDur * 0.25, 0.12);
+    } else if (meta.id === 'tokyo-lofi') {
+      // 86 BPM Lo-Fi Chillhop (7A · Dm)
+      if (beatInBar === 0 || beatInBar === 2) triggerKick(offline, master, t, 118, 0.28, 0.8);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.28);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, false, 0.07);
+      const root = bar < 4 ? 38 : 34; // D2 -> Bb1
+      triggerBass(offline, master, t, root, beatDur * 0.8, 'triangle', 320, 0.36);
+      if (beatInBar === 0 || beatInBar === 2) {
+        const chord = bar < 4 ? [62, 65, 69, 72] : [58, 62, 65, 69];
+        triggerChord(offline, master, t + 0.015, chord, beatDur * 1.4, 'triangle', 1200, 0.12);
+      }
+    } else if (meta.id === 'arcade-synth') {
+      // 114 BPM Synthwave (6A · Gm)
+      triggerKick(offline, master, t, 145, 0.28, 0.86);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.36);
+      const root = bar < 4 ? 31 : 36; // G1 -> C2
+      for (let s = 0; s < 2; s++) {
+        triggerBass(offline, master, t + beatDur * (s * 0.5), root, beatDur * 0.42, 'sawtooth', 620, 0.26);
+      }
+      const arp = [67, 70, 74, 79];
+      triggerGuitarPluck(offline, master, t + beatDur * 0.25, arp[beatInBar], beatDur * 0.32, 0.14);
+      triggerGuitarPluck(offline, master, t + beatDur * 0.75, arp[(beatInBar + 1) % 4], beatDur * 0.32, 0.12);
+    } else if (meta.id === 'london-2step') {
+      // 130 BPM UK Garage / 2-Step (7A · Dm)
+      if (beatInBar === 0) triggerKick(offline, master, t, 148, 0.24, 0.88);
+      if (beatInBar === 2) triggerKick(offline, master, t + beatDur * 0.5, 142, 0.22, 0.78);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.32);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.33, false, 0.1);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.66, true, 0.11);
+      const root = bar < 4 ? 38 : 33;
+      triggerBass(offline, master, t + beatDur * 0.5, root, beatDur * 0.4, 'square', 460, 0.28);
+      triggerVocalChop(offline, master, t + beatDur * 0.25, 69 + (beatInBar % 2) * 3, beatDur * 0.35, 'o', 0.15);
+    } else if (meta.id === 'berlin-melodic') {
+      // 132 BPM Melodic Techno (9A · Em)
+      triggerKick(offline, master, t, 165, 0.27, 0.92);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.15);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.24);
+      for (let s = 1; s < 4; s++) {
+        triggerBass(offline, master, t + beatDur * (s * 0.25), 28, beatDur * 0.2, 'sawtooth', 480 + s * 110, 0.25);
+      }
+      const mel = [64, 67, 71, 76];
+      triggerGuitarPluck(offline, master, t + beatDur * 0.5, mel[(b + bar) % 4], beatDur * 0.45, 0.15);
+    } else if (meta.id === 'island-bounce') {
+      // 104 BPM Moombahton / Afrobeats (9A · Em)
+      triggerKick(offline, master, t, 140, 0.26, 0.88);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t + beatDur * 0.5, 0.3);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.25, false, 0.09);
+      const root = bar < 4 ? 40 : 35; // E2 -> B1
+      triggerBass(offline, master, t, root, beatDur * 0.45, 'triangle', 480, 0.34);
+      const plucks = [64, 67, 71, 67];
+      triggerGuitarPluck(offline, master, t + beatDur * 0.5, plucks[beatInBar], beatDur * 0.35, 0.15);
+    } else if (meta.id === 'astral-trance') {
+      // 138 BPM Progressive Trance (8A · Am)
+      triggerKick(offline, master, t, 172, 0.26, 0.92);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, true, 0.16);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.3);
+      for (let s = 1; s < 4; s++) {
+        triggerBass(offline, master, t + beatDur * (s * 0.25), 33, beatDur * 0.18, 'sawtooth', 620, 0.24);
+      }
+      const lead = [69, 72, 76, 81];
+      triggerGuitarPluck(offline, master, t, lead[beatInBar], beatDur * 0.35, 0.14);
+      if (beatInBar === 0) {
+        triggerChord(offline, master, t, [57, 60, 64, 69], beatDur * 1.8, 'sawtooth', 2200, 0.1);
+      }
     } else {
       // low-tide Boom-Bap (92 BPM)
       if (beatInBar === 0 || beatInBar === 2) {
@@ -437,7 +601,17 @@ export async function getRenderedTrack(trackId) {
   }
 
   // 为每首舞曲铺设柔和的持续和弦 Pad，让听感更饱满、波形自然连贯
-  const padRoot = meta.id === 'golden-hour' ? 48 : meta.id === 'low-tide' ? 50 : 45;
+  const padMap = {
+    'golden-hour': 48,
+    'low-tide': 50,
+    'tokyo-lofi': 50,
+    'london-2step': 50,
+    'velvet-deep': 40,
+    'berlin-melodic': 40,
+    'island-bounce': 40,
+    'arcade-synth': 43
+  };
+  const padRoot = padMap[meta.id] || 45;
   for (let bar = 0; bar < meta.bars; bar++) {
     const bt = bar * 4 * beatDur;
     const shift = bar % 4 === 2 ? -2 : bar % 4 === 3 ? -4 : 0;
