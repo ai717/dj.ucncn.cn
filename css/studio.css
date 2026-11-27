@@ -1337,6 +1337,25 @@ body.pro-mode .hw-sm.pro-only {
   50% { box-shadow: 0 0 0 6px rgba(142, 207, 224, 0.14); }
 }
 
+.premix-active-ctl {
+  outline: 2px solid #f5c97b !important;
+  outline-offset: 2px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 5px rgba(245, 201, 123, 0.32), 0 0 18px rgba(245, 201, 123, 0.5) !important;
+  animation: premixPulse 0.9s ease-in-out infinite;
+  position: relative;
+  z-index: 4;
+}
+
+.vinyl-platter.premix-active-ctl {
+  border-radius: 50%;
+}
+
+@keyframes premixPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 201, 123, 0.45), 0 0 14px rgba(245, 201, 123, 0.55); }
+  50% { box-shadow: 0 0 0 7px rgba(245, 201, 123, 0.16), 0 0 22px rgba(245, 201, 123, 0.3); }
+}
+
 .virtual-cursor {
   position: fixed;
   top: -14px;

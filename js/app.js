@@ -452,6 +452,33 @@ function abortableSleep(ms, signal) {
 }
 
 const premixDialog = document.getElementById('premix-dialog');
+const premixCursorEl = document.getElementById('virtual-cursor');
+
+function clearPremixHighlight() {
+  document.querySelectorAll('.premix-active-ctl').forEach((el) => el.classList.remove('premix-active-ctl'));
+  if (premixCursorEl) premixCursorEl.classList.remove('active', 'clicking');
+}
+
+function setPremixCue(demoName, selectors, title, desc) {
+  clearPremixHighlight();
+  ui.coachTag.textContent = `高手示范 · ${demoName}`;
+  ui.coachTitle.textContent = title;
+  ui.coachDesc.textContent = desc;
+  let firstVisible = null;
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    el.classList.add('premix-active-ctl');
+    const r = el.getBoundingClientRect();
+    if (!firstVisible && r.width > 0 && r.height > 0) firstVisible = r;
+  }
+  if (premixCursorEl && firstVisible) {
+    const x = firstVisible.left + firstVisible.width / 2;
+    const y = firstVisible.top + firstVisible.height / 2;
+    premixCursorEl.style.transform = `translate(${x}px, ${y}px)`;
+    premixCursorEl.classList.add('active');
+  }
+}
 
 async function runPremixDemo(premixId) {
   if (premixController) premixController.abort();
@@ -469,24 +496,32 @@ async function runPremixDemo(premixId) {
     engine.setCutCurve(false);
 
     if (premixId === 'sunset-to-skyline') {
-      // 1. 落日到天际线：落日迪斯科 -> 晨曦浩室 -> 深夜铁克诺（两段低音置换长混音）
+      const name = '落日到天际线';
       await engine.loadTrack('A', 'golden-hour', { silentAction: true });
       await engine.loadTrack('B', 'sunrise-house', { silentAction: true });
       if (signal.aborted) return;
       engine.setCrossfader(-1, { silentAction: true });
       engine.setEQ('B', 'low', -18, { silentAction: true });
+      setPremixCue(name, ['#play-A', '[data-knob="eq:B:low"]'], '启动 A 盘并预切 B 盘低频', '先播放「落日迪斯科」，同时把 B 盘低频旋钮拉低，为无缝接歌留出低音空间。');
       engine.play('A', { silentAction: true });
       await abortableSleep(3200, signal);
 
+      setPremixCue(name, ['#sync-B', '#play-B'], 'SYNC 同步节拍并推入 B 盘', '一键对齐「晨曦浩室」速度后按下 B 盘播放，两首相邻调性曲目开始同拍律动。');
       engine.syncDeck('B', { silentAction: true });
       engine.play('B', { silentAction: true });
+      await abortableSleep(600, signal);
+
+      setPremixCue(name, ['#crossfader'], '慢推交叉推子至中央融合', '把横推平滑推到中间，让两首歌的旋律与高频自然叠合。');
       for (let i = 1; i <= 10; i++) {
         engine.setCrossfader(-1 + i * 0.1, { silentAction: true });
         await abortableSleep(260, signal);
       }
+      setPremixCue(name, ['[data-knob="eq:A:low"]', '[data-knob="eq:B:low"]'], '低音置换（Bass Swap）', '瞬间切掉 A 盘低频并还原 B 盘低频，将鼓点能量干脆地交接给新曲。');
       engine.setEQ('A', 'low', -18, { silentAction: true });
       engine.setEQ('B', 'low', 0, { silentAction: true });
       await abortableSleep(2600, signal);
+
+      setPremixCue(name, ['[data-knob="filter:A"]', '#crossfader'], '高通滤波扫频淡出 A 盘', '向右拧高 A 盘滤波并同步将横推拉向 B 盘，优雅抽离旧曲。');
       for (let i = 1; i <= 10; i++) {
         engine.setFilter('A', i * 0.055, { silentAction: true });
         engine.setCrossfader(i * 0.1, { silentAction: true });
@@ -500,15 +535,22 @@ async function runPremixDemo(premixId) {
       // 第二段过渡：B(晨曦浩室) -> A(深夜铁克诺)
       await engine.loadTrack('A', 'night-shift', { silentAction: true });
       if (signal.aborted) return;
+      setPremixCue(name, ['#sync-A', '#play-A'], '装入第三首「深夜铁克诺」并同步', '对 A 盘按下 SYNC 与播放，准备第二段长混音推进。');
       engine.syncDeck('A', { silentAction: true });
       engine.play('A', { silentAction: true });
+      await abortableSleep(500, signal);
+
+      setPremixCue(name, ['#crossfader'], '将横推拉回中央叠合双轨', '缓慢把横推从 B 盘拉向中央，引入铁克诺律动层。');
       for (let i = 1; i <= 10; i++) {
         engine.setCrossfader(1 - i * 0.1, { silentAction: true });
         await abortableSleep(260, signal);
       }
+      setPremixCue(name, ['[data-knob="eq:B:low"]', '[data-knob="eq:A:low"]'], '第二段低音置换', '切掉 B 盘低频、释放 A 盘低频，完成主歌能量切换。');
       engine.setEQ('B', 'low', -18, { silentAction: true });
       engine.setEQ('A', 'low', 0, { silentAction: true });
       await abortableSleep(2600, signal);
+
+      setPremixCue(name, ['[data-knob="filter:B"]', '#crossfader'], '滤波淡出 B 盘完成三曲串联', '扫高 B 盘滤波并把横推彻底推回 A 盘，三首无缝串烧收官。');
       for (let i = 1; i <= 10; i++) {
         engine.setFilter('B', i * 0.055, { silentAction: true });
         engine.setCrossfader(-i * 0.1, { silentAction: true });
@@ -516,28 +558,29 @@ async function runPremixDemo(premixId) {
       }
       await abortableSleep(2000, signal);
     } else if (premixId === 'all-the-tricks') {
-      // 2. 全套花式连招：滤波铺垫 + 同步切歌 + 递减循环 + 搓碟 + 回声 + 黑胶急刹
+      const name = '全套花式连招';
       await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
       await engine.loadTrack('B', 'night-shift', { silentAction: true });
       if (signal.aborted) return;
       engine.setCrossfader(-1, { silentAction: true });
       engine.setEQ('B', 'low', -18, { silentAction: true });
+      setPremixCue(name, ['#play-A', '[data-knob="filter:A"]'], '高通滤波蓄力铺垫', '播放 A 盘并逐步拧高滤波制造紧张感，随后瞬间归零释放能量。');
       engine.play('A', { silentAction: true });
 
-      // 滤波铺垫
       for (let i = 1; i <= 8; i++) {
         engine.setFilter('A', i * 0.05, { silentAction: true });
         await abortableSleep(220, signal);
       }
       engine.setFilter('A', 0, { silentAction: true });
 
-      // 同步并推入 B 盘
+      setPremixCue(name, ['#sync-B', '#play-B', '#crossfader'], '同步切入 B 盘并低音置换', '对齐 B 盘拍速后推入横推，中段瞬间互换 A/B 低频完成接歌。');
       engine.syncDeck('B', { silentAction: true });
       engine.play('B', { silentAction: true });
       for (let i = 1; i <= 10; i++) {
         engine.setCrossfader(-1 + i * 0.1, { silentAction: true });
         await abortableSleep(180, signal);
       }
+      setPremixCue(name, ['[data-knob="eq:A:low"]', '[data-knob="eq:B:low"]'], '瞬间低音置换', '切掉 A 盘低频并推满 B 盘低频。');
       engine.setEQ('A', 'low', -18, { silentAction: true });
       engine.setEQ('B', 'low', 0, { silentAction: true });
       for (let i = 1; i <= 10; i++) {
@@ -546,18 +589,20 @@ async function runPremixDemo(premixId) {
       }
       engine.pause('A', { silentAction: true, instant: true });
 
-      // 4 -> 2 -> 1 拍递减循环加速 + 空气喇叭 Drop
+      setPremixCue(name, ['#loop4-B'], '开启 4 拍循环', '锁定当前 4 拍作为循环段落。');
       engine.toggleLoop4('B', { silentAction: true });
       await abortableSleep(1800, signal);
+      setPremixCue(name, ['[data-loop-half="B"]'], '循环减半加速（4→2→1 拍）', '连续两次点击 ½ 缩短循环长度，拉满高潮前的紧迫感！');
       engine.halveLoop('B');
       await abortableSleep(1100, signal);
       engine.halveLoop('B');
       await abortableSleep(900, signal);
+      setPremixCue(name, ['#loop4-B', '.sampler-pad[data-sampler="airhorn"]'], '解除循环 + 空气喇叭 Drop', '退出循环释放整段节奏，同时拍响采样器空气喇叭点燃全场！');
       engine.toggleLoop4('B', { silentAction: true });
       engine.triggerSampler('airhorn');
       await abortableSleep(1400, signal);
 
-      // 实时短搓碟
+      setPremixCue(name, ['#platter-B'], '黑胶实时搓碟（Scratch）', '按住 B 盘黑胶碟片快速前后搓动制造节奏切分。');
       engine.beginScratch('B');
       for (let k = 0; k < 3; k++) {
         engine.moveScratch('B', -0.06, -1.4);
@@ -568,25 +613,27 @@ async function runPremixDemo(premixId) {
       engine.endScratch('B');
       await abortableSleep(1000, signal);
 
-      // 回声淡出 + 黑胶急刹
+      setPremixCue(name, ['[data-fx-toggle="B:echo"]', '[data-fx-wet="B"]'], '回声淡出 + 黑胶急刹收尾', '拉起 B 盘回声留出空间尾音，再触发「刹车」让唱盘缓慢减速停转。');
       engine.setEcho('B', 0.55);
       await abortableSleep(1400, signal);
+      setPremixCue(name, ['[data-brake="B"]'], '黑胶急刹（Vinyl Brake）', '唱盘模拟断电停转，音高自然下坠收尾。');
       engine.vinylBrake('B');
       await abortableSleep(1200, signal);
     } else if (premixId === 'scratch-session') {
-      // 3. 嘻哈搓碟秀：低潮律动打底 + 霓虹人声吉他婴儿搓 / 前推切音 / 横推截断
+      const name = '嘻哈搓碟秀';
       await engine.loadTrack('A', 'low-tide', { silentAction: true });
       await engine.loadTrack('B', 'neon-vocal', { silentAction: true });
       if (signal.aborted) return;
       engine.setCutCurve(true);
       engine.setCrossfader(-1, { silentAction: true });
+      setPremixCue(name, ['#play-A', '#btn-curve-toggle'], '开启嘻哈伴奏与搓碟切割曲线', 'A 盘播放 92 BPM「低潮律动」伴奏，并切换为搓碟急切曲线。');
       engine.play('A', { silentAction: true });
       await abortableSleep(1800, signal);
 
       engine.setCrossfader(0, { silentAction: true });
       engine.seek('B', 1.2, { silentAction: true });
 
-      // 婴儿搓（Baby Scratch）
+      setPremixCue(name, ['#platter-B'], '婴儿搓（Baby Scratch）', '横推保持居中打开，直接前后搓动 B 盘黑胶发出经典哇音。');
       engine.beginScratch('B');
       for (let k = 0; k < 4; k++) {
         engine.moveScratch('B', 0.08, 1.35);
@@ -597,7 +644,7 @@ async function runPremixDemo(premixId) {
       engine.endScratch('B');
       await abortableSleep(500, signal);
 
-      // 前推切音（Forward Cut）
+      setPremixCue(name, ['#platter-B', '#crossfader'], '前推切音（Forward Cut）', '前推碟片时打开横推发声，回拉碟片瞬间关断横推，干脆利落！');
       for (let k = 0; k < 4; k++) {
         engine.setCrossfader(0, { silentAction: true });
         engine.beginScratch('B');
@@ -609,7 +656,7 @@ async function runPremixDemo(premixId) {
         engine.endScratch('B');
       }
 
-      // 横推截断（Transformer）
+      setPremixCue(name, ['#crossfader'], '横推截断（Transformer）', 'B 盘正常走带，右手高速开合交叉推子将人声切碎成机关枪节拍。');
       engine.play('B', { silentAction: true });
       for (let k = 0; k < 8; k++) {
         engine.setCrossfader(k % 2 === 0 ? 0.15 : -1, { silentAction: true });
@@ -617,12 +664,14 @@ async function runPremixDemo(premixId) {
       }
       engine.setCrossfader(0, { silentAction: true });
       await abortableSleep(900, signal);
+      setPremixCue(name, ['[data-spin="B"]'], '黑胶倒转收尾（Spinback）', '猛力倒转 B 盘黑胶，带出标志性倒带音效结束演出！');
       engine.vinylSpinback('B');
       await abortableSleep(900, signal);
     }
   } catch (err) {
     if (err.name !== 'AbortError') throw err;
   } finally {
+    clearPremixHighlight();
     engine.endScratch('A');
     engine.endScratch('B');
     if (engine.decks.A.loop4) engine.toggleLoop4('A', { silentAction: true });
@@ -638,6 +687,7 @@ async function runPremixDemo(premixId) {
     engine.setCutCurve(false);
     premixController = null;
     premixBtn.textContent = '高手示范';
+    coach.render();
   }
 }
 
