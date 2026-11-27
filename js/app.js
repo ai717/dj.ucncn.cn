@@ -482,8 +482,20 @@ document.querySelectorAll('[data-fx-wet]').forEach((input) => {
   });
 });
 
-// 8 键 Sampler 点击与拖放自定义音频
+// 8 键 Sampler 点击、亮白触发态与拖放自定义音频
+const PAD_DURATIONS = {
+  airhorn: 650, siren: 950, laser: 360, rewind: 560,
+  boom: 850, riser: 1050, snareroll: 750, aah: 540
+};
+const padTimers = new Map();
+
 function triggerPad(padId) {
+  const padEl = document.querySelector(`.sampler-pad[data-sampler="${padId}"]`);
+  if (padEl) {
+    padEl.classList.add('firing');
+    clearTimeout(padTimers.get(padId));
+    padTimers.set(padId, setTimeout(() => padEl.classList.remove('firing'), PAD_DURATIONS[padId] || 550));
+  }
   if (customSamplerBuffers.has(padId)) {
     const ctx = engine.ensureContext();
     const src = ctx.createBufferSource();
@@ -921,7 +933,9 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') engine.setCrossfader(engine.crossfader + 0.1);
   else if (e.code === 'Backquote') setLayoutMode(!document.body.classList.contains('pro-mode'));
   else if (e.key === '?') { if (ui.shortcutsDialog.open) ui.shortcutsDialog.close(); else ui.shortcutsDialog.showModal(); }
-  else if (['1','2','3','4','5','6','7','8'].includes(e.key)) triggerPad(SAMPLER_KEYS[Number(e.key) - 1]);
+  else if (/^Digit[1-8]$/.test(e.code) && (e.shiftKey || !e.ctrlKey && !e.altKey)) {
+    triggerPad(SAMPLER_KEYS[Number(e.code.replace('Digit', '')) - 1]);
+  }
 });
 
 // 60fps 动画循环
