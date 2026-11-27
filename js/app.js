@@ -451,47 +451,209 @@ function abortableSleep(ms, signal) {
   });
 }
 
-premixBtn.addEventListener('click', async () => {
-  if (premixController) { premixController.abort(); return; }
+const premixDialog = document.getElementById('premix-dialog');
+
+async function runPremixDemo(premixId) {
+  if (premixController) premixController.abort();
   premixController = new AbortController();
   const { signal } = premixController;
   premixBtn.textContent = '⏹ 停止示范';
   try {
-    await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
-    await engine.loadTrack('B', 'night-shift', { silentAction: true });
-    if (signal.aborted) return;
-    engine.setCrossfader(-1, { silentAction: true });
+    // 统一初始化混音台状态
+    engine.setFilter('A', 0, { silentAction: true });
+    engine.setFilter('B', 0, { silentAction: true });
+    engine.setEcho('A', 0);
+    engine.setEcho('B', 0);
     engine.setEQ('A', 'low', 0, { silentAction: true });
-    engine.setEQ('B', 'low', -18, { silentAction: true });
-    engine.play('A', { silentAction: true });
-    await abortableSleep(2200, signal);
-    engine.syncDeck('B', { silentAction: true });
-    engine.play('B', { silentAction: true });
-    for (let v = -1; v <= 0; v += 0.1) {
-      engine.setCrossfader(v, { silentAction: true });
-      await abortableSleep(180, signal);
-    }
-    engine.setEQ('A', 'low', -18, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
-    await abortableSleep(1200, signal);
-    for (let i = 1; i <= 10; i++) {
-      engine.setFilter('A', i * 0.06, { silentAction: true });
-      engine.setCrossfader(i * 0.1, { silentAction: true });
-      await abortableSleep(180, signal);
+    engine.setCutCurve(false);
+
+    if (premixId === 'sunset-to-skyline') {
+      // 1. 落日到天际线：落日迪斯科 -> 晨曦浩室 -> 深夜铁克诺（两段低音置换长混音）
+      await engine.loadTrack('A', 'golden-hour', { silentAction: true });
+      await engine.loadTrack('B', 'sunrise-house', { silentAction: true });
+      if (signal.aborted) return;
+      engine.setCrossfader(-1, { silentAction: true });
+      engine.setEQ('B', 'low', -18, { silentAction: true });
+      engine.play('A', { silentAction: true });
+      await abortableSleep(3200, signal);
+
+      engine.syncDeck('B', { silentAction: true });
+      engine.play('B', { silentAction: true });
+      for (let i = 1; i <= 10; i++) {
+        engine.setCrossfader(-1 + i * 0.1, { silentAction: true });
+        await abortableSleep(260, signal);
+      }
+      engine.setEQ('A', 'low', -18, { silentAction: true });
+      engine.setEQ('B', 'low', 0, { silentAction: true });
+      await abortableSleep(2600, signal);
+      for (let i = 1; i <= 10; i++) {
+        engine.setFilter('A', i * 0.055, { silentAction: true });
+        engine.setCrossfader(i * 0.1, { silentAction: true });
+        await abortableSleep(240, signal);
+      }
+      engine.pause('A', { silentAction: true, instant: true });
+      engine.setFilter('A', 0, { silentAction: true });
+      engine.setEQ('A', 'low', -18, { silentAction: true });
+      await abortableSleep(1200, signal);
+
+      // 第二段过渡：B(晨曦浩室) -> A(深夜铁克诺)
+      await engine.loadTrack('A', 'night-shift', { silentAction: true });
+      if (signal.aborted) return;
+      engine.syncDeck('A', { silentAction: true });
+      engine.play('A', { silentAction: true });
+      for (let i = 1; i <= 10; i++) {
+        engine.setCrossfader(1 - i * 0.1, { silentAction: true });
+        await abortableSleep(260, signal);
+      }
+      engine.setEQ('B', 'low', -18, { silentAction: true });
+      engine.setEQ('A', 'low', 0, { silentAction: true });
+      await abortableSleep(2600, signal);
+      for (let i = 1; i <= 10; i++) {
+        engine.setFilter('B', i * 0.055, { silentAction: true });
+        engine.setCrossfader(-i * 0.1, { silentAction: true });
+        await abortableSleep(220, signal);
+      }
+      await abortableSleep(2000, signal);
+    } else if (premixId === 'all-the-tricks') {
+      // 2. 全套花式连招：滤波铺垫 + 同步切歌 + 递减循环 + 搓碟 + 回声 + 黑胶急刹
+      await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+      await engine.loadTrack('B', 'night-shift', { silentAction: true });
+      if (signal.aborted) return;
+      engine.setCrossfader(-1, { silentAction: true });
+      engine.setEQ('B', 'low', -18, { silentAction: true });
+      engine.play('A', { silentAction: true });
+
+      // 滤波铺垫
+      for (let i = 1; i <= 8; i++) {
+        engine.setFilter('A', i * 0.05, { silentAction: true });
+        await abortableSleep(220, signal);
+      }
+      engine.setFilter('A', 0, { silentAction: true });
+
+      // 同步并推入 B 盘
+      engine.syncDeck('B', { silentAction: true });
+      engine.play('B', { silentAction: true });
+      for (let i = 1; i <= 10; i++) {
+        engine.setCrossfader(-1 + i * 0.1, { silentAction: true });
+        await abortableSleep(180, signal);
+      }
+      engine.setEQ('A', 'low', -18, { silentAction: true });
+      engine.setEQ('B', 'low', 0, { silentAction: true });
+      for (let i = 1; i <= 10; i++) {
+        engine.setCrossfader(i * 0.1, { silentAction: true });
+        await abortableSleep(150, signal);
+      }
+      engine.pause('A', { silentAction: true, instant: true });
+
+      // 4 -> 2 -> 1 拍递减循环加速 + 空气喇叭 Drop
+      engine.toggleLoop4('B', { silentAction: true });
+      await abortableSleep(1800, signal);
+      engine.halveLoop('B');
+      await abortableSleep(1100, signal);
+      engine.halveLoop('B');
+      await abortableSleep(900, signal);
+      engine.toggleLoop4('B', { silentAction: true });
+      engine.triggerSampler('airhorn');
+      await abortableSleep(1400, signal);
+
+      // 实时短搓碟
+      engine.beginScratch('B');
+      for (let k = 0; k < 3; k++) {
+        engine.moveScratch('B', -0.06, -1.4);
+        await abortableSleep(110, signal);
+        engine.moveScratch('B', 0.07, 1.5);
+        await abortableSleep(110, signal);
+      }
+      engine.endScratch('B');
+      await abortableSleep(1000, signal);
+
+      // 回声淡出 + 黑胶急刹
+      engine.setEcho('B', 0.55);
+      await abortableSleep(1400, signal);
+      engine.vinylBrake('B');
+      await abortableSleep(1200, signal);
+    } else if (premixId === 'scratch-session') {
+      // 3. 嘻哈搓碟秀：低潮律动打底 + 霓虹人声吉他婴儿搓 / 前推切音 / 横推截断
+      await engine.loadTrack('A', 'low-tide', { silentAction: true });
+      await engine.loadTrack('B', 'neon-vocal', { silentAction: true });
+      if (signal.aborted) return;
+      engine.setCutCurve(true);
+      engine.setCrossfader(-1, { silentAction: true });
+      engine.play('A', { silentAction: true });
+      await abortableSleep(1800, signal);
+
+      engine.setCrossfader(0, { silentAction: true });
+      engine.seek('B', 1.2, { silentAction: true });
+
+      // 婴儿搓（Baby Scratch）
+      engine.beginScratch('B');
+      for (let k = 0; k < 4; k++) {
+        engine.moveScratch('B', 0.08, 1.35);
+        await abortableSleep(140, signal);
+        engine.moveScratch('B', -0.08, -1.35);
+        await abortableSleep(140, signal);
+      }
+      engine.endScratch('B');
+      await abortableSleep(500, signal);
+
+      // 前推切音（Forward Cut）
+      for (let k = 0; k < 4; k++) {
+        engine.setCrossfader(0, { silentAction: true });
+        engine.beginScratch('B');
+        engine.moveScratch('B', 0.11, 1.5);
+        await abortableSleep(170, signal);
+        engine.setCrossfader(-1, { silentAction: true });
+        engine.moveScratch('B', -0.11, -1.6);
+        await abortableSleep(150, signal);
+        engine.endScratch('B');
+      }
+
+      // 横推截断（Transformer）
+      engine.play('B', { silentAction: true });
+      for (let k = 0; k < 8; k++) {
+        engine.setCrossfader(k % 2 === 0 ? 0.15 : -1, { silentAction: true });
+        await abortableSleep(130, signal);
+      }
+      engine.setCrossfader(0, { silentAction: true });
+      await abortableSleep(900, signal);
+      engine.vinylSpinback('B');
+      await abortableSleep(900, signal);
     }
-    engine.triggerSampler('airhorn');
-    await abortableSleep(1400, signal);
   } catch (err) {
     if (err.name !== 'AbortError') throw err;
   } finally {
-    engine.pause('A', { silentAction: true });
-    engine.pause('B', { silentAction: true });
+    engine.endScratch('A');
+    engine.endScratch('B');
+    if (engine.decks.A.loop4) engine.toggleLoop4('A', { silentAction: true });
+    if (engine.decks.B.loop4) engine.toggleLoop4('B', { silentAction: true });
+    engine.pause('A', { silentAction: true, instant: true });
+    engine.pause('B', { silentAction: true, instant: true });
     engine.setFilter('A', 0, { silentAction: true });
+    engine.setFilter('B', 0, { silentAction: true });
+    engine.setEcho('A', 0);
+    engine.setEcho('B', 0);
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
+    engine.setCutCurve(false);
     premixController = null;
     premixBtn.textContent = '高手示范';
   }
+}
+
+premixBtn.addEventListener('click', () => {
+  if (premixController) {
+    premixController.abort();
+    return;
+  }
+  premixDialog.showModal();
+});
+
+document.querySelectorAll('[data-premix-id]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    premixDialog.close();
+    runPremixDemo(btn.dataset.premixId);
+  });
 });
 
 ui.btnSimple.addEventListener('click', () => setLayoutMode(false));

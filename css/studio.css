@@ -1394,6 +1394,62 @@ body.pro-mode .hw-sm.pro-only {
 }
 .challenge-result-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
+/* 高手示范（Premixes）选择列表 */
+.premix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.premix-card {
+  width: 100%;
+  text-align: left;
+  background: #101013;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.premix-card:hover {
+  background: #19191e;
+  border-color: var(--a);
+}
+
+.premix-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.premix-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.premix-card-dur {
+  font-size: 11px;
+  color: var(--a);
+  background: rgba(142, 207, 224, 0.12);
+  border: 1px solid rgba(142, 207, 224, 0.35);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.premix-card-desc {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
 dialog {
   background: var(--panel);
   color: var(--text);
