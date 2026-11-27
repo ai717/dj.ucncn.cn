@@ -37,8 +37,15 @@ const customSamplerBuffers = new Map();
 const activeFxMode = { A: 'echo', B: 'echo' };
 
 const coach = new CoachEngine(engine, {
-  updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isLessonActive, isDemoRunning, feedback }) {
+  updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, credits, isLessonActive, isDemoRunning, feedback }) {
     ui.lessonBadge.textContent = `${completedCount}/${totalLessons}`;
+    const creditScoreEl = document.getElementById('credit-score');
+    const creditBadgeEl = document.getElementById('credit-badge');
+    if (creditScoreEl) creditScoreEl.textContent = String(credits || 0);
+    if (creditBadgeEl && feedback?.pointsEarned > 0) {
+      creditBadgeEl.classList.add('bump');
+      setTimeout(() => creditBadgeEl.classList.remove('bump'), 900);
+    }
     const fill = document.getElementById('lesson-meter-fill');
     const txt = document.getElementById('lesson-meter-text');
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
@@ -61,7 +68,7 @@ const coach = new CoachEngine(engine, {
       ui.coachFeedback.hidden = false;
       ui.coachFeedback.className = `coach-feedback ${feedback.type}`;
       ui.coachFeedback.textContent = feedback.text;
-      if (feedback.type === 'success') showStepReward(feedback.text);
+      if (feedback.type === 'success') showStepReward(feedback.text, feedback.pointsEarned || 0);
     } else {
       ui.coachFeedback.hidden = true;
     }
@@ -74,9 +81,10 @@ const rewardSubEl = document.getElementById('reward-sub');
 const REWARD_PRAISES = ['真棒！', '太厉害了！', '完美过关！', '节奏感满分！'];
 let rewardTimer = null;
 
-function showStepReward(praiseText) {
+function showStepReward(praiseText, pointsEarned = 0) {
   if (!rewardToastEl) return;
-  rewardTitleEl.textContent = REWARD_PRAISES[Math.floor(Math.random() * REWARD_PRAISES.length)];
+  const basePraise = REWARD_PRAISES[Math.floor(Math.random() * REWARD_PRAISES.length)];
+  rewardTitleEl.textContent = pointsEarned > 0 ? `${basePraise} +${pointsEarned} 学分` : basePraise;
   rewardSubEl.textContent = (praiseText || '').replace(/^✓\s*/, '');
   rewardToastEl.hidden = false;
   clearTimeout(rewardTimer);

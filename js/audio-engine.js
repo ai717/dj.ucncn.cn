@@ -688,6 +688,7 @@ export class DJAudioEngine {
   zoomWaveform(factor) {
     this.waveformWindowSec = Math.max(1.5, Math.min(24, this.waveformWindowSec * factor));
     this._notify();
+    this._emitAction({ type: 'WAVE_ZOOM', value: this.waveformWindowSec });
   }
 
   setReverb(deckId, amount) {

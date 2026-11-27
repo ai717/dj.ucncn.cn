@@ -1549,6 +1549,29 @@ body.pro-mode .hw-sm.pro-only {
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+.credit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(227, 200, 140, 0.08);
+  border-color: rgba(227, 200, 140, 0.35);
+  color: #d6c59a;
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
+}
+
+.credit-pill strong {
+  color: var(--warn);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.credit-pill.bump {
+  box-shadow: 0 0 16px rgba(227, 200, 140, 0.55);
+  border-color: var(--warn);
+}
+
 /* 「说明模式」按钮激活态、控件高亮与详细百科浮层 */
 #btn-explain-mode.active {
   background: rgba(185, 180, 201, 0.22);

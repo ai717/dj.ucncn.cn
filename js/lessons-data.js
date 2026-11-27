@@ -9,15 +9,15 @@ export const LESSONS = [
   {
     id: 'lesson-0',
     number: 0,
-    title: '认识打碟机盘面功能',
-    duration: '3 分钟',
-    summary: '零基础入门第一站：逐一认识波形、唱盘、调速、播控、热标点、循环、混音台、采样器与曲库的名称、作用与操作方法。',
+    title: '全面认识打碟机盘面',
+    duration: '5 分钟',
+    summary: '零基础小白必学：手把手认识 18 个核心盘面按钮、旋钮、推子、波形、采样器与曲库的名称、作用与操作。',
     steps: [
       {
         id: 'l0-s1',
-        title: '认识同步波形条',
+        title: '1/18 · 顶部同步波形条',
         floatTip: '👆 点一下上方任意波形条，直接跳转进度',
-        instruction: '看懂双轨鼓点与白线播放头。直接点击上方波形条试试！',
+        instruction: '蓝/橙波形展示双盘鼓点与白线播放头。点一下上方波形条试试！',
         highlightSelector: '.waveforms-strip',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#wave-scroll-A');
@@ -28,16 +28,56 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'SEEK') {
-            return { pass: true, praise: '很好！点击或拖动波形条可随时精准跳转歌曲位置。' };
+            return { pass: true, praise: '很好！点击或拖动波形条可随时精准跳转位置。' };
           }
           return null;
         }
       },
       {
         id: 'l0-s2',
-        title: '认识黑胶唱盘',
+        title: '2/18 · 波形缩放（− / +）',
+        floatTip: '🔍 点右上角「+」放大波形，看清每一个鼓点',
+        instruction: '放大波形能更精准对齐鼓点。点一下波形右上角「+」按钮！',
+        highlightSelector: '#btn-wave-zoom-in',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#btn-wave-zoom-in');
+          await cursor.click();
+          engine.zoomWaveform(1 / 1.35);
+          await wait(700);
+          engine.zoomWaveform(1.35);
+        },
+        validate(action) {
+          if (action.type === 'WAVE_ZOOM') {
+            return { pass: true, praise: '视野切换成功！放大看鼓点，缩小看段落。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s3',
+        title: '3/18 · 全曲概览波形条',
+        floatTip: '📊 点一下左盘歌名下方的小条波形，跳转到整首歌任意段落',
+        instruction: '小条波形显示整首歌全貌（前奏到高潮）。点一下左盘小波形！',
+        highlightSelector: '#wave-overview-A',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#wave-overview-A');
+          await cursor.click();
+          engine.seek('A', 6.0, { silentAction: true });
+          await wait(700);
+          engine.seek('A', 0, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'SEEK') {
+            return { pass: true, praise: '漂亮！点小波形能一秒跨段落预览歌曲。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s4',
+        title: '4/18 · 黑胶唱盘与搓碟',
         floatTip: '💿 按住黑胶盘面画圈转动，体验搓碟音效',
-        instruction: '用于走带与手动搓碟。按住左侧黑胶盘面转一转！',
+        instruction: '唱盘既能走带也能手动修拍、搓碟。按住左侧黑胶盘面转一转！',
         highlightSelector: '#platter-A',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#platter-A');
@@ -53,16 +93,16 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'SCRATCH') {
-            return { pass: true, praise: '漂亮！你刚刚体验了真实物理角度的搓碟手势。' };
+            return { pass: true, praise: '太棒了！你刚刚体验了真实物理角度的搓碟手势。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s3',
-        title: '认识调速推子',
+        id: 'l0-s5',
+        title: '5/18 · 调速推子与 BPM',
         floatTip: '🎚️ 上下拖动「调速」推子，改变歌曲快慢',
-        instruction: '控制播放快慢（BPM），用于对拍。上下拖动调速推子试试！',
+        instruction: '控制播放速度（BPM），用于手动对拍。上下拖动调速推子试试！',
         highlightSelector: '#tempo-A',
         async runDemo(engine, cursor) {
           await cursor.moveTo('#tempo-A');
@@ -73,36 +113,72 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'TEMPO') {
-            return { pass: true, praise: '掌握了！调速推子是手动对拍（Beatmatching）的核心。' };
+            return { pass: true, praise: '掌握了！双击推子可以一键归零恢复原速。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s4',
-        title: '认识播控三键',
+        id: 'l0-s6',
+        title: '6/18 · 播放 / 刹车暂停（▶）',
         floatTip: '▶ 按一下绿色「播放」键，让左盘响起来',
-        instruction: 'CUE 定起点、▶ 播放刹车、SYNC 一键同步。先按 ▶ 播放！',
+        instruction: '控制唱盘走带与停转（带黑胶刹车尾音）。先按一下 ▶ 播放！',
         highlightSelector: '[data-control="deck-A-play"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-play"]');
           await cursor.click();
           engine.play('A', { silentAction: true });
-          await wait(1600);
+          await wait(1400);
           engine.pause('A', { silentAction: true });
         },
         validate(action) {
           if (action.type === 'PLAY' && action.deck === 'A') {
-            return { pass: true, praise: '声音响起来了！再按一次 ▶ 会带出真实的黑胶停转尾音。' };
+            return { pass: true, praise: '声音响起来了！再按一次就会刹车停转。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s5',
-        title: '认识热标点（Hot Cue）',
+        id: 'l0-s7',
+        title: '7/18 · CUE 定位起点键',
+        floatTip: '🎯 点一下「CUE」键，记住起点或弹回起点',
+        instruction: '暂停时按它定起跑线，播放时按它立即弹回起点。点一下 CUE！',
+        highlightSelector: '[data-control="deck-A-cue"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-cue"]');
+          await cursor.click();
+          engine.cueAction('A', { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'CUE') {
+            return { pass: true, praise: '学会了！CUE 是 DJ 找第一拍起点最常用的键。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s8',
+        title: '8/18 · SYNC 一键同步速度',
+        floatTip: '⚡ 点一下右盘的「SYNC」，自动对齐左盘速度',
+        instruction: '新手救星！按下 SYNC 自动把本盘 BPM 对齐另一盘。点右盘 SYNC！',
+        highlightSelector: '[data-control="deck-B-sync"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-B-sync"]');
+          await cursor.click();
+          engine.syncDeck('B', { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'SYNC') {
+            return { pass: true, praise: '瞬间对齐！现在两首歌的 BPM 完全一样了。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s9',
+        title: '9/18 · 热标点书签（Hot Cue）',
         floatTip: '🔖 点一下「1」号按钮，打下你的彩色书签',
-        instruction: '给高潮段落做书签，随时秒跳。点一下「1」号按钮！',
+        instruction: '给高潮段落做标记，随时一秒闪回（右键可删）。点一下「1」！',
         highlightSelector: '[data-control="deck-A-hotcue-0"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-hotcue-0"]');
@@ -113,16 +189,16 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'HOT_CUE') {
-            return { pass: true, praise: '颜色亮起来了！随时点击这个色块就能一秒闪回标记点。' };
+            return { pass: true, praise: '书签亮起来了！以后点它就能秒跳回这个位置。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s6',
-        title: '认识循环与黑胶特技',
-        floatTip: '🔁 点一下「循环 4 拍」，锁定当前节奏无限循环',
-        instruction: '循环用来留出接歌时间。点一下「循环 4 拍」试试！',
+        id: 'l0-s10',
+        title: '10/18 · 循环 4 拍（LOOP 4）',
+        floatTip: '🔁 点一下「循环 4 拍」，锁定当前小节无限重复',
+        instruction: '循环用来留出充裕接歌时间，旁边 ½ / ×2 可缩放。点「循环 4 拍」！',
         highlightSelector: '[data-control="deck-A-loop4"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-loop4"]');
@@ -133,16 +209,34 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'LOOP4') {
-            return { pass: true, praise: '干得漂亮！再次点击「循环 4 拍」即可退出循环继续往下播。' };
+            return { pass: true, praise: '干得漂亮！再点一次即可退出循环继续往下播。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s7',
-        title: '认识三段均衡与滤波',
+        id: 'l0-s11',
+        title: '11/18 · 黑胶倒转（倒转）',
+        floatTip: '⏪ 点一下「倒转」，听一听经典的黑胶倒带音效',
+        instruction: '「刹车」缓慢停转，「倒转」猛力倒带。点一下左盘「倒转」！',
+        highlightSelector: '[data-spin="A"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-spin="A"]');
+          await cursor.click();
+          engine.vinylSpinback('A');
+        },
+        validate(action) {
+          if (action.type === 'VINYL_TRICK') {
+            return { pass: true, praise: '帅气！切歌收尾用一次超有现场感。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s12',
+        title: '12/18 · 均衡器 EQ（低频旋钮）',
         floatTip: '🎛️ 上下拖动「低频」旋钮，感受鼓点被切掉',
-        instruction: '高/中/低音分别控镲片/人声/鼓点。拖动「低频」旋钮试试！',
+        instruction: '高/中/低音分别控镲片/人声/鼓点。上下拖动「低频」旋钮试试！',
         highlightSelector: '[data-control="deck-A-eq-low"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="deck-A-eq-low"]');
@@ -153,16 +247,56 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'EQ') {
-            return { pass: true, praise: '掌握了！接歌时两首歌的低频不能同时开满，否则会浑浊打架。' };
+            return { pass: true, praise: '记住口诀：接歌时两盘低频不要同时开满！' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s8',
-        title: '认识交叉推子',
+        id: 'l0-s13',
+        title: '13/18 · 双极扫频滤波器（滤波）',
+        floatTip: '🌊 上下拖动「滤波」旋钮，向左变闷、向右变空灵',
+        instruction: '淡出旧歌的神器！上下拖动左盘「滤波」旋钮听听变化！',
+        highlightSelector: '[data-control="deck-A-filter"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-control="deck-A-filter"]');
+          await cursor.click();
+          engine.setFilter('A', 0.6, { silentAction: true });
+          await wait(700);
+          engine.setFilter('A', 0, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'FILTER') {
+            return { pass: true, praise: '丝滑抽离！双击旋钮随时归中关闭滤波。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s14',
+        title: '14/18 · 通道音量竖推 & 电平表',
+        floatTip: '📊 上下拖动左侧通道音量推子，控制 A 盘输出大小',
+        instruction: '控制单盘音量，左侧灯柱防止爆音红灯。上下拖一下 A 盘竖推！',
+        highlightSelector: '[data-vol="A"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-vol="A"]');
+          await cursor.click();
+          engine.setChannelVolume('A', 0.5);
+          await wait(600);
+          engine.setChannelVolume('A', 1);
+        },
+        validate(action) {
+          if (action.type === 'VOLUME') {
+            return { pass: true, praise: '很好！很多专业 DJ 也喜欢直接用这两根竖推混音。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s15',
+        title: '15/18 · 交叉推子（Crossfader）',
         floatTip: '🎚️ 左右拖动底部「交叉推子」，切换 A / B 盘声音',
-        instruction: '左推听 A、右推听 B、中间融合。左右拖一下交叉推子！',
+        instruction: '左推只听 A、右推只听 B、中间融合。左右拖一下交叉推子！',
         highlightSelector: '[data-control="crossfader"]',
         async runDemo(engine, cursor) {
           await cursor.moveTo('[data-control="crossfader"]');
@@ -174,16 +308,16 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'CROSSFADER') {
-            return { pass: true, praise: '很好！左端只听 A 盘，中间双盘融合，右端只听 B 盘。' };
+            return { pass: true, praise: '掌握了！它是切歌过渡最直观的开关。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s9',
-        title: '认识 10 键采样器',
+        id: 'l0-s16',
+        title: '16/18 · 10 键独立采样器',
         floatTip: '🥁 点任意一个采样垫（或按 Shift+1），叠加现场音效',
-        instruction: '10 个即时气氛音效垫，支持拖放自定义。随便点一个听听！',
+        instruction: '10 个独立气氛音效垫，支持拖放本地音频替换。点一个听听！',
         highlightSelector: '.sampler-pads-grid',
         async runDemo(engine, cursor) {
           await cursor.moveTo('.sampler-pad[data-sampler="airhorn"]');
@@ -192,16 +326,16 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'SAMPLER') {
-            return { pass: true, praise: '气势拉满！随时把本地音效拖到任意采样垫上就能替换成你的专属音效。' };
+            return { pass: true, praise: '气氛拉满！打碟时随时叠加一声超带感。' };
           }
           return null;
         }
       },
       {
-        id: 'l0-s10',
-        title: '认识曲库与待播清单',
-        floatTip: '🎵 在曲库点任意歌曲的「→ B」，装入右盘即可过关',
-        instruction: '30 首零版权舞曲随心选，支持本地导入。点任意「→ B」装盘！',
+        id: 'l0-s17',
+        title: '17/18 · 曲库浏览与装盘',
+        floatTip: '🎵 在下方曲库点任意歌曲的「→ B」，把歌装进右盘',
+        instruction: '内置 30 首零版权舞曲，支持本地导入与推荐接歌。点任意「→ B」！',
         highlightSelector: '.crate-panel',
         async runDemo(engine, cursor) {
           const btn = document.querySelector('#crate-list [data-load^="B:"]');
@@ -213,7 +347,24 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'LOAD_TRACK') {
-            return { pass: true, praise: '恭喜！你已全面掌握打碟机盘面的全部功能，接下来进入第 1 课正式切歌实战！' };
+            return { pass: true, praise: '新歌装盘成功！只差最后一步认识待播清单了。' };
+          }
+          return null;
+        }
+      },
+      {
+        id: 'l0-s18',
+        title: '18/18 · 待播清单与自动连播',
+        floatTip: '📋 在曲库点任意歌曲的「+ 待播」，排入右侧演出歌单',
+        instruction: '把想放的歌排进「待播清单」，点「自动连播」就能连续放！点「+ 待播」！',
+        highlightSelector: '#crate-list [data-add-set]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#crate-list [data-add-set]');
+          await cursor.click();
+        },
+        validate(action) {
+          if (action.type === 'ADD_TO_SET') {
+            return { pass: true, praise: '恭喜毕业第 0 课！你已全面认识所有盘面功能，准备正式开混！' };
           }
           return null;
         }

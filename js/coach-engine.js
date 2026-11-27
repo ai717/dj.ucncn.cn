@@ -59,11 +59,13 @@ export class CoachEngine {
         return {
           lessonIndex: Math.min(LESSONS.length - 1, parsed.lessonIndex || 0),
           stepIndex: parsed.stepIndex || 0,
-          completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons : []
+          completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons : [],
+          credits: Number(parsed.credits) || 0,
+          earnedSteps: Array.isArray(parsed.earnedSteps) ? parsed.earnedSteps : []
         };
       }
     } catch (_) {}
-    return { lessonIndex: 0, stepIndex: 0, completedLessons: [] };
+    return { lessonIndex: 0, stepIndex: 0, completedLessons: [], credits: 0, earnedSteps: [] };
   }
 
   _saveProgress() {
@@ -128,9 +130,15 @@ export class CoachEngine {
 
   resetProgress() {
     this._cancelPendingAdvance();
-    this.state = { lessonIndex: 0, stepIndex: 0, completedLessons: [] };
+    this.state = { lessonIndex: 0, stepIndex: 0, completedLessons: [], credits: 0, earnedSteps: [] };
     this._saveProgress();
     this.renderStep();
+  }
+
+  getStepPoints(lesson, step) {
+    if (typeof step?.points === 'number') return step.points;
+    if (lesson.number === 0) return 5;
+    return lesson.number <= 10 ? 10 : 15;
   }
 
   renderStep(feedback = null) {
@@ -167,6 +175,7 @@ export class CoachEngine {
       totalSteps: lesson.steps.length,
       completedCount: this.state.completedLessons.length,
       totalLessons: LESSONS.length,
+      credits: this.state.credits || 0,
       isLessonActive: this.isLessonActive,
       isDemoRunning: this.isDemoRunning,
       feedback
@@ -198,7 +207,18 @@ export class CoachEngine {
 
     if (result.pass) {
       this.isAdvancing = true;
-      this.renderStep({ type: 'success', text: `✓ ${result.praise}` });
+      const lesson = this.getCurrentLesson();
+      let pointsEarned = 0;
+      if (!this.state.earnedSteps.includes(step.id)) {
+        this.state.earnedSteps.push(step.id);
+        pointsEarned = this.getStepPoints(lesson, step);
+        if (this.state.stepIndex + 1 >= lesson.steps.length && !this.state.completedLessons.includes(lesson.id)) {
+          pointsEarned += 20; // 整课通关额外奖励
+        }
+        this.state.credits = (this.state.credits || 0) + pointsEarned;
+        this._saveProgress();
+      }
+      this.renderStep({ type: 'success', text: `✓ ${result.praise}`, pointsEarned });
       this.advanceTimer = setTimeout(() => {
         this.advanceTimer = null;
         this.isAdvancing = false;
