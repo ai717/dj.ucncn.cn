@@ -147,6 +147,43 @@ body {
   cursor: ew-resize;
 }
 
+/* 移动端窄屏切换栏 */
+.mobile-tabs {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.mobile-tab {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-tab.active {
+  color: var(--text);
+  border-color: var(--deck-a);
+  background: rgba(56, 189, 248, 0.14);
+}
+
+@media (max-width: 760px) {
+  .mobile-tabs {
+    display: grid;
+  }
+  .workspace-grid[data-mobile-view="A"] .mixer-panel,
+  .workspace-grid[data-mobile-view="A"] .deck-panel[data-deck="B"],
+  .workspace-grid[data-mobile-view="mixer"] .deck-panel,
+  .workspace-grid[data-mobile-view="B"] .mixer-panel,
+  .workspace-grid[data-mobile-view="B"] .deck-panel[data-deck="A"] {
+    display: none;
+  }
+}
+
 /* 三栏工作区 */
 .workspace-grid {
   display: grid;

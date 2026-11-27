@@ -129,64 +129,89 @@ function syncUIWithEngine() {
 engine.onChange(syncUIWithEngine);
 
 // 事件绑定
-let premixRunning = false;
-let premixAbort = false;
+let premixController = null;
 const premixBtn = document.getElementById('btn-premix-demo');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function abortableSleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new DOMException('Aborted', 'AbortError'));
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
 
 premixBtn.addEventListener('click', async () => {
-  if (premixRunning) {
-    premixAbort = true;
+  if (premixController) {
+    premixController.abort();
     return;
   }
-  premixRunning = true;
-  premixAbort = false;
+  premixController = new AbortController();
+  const { signal } = premixController;
   premixBtn.textContent = '⏹ 停止示范';
 
   try {
     await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
     await engine.loadTrack('B', 'night-shift', { silentAction: true });
+    if (signal.aborted) return;
+
     engine.setCrossfader(-1, { silentAction: true });
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', -18, { silentAction: true });
     engine.setFilter('A', 0, { silentAction: true });
     engine.play('A', { silentAction: true });
 
-    await sleep(2200);
-    if (premixAbort) return;
+    await abortableSleep(2200, signal);
 
     engine.syncDeck('B', { silentAction: true });
     engine.play('B', { silentAction: true });
 
     for (let v = -1; v <= 0; v += 0.1) {
-      if (premixAbort) return;
       engine.setCrossfader(v, { silentAction: true });
-      await sleep(180);
+      await abortableSleep(180, signal);
     }
 
     // Bass Swap + Filter Sweep
     engine.setEQ('A', 'low', -18, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
-    await sleep(1200);
+    await abortableSleep(1200, signal);
 
     for (let i = 1; i <= 10; i++) {
-      if (premixAbort) return;
       engine.setFilter('A', i * 0.06, { silentAction: true });
       engine.setCrossfader(i * 0.1, { silentAction: true });
-      await sleep(180);
+      await abortableSleep(180, signal);
     }
 
     engine.triggerSampler('airhorn');
-    await sleep(1400);
+    await abortableSleep(1400, signal);
+  } catch (err) {
+    if (err.name !== 'AbortError') throw err;
   } finally {
     engine.pause('A', { silentAction: true });
     engine.pause('B', { silentAction: true });
     engine.setFilter('A', 0, { silentAction: true });
     engine.setEQ('A', 'low', 0, { silentAction: true });
     engine.setEQ('B', 'low', 0, { silentAction: true });
-    premixRunning = false;
+    premixController = null;
     premixBtn.textContent = '🎧 高手示范';
   }
+});
+
+// 移动端面板切换
+const workspaceGrid = document.querySelector('.workspace-grid');
+workspaceGrid.dataset.mobileView = 'A';
+document.querySelectorAll('.mobile-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    workspaceGrid.dataset.mobileView = tab.dataset.mobilePanel;
+  });
 });
 
 document.getElementById('input-local-audio').addEventListener('change', async (e) => {

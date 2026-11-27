@@ -6,6 +6,21 @@
   <meta name="color-scheme" content="dark">
   <title>Backspin 中文版 · 浏览器互动 DJ 教练 (dj.ucncn.cn)</title>
   <meta name="description" content="零门槛、免注册、免设备的浏览器互动 DJ 混音教练。双黑胶唱机、混音台、5 节手把手纠错课程与内置零版权合成曲库。">
+  <meta property="og:title" content="Backspin 中文版 · 浏览器互动 DJ 教练">
+  <meta property="og:description" content="打开浏览器就能学的免费互动 DJ 教练：双黑胶唱机、混音台、Show me 自动演示与实时纠错。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dj.ucncn.cn/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Backspin 中文版 · 浏览器互动 DJ 教练",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Web Browser",
+    "url": "https://dj.ucncn.cn/",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+  }
+  </script>
   <link rel="stylesheet" href="./css/studio.css">
 </head>
 <body>
@@ -46,6 +61,13 @@
         <canvas id="wave-scroll-B" class="wave-canvas" data-deck="B"></canvas>
       </div>
     </section>
+
+    <!-- 移动端窄屏切换栏 -->
+    <nav class="mobile-tabs" aria-label="移动端面板切换">
+      <button type="button" class="mobile-tab active" data-mobile-panel="A">左盘 Deck A</button>
+      <button type="button" class="mobile-tab" data-mobile-panel="mixer">混音台</button>
+      <button type="button" class="mobile-tab" data-mobile-panel="B">右盘 Deck B</button>
+    </nav>
 
     <!-- 三栏主工作区：Deck A | Mixer | Deck B -->
     <section class="workspace-grid">

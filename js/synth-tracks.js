@@ -193,18 +193,60 @@ export function computePeaks(buffer, bins = 480) {
   return peaks;
 }
 
+/**
+ * 轻量纯前端能量峰值间隔 BPM 估算器（分析前 20 秒音频）
+ */
+export function estimateBPM(buffer) {
+  const sampleRate = buffer.sampleRate;
+  const data = buffer.getChannelData(0);
+  const maxSamples = Math.min(data.length, sampleRate * 20);
+  const windowSize = Math.floor(sampleRate * 0.02); // 20ms 能量窗 -> 50 Hz 包络
+  const energies = [];
+
+  for (let i = 0; i < maxSamples; i += windowSize) {
+    let sum = 0;
+    const end = Math.min(maxSamples, i + windowSize);
+    for (let j = i; j < end; j++) {
+      sum += data[j] * data[j];
+    }
+    energies.push(sum / (end - i));
+  }
+
+  // 在 75..165 BPM 范围内用自相关寻找最强节拍周期
+  const fps = sampleRate / windowSize; // ~50
+  const minLag = Math.floor((60 / 165) * fps);
+  const maxLag = Math.ceil((60 / 75) * fps);
+  let bestLag = Math.round((60 / 124) * fps);
+  let bestScore = -1;
+
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let score = 0;
+    for (let i = 0; i < energies.length - lag; i++) {
+      score += energies[i] * energies[i + lag];
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestLag = lag;
+    }
+  }
+
+  const rawBpm = (60 * fps) / bestLag;
+  return Math.round(Math.max(75, Math.min(165, rawBpm)));
+}
+
 export async function registerLocalAudioFile(ctx, file) {
   const arrayBuf = await file.arrayBuffer();
   const audioBuf = await ctx.decodeAudioData(arrayBuf);
   const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const detectedBpm = estimateBPM(audioBuf);
   const meta = {
     id,
     title: file.name.replace(/\.[^.]+$/, ''),
     genre: '本地音频',
-    bpm: 124,
+    bpm: detectedBpm,
     key: '—',
     energy: 8,
-    bars: Math.max(4, Math.round(audioBuf.duration / 2)),
+    bars: Math.max(4, Math.round((audioBuf.duration * detectedBpm) / 240)),
     color: '#22c55e'
   };
   const peaks = computePeaks(audioBuf, 480);
