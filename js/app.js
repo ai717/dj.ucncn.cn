@@ -282,10 +282,10 @@ function syncUIWithEngine() {
     const cueMonBtn = document.querySelector(`[data-cue-mon="${id}"]`);
     if (cueMonBtn) cueMonBtn.classList.toggle('active', d.cueMonitor);
 
-    // Hot Cue 1-3 已设点视觉高亮（与原版 Deck A 一致）
+    // Hot Cue 仅在用户实际打点后亮起实心色块
     document.querySelectorAll(`[data-hotcue^="${id}:"]`).forEach((btn) => {
       const idx = Number(btn.dataset.hotcue.split(':')[1]);
-      btn.classList.toggle('set', Boolean(d.track && id === 'A' && idx < 3));
+      btn.classList.toggle('set', Boolean(d.track && d.hotCues[idx] !== null && d.hotCues[idx] !== undefined));
     });
 
     // FX 按钮激活态
@@ -443,9 +443,14 @@ document.querySelectorAll('[data-nudge]').forEach((b) => {
 });
 
 document.querySelectorAll('[data-hotcue]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const [deck, idx] = btn.dataset.hotcue.split(':');
-    engine.triggerHotCue(deck, Number(idx));
+  const [deck, idx] = btn.dataset.hotcue.split(':');
+  btn.addEventListener('click', (e) => {
+    if (e.shiftKey) engine.clearHotCue(deck, Number(idx));
+    else engine.triggerHotCue(deck, Number(idx));
+  });
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    engine.clearHotCue(deck, Number(idx));
   });
 });
 

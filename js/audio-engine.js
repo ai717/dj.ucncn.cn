@@ -240,7 +240,7 @@ export class DJAudioEngine {
     d.track = track;
     d.offset = 0;
     d.cuePoint = 0;
-    d.hotCues = Array.from({ length: 8 }, (_, i) => (i * track.duration) / 8);
+    d.hotCues = Array(8).fill(null);
     d.loop4 = false;
     d.loopBeats = 4;
     this._notify();
@@ -715,6 +715,13 @@ export class DJAudioEngine {
     if (!silentAction) {
       this._emitAction({ type: 'HOT_CUE', deck: deckId, index });
     }
+  }
+
+  clearHotCue(deckId, index) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.hotCues[index] = null;
+    this._notify();
   }
 
   toggleLoop4(deckId, { silentAction = false } = {}) {
