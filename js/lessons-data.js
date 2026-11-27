@@ -594,7 +594,247 @@ export const LESSONS = [
             engine.decks.B.isPlaying &&
             engine.crossfader >= 0.85
           ) {
-            return { pass: true, praise: '🏆 恭喜全部通关 12 节课程！你已经是合格的浏览器 DJ 了，快去挑战「🎯 盲听挑战」吧！' };
+            return { pass: true, praise: '第 12 课完成！接下来解锁 Part 4~6 高阶技巧课程！' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-13',
+    number: 13,
+    title: '黑胶刹车（Vinyl Brake）',
+    duration: '3 分钟',
+    summary: '模拟关闭黑胶唱机电源时转速缓缓降零的经典刹车停歌效果。',
+    steps: [
+      {
+        id: 'l13-s1',
+        title: '第一步：对正在播放的 A 盘执行 BRAKE',
+        instruction: '确保 Deck A 正在播放，然后点击 Deck A 下方的「BRAKE」按钮体验唱盘减速停止。',
+        highlightSelector: '[data-brake="A"]',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('[data-brake="A"]');
+          await cursor.click();
+          engine.vinylBrake('A');
+        },
+        validate(action) {
+          if (action.type === 'VINYL_TRICK' && action.deck === 'A' && action.trick === 'brake') {
+            return { pass: true, praise: '丝滑停盘！Vinyl Brake 特别适合在落拍前制造瞬间寂静。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-14',
+    number: 14,
+    title: '急速倒转（Spinback）',
+    duration: '3 分钟',
+    summary: '快速向后拨动唱片制造急促倒带声，常用于切换完全不同 BPM 的曲风（如 House 切 DnB）。',
+    steps: [
+      {
+        id: 'l14-s1',
+        title: '第一步：触发 A 盘 SPINBACK',
+        instruction: '点击 Deck A 下方的「SPIN」按钮制造倒转效果。',
+        highlightSelector: '[data-spin="A"]',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('[data-spin="A"]');
+          await cursor.click();
+          engine.vinylSpinback('A');
+        },
+        validate(action) {
+          if (action.type === 'VINYL_TRICK' && action.deck === 'A' && action.trick === 'spinback') {
+            return { pass: true, praise: '炸场感十足！Spinback 后可以直接切入下一首完全不同速度的歌。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-15',
+    number: 15,
+    title: '搓碟切割曲线（Cut Curve）',
+    duration: '4 分钟',
+    summary: '在 Pro 模式下开启锐利 Cut 曲线，用 Crossfader 边缘快速开合切出节奏。',
+    steps: [
+      {
+        id: 'l15-s1',
+        title: '第一步：推动 Crossfader 完成快速切割',
+        instruction: '在 Pro 模式勾选「Cut 曲线」，然后快速左右拨动 Crossfader 完成一次切割。',
+        highlightSelector: '[data-control="crossfader"]',
+        async runDemo(engine, cursor) {
+          document.body.classList.add('pro-mode');
+          engine.setCutCurve(true);
+          await cursor.moveTo('[data-control="crossfader"]');
+          engine.setCrossfader(0, { silentAction: true });
+          await wait(200);
+          engine.setCrossfader(-1, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'CROSSFADER') {
+            return { pass: true, praise: '清脆利落！锐利 Cut 曲线是 Hip-Hop 搓碟的核心设置。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-16',
+    number: 16,
+    title: '混音能量曲线与曲库管理',
+    duration: '4 分钟',
+    summary: '学会按 BPM 与能量值排序曲库，把《极速 DnB (174 BPM)》加入待播清单（Set）。',
+    steps: [
+      {
+        id: 'l16-s1',
+        title: '第一步：将高能量曲目加入 Set 待播清单',
+        instruction: '在下方曲库找到「极速 DnB (Rush Hour)」并点击「+ Set」加入演出队列。',
+        highlightSelector: '#crate-list',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#crate-list');
+        },
+        validate(action) {
+          if (action.type === 'ADD_TO_SET') {
+            return { pass: true, praise: '曲库管理满分！提前排好 Set 队列能让你在台上从容不迫。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-17',
+    number: 17,
+    title: '一键自动混音（Auto Mix）',
+    duration: '3 分钟',
+    summary: '在需要短暂离开控制台或暖场时，使用中央混音台的 AUTO MIX 自动完成平滑过渡。',
+    steps: [
+      {
+        id: 'l17-s1',
+        title: '第一步：触发 AUTO MIX A → B',
+        instruction: '装入两首歌后，点击中央混音台顶部的「AUTO MIX」按钮观察自动过渡。',
+        highlightSelector: '#btn-automix',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#btn-automix');
+          await cursor.click();
+        },
+        validate(action) {
+          if (action.type === 'AUTO_MIX') {
+            return { pass: true, praise: '自动过渡已启动！Crossfader 正在平滑接管。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-18',
+    number: 18,
+    title: '录制你的第一场 Mix（REC）',
+    duration: '3 分钟',
+    summary: '使用顶部 REC 按钮实时录制主输出音频，停录后自动导出音频文件复盘。',
+    steps: [
+      {
+        id: 'l18-s1',
+        title: '第一步：点击顶部 REC 开始/停止录音',
+        instruction: '点击顶部菜单栏的「● REC」按钮开始录制你的混音，再次点击即可保存导出。',
+        highlightSelector: '#btn-rec',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('#btn-rec');
+        },
+        validate(action) {
+          if (action.type === 'REC_TOGGLE') {
+            return { pass: true, praise: '已开启/完成录制！听自己的录音是进步最快的方法。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-19',
+    number: 19,
+    title: 'Reverb + Flanger 空间感叠奏',
+    duration: '4 分钟',
+    summary: '在 Pro 模式下组合混响与镶边效果，为高潮段落前的过渡增加迷幻空间感。',
+    steps: [
+      {
+        id: 'l19-s1',
+        title: '第一步：开启 Pro 模式并推高 Reverb / Flanger',
+        instruction: '切换到 Pro 模式，拖动 Deck A 的 REVERB 或 FLANGER 滑块聆听空间变化。',
+        highlightSelector: '#btn-layout-mode',
+        async runDemo(engine, cursor) {
+          document.body.classList.add('pro-mode');
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          engine.setReverb('A', 0.6);
+          await wait(1200);
+          engine.setReverb('A', 0);
+        },
+        validate(action, engine) {
+          if (engine.decks.A.reverb >= 0.2 || engine.decks.A.flanger >= 0.2) {
+            return { pass: true, praise: '空间感出来了！注意效果器切忌一直满格，用在过渡瞬间最惊艳。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-20',
+    number: 20,
+    title: '情绪起伏：从暖场到高峰的编排',
+    duration: '4 分钟',
+    summary: '学会用 92 BPM Boom-Bap 暖场，再逐步拉升到 124 BPM Vocal House 与 174 BPM DnB。',
+    steps: [
+      {
+        id: 'l20-s1',
+        title: '第一步：用《低潮 Boom-Bap》作为暖场开篇',
+        instruction: '在曲库中将「低潮 Boom-Bap (Low Tide)」装入 Deck A 并点击播放。',
+        highlightSelector: '#crate-list',
+        async runDemo(engine, cursor) {
+          await engine.loadTrack('A', 'low-tide', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await wait(1000);
+          engine.pause('A', { silentAction: true });
+        },
+        validate(action, engine) {
+          if (engine.decks.A.track?.id === 'low-tide' && engine.decks.A.isPlaying) {
+            return { pass: true, praise: '很好的暖场选择！留白与铺垫能让后面的高潮更有爆发力。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-21',
+    number: 21,
+    title: '四周每日 20 分钟大师练习计划',
+    duration: '3 分钟',
+    summary: '第 1 周练听拍与 EQ，第 2 周练乐句与 Loop，第 3 周练搓碟与 FX，第 4 周每天录一套 15 分钟 Set。',
+    steps: [
+      {
+        id: 'l21-s1',
+        title: '毕业宣言：触发空气喇叭庆祝结业！',
+        instruction: '点击下方采样垫的「📢 喇叭」音效，庆祝完成全部 21 节 Backspin 中文版互动课程！',
+        highlightSelector: '[data-sampler="airhorn"]',
+        async runDemo(engine, cursor) {
+          await cursor.moveTo('[data-sampler="airhorn"]');
+          await cursor.click();
+          engine.triggerSampler('airhorn');
+        },
+        validate(action) {
+          if (action.type === 'SAMPLER' && action.padId === 'airhorn') {
+            return { pass: true, praise: '🎉 恭喜完成全部 21 节课程！你已解锁浏览器 DJ 大师成就！' };
           }
           return null;
         }

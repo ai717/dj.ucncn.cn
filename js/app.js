@@ -55,23 +55,63 @@ const coach = new CoachEngine(engine, {
   }
 });
 
+let crateFilter = '';
+let crateSort = null;
+let crateSortAsc = true;
+const setQueue = [];
+const setListEl = document.getElementById('set-list');
+
 function renderCrate() {
   ui.crateList.innerHTML = '';
-  for (const t of TRACK_CATALOG) {
+  let list = TRACK_CATALOG.filter((t) => {
+    if (!crateFilter) return true;
+    const q = crateFilter.toLowerCase();
+    return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
+  });
+  if (crateSort) {
+    list = [...list].sort((a, b) => (crateSortAsc ? a[crateSort] - b[crateSort] : b[crateSort] - a[crateSort]));
+  }
+  document.getElementById('crate-count').textContent = String(list.length);
+  for (const t of list) {
     const row = document.createElement('div');
     row.className = 'crate-item';
     row.innerHTML = `
       <div class="crate-item-info">
         <strong>${t.title}</strong>
-        <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM · ${t.key}</span>
+        <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM · ${t.key} · 能量 ${t.energy}</span>
+      </div>
+      <div class="crate-item-btns">
+        <button type="button" class="mini-btn" data-load="A:${t.id}">→ A</button>
+        <button type="button" class="mini-btn" data-load="B:${t.id}">→ B</button>
+        <button type="button" class="mini-btn" data-add-set="${t.id}">+ Set</button>
+      </div>
+    `;
+    ui.crateList.appendChild(row);
+  }
+}
+
+function renderSetList() {
+  document.getElementById('set-count').textContent = String(setQueue.length);
+  setListEl.innerHTML = '';
+  if (setQueue.length === 0) {
+    setListEl.innerHTML = '<div class="crate-item-meta" style="padding:8px;">待播清单为空，请在曲库点击「+ Set」添加曲目。</div>';
+    return;
+  }
+  setQueue.forEach((t, idx) => {
+    const row = document.createElement('div');
+    row.className = 'crate-item';
+    row.innerHTML = `
+      <div class="crate-item-info">
+        <strong>${idx + 1}. ${t.title}</strong>
+        <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM</span>
       </div>
       <div class="crate-item-btns">
         <button type="button" class="mini-btn" data-load="A:${t.id}">→ A</button>
         <button type="button" class="mini-btn" data-load="B:${t.id}">→ B</button>
       </div>
     `;
-    ui.crateList.appendChild(row);
-  }
+    setListEl.appendChild(row);
+  });
 }
 
 function renderLessonsModal() {
@@ -153,6 +193,11 @@ function syncUIWithEngine() {
   ui.crossfader.value = String(engine.crossfader);
   const isPro = document.body.classList.contains('pro-mode');
   ui.layoutModeBtn.textContent = isPro ? '模式: Pro' : '模式: Simple';
+  const recBtn = document.getElementById('btn-rec');
+  if (recBtn) {
+    recBtn.classList.toggle('recording', engine.isRecording);
+    recBtn.textContent = engine.isRecording ? '⏹ 停止录音' : '● REC';
+  }
 }
 
 engine.onChange(syncUIWithEngine);
@@ -681,13 +726,17 @@ function animate(now) {
       document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
     }
 
-    // 4拍小节灯
+    // 4拍小节灯 + 8小节乐句条
     const beatInfo = engine.getBeatInfo(id);
     const dots = document.querySelectorAll(`#beats-${id} span`);
     dots.forEach((dot, idx) => {
       const active = d.track && (idx + 1 === beatInfo.beatInBar);
       dot.classList.toggle('on', Boolean(active));
       dot.classList.toggle('bar-start', idx === 0);
+    });
+    const phraseBars = document.querySelectorAll(`#phrase-${id} span`);
+    phraseBars.forEach((barEl, idx) => {
+      barEl.classList.toggle('on', Boolean(d.track && idx < beatInfo.barInPhrase));
     });
 
     // VU 电平表
@@ -718,8 +767,98 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 
+// REC 录音、AUTO MIX、Loop 倍数/BeatJump、黑胶特技、Gain、Cut 曲线、曲库搜索/排序与 Set 队列
+document.getElementById('btn-rec').addEventListener('click', () => {
+  engine.toggleRecording();
+  engine._emitAction({ type: 'REC_TOGGLE' });
+});
+
+document.getElementById('btn-automix').addEventListener('click', async () => {
+  if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+  if (!engine.decks.B.track) await engine.loadTrack('B', 'night-shift', { silentAction: true });
+  const fromAtoB = engine.crossfader <= 0;
+  const targetDeck = fromAtoB ? 'B' : 'A';
+  engine.syncDeck(targetDeck, { silentAction: true });
+  engine.play('A', { silentAction: true });
+  engine.play('B', { silentAction: true });
+  engine._emitAction({ type: 'AUTO_MIX', direction: fromAtoB ? 'A->B' : 'B->A' });
+  const steps = 16;
+  const start = engine.crossfader;
+  const end = fromAtoB ? 1 : -1;
+  for (let i = 1; i <= steps; i++) {
+    engine.setCrossfader(start + ((end - start) * i) / steps, { silentAction: true });
+    await new Promise((r) => setTimeout(r, 150));
+  }
+});
+
+document.querySelectorAll('[data-loop-half]').forEach((b) => b.addEventListener('click', () => engine.halveLoop(b.dataset.loopHalf)));
+document.querySelectorAll('[data-loop-double]').forEach((b) => b.addEventListener('click', () => engine.doubleLoop(b.dataset.loopDouble)));
+document.querySelectorAll('[data-jump]').forEach((b) => b.addEventListener('click', () => {
+  const [deck, beats] = b.dataset.jump.split(':');
+  engine.beatJump(deck, Number(beats));
+}));
+document.querySelectorAll('[data-brake]').forEach((b) => b.addEventListener('click', () => engine.vinylBrake(b.dataset.brake)));
+document.querySelectorAll('[data-spin]').forEach((b) => b.addEventListener('click', () => engine.vinylSpinback(b.dataset.spin)));
+document.querySelectorAll('[data-gain]').forEach((input) => input.addEventListener('input', () => engine.setGainTrim(input.dataset.gain, Number(input.value))));
+document.getElementById('chk-cut-curve').addEventListener('change', (e) => engine.setCutCurve(e.target.checked));
+
+document.getElementById('crate-search').addEventListener('input', (e) => {
+  crateFilter = e.target.value;
+  renderCrate();
+});
+
+document.querySelectorAll('[data-sort]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.sort;
+    if (crateSort === field) crateSortAsc = !crateSortAsc;
+    else { crateSort = field; crateSortAsc = true; }
+    renderCrate();
+  });
+});
+
+document.getElementById('tab-crate').addEventListener('click', () => {
+  document.getElementById('tab-crate').classList.add('active');
+  document.getElementById('tab-set').classList.remove('active');
+  ui.crateList.hidden = false;
+  setListEl.hidden = true;
+});
+
+document.getElementById('tab-set').addEventListener('click', () => {
+  document.getElementById('tab-set').classList.add('active');
+  document.getElementById('tab-crate').classList.remove('active');
+  ui.crateList.hidden = true;
+  setListEl.hidden = false;
+  renderSetList();
+});
+
+ui.crateList.addEventListener('click', (e) => {
+  const addBtn = e.target.closest('[data-add-set]');
+  if (!addBtn) return;
+  const track = TRACK_CATALOG.find((t) => t.id === addBtn.dataset.addSet);
+  if (track) {
+    setQueue.push(track);
+    renderSetList();
+    engine._emitAction({ type: 'ADD_TO_SET', trackId: track.id });
+  }
+});
+
+setListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-load]');
+  if (!btn) return;
+  const [deck, trackId] = btn.dataset.load.split(':');
+  engine.loadTrack(deck, trackId);
+});
+
+document.getElementById('btn-auto-dj').addEventListener('click', async () => {
+  const list = setQueue.length >= 2 ? setQueue : TRACK_CATALOG.slice(0, 2);
+  await engine.loadTrack('A', list[0].id, { silentAction: true });
+  await engine.loadTrack('B', list[1].id, { silentAction: true });
+  document.getElementById('btn-automix').click();
+});
+
 // 初始化渲染
 renderCrate();
+renderSetList();
 syncUIWithEngine();
 coach.renderStep();
 requestAnimationFrame(animate);

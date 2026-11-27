@@ -53,6 +53,16 @@ export const TRACK_CATALOG = [
     energy: 9,
     bars: 8,
     color: '#ec4899'
+  },
+  {
+    id: 'rush-hour',
+    title: '极速 DnB (Rush Hour)',
+    genre: 'Drum & Bass',
+    bpm: 174,
+    key: '8A · Am',
+    energy: 10,
+    bars: 8,
+    color: '#ef4444'
   }
 ];
 
@@ -395,6 +405,15 @@ export async function getRenderedTrack(trackId) {
       triggerVocalChop(offline, master, t, vNotes[beatInBar], beatDur * 0.45, beatInBar % 2 === 0 ? 'a' : 'o', 0.18);
       triggerGuitarPluck(offline, master, t + beatDur * 0.25, root + 24, beatDur * 0.35, 0.13);
       triggerGuitarPluck(offline, master, t + beatDur * 0.75, root + 31, beatDur * 0.35, 0.11);
+    } else if (meta.id === 'rush-hour') {
+      // 174 BPM Drum & Bass 两步碎拍
+      if (beatInBar === 0) triggerKick(offline, master, t, 165, 0.2, 0.9);
+      if (beatInBar === 2) triggerKick(offline, master, t + beatDur * 0.5, 155, 0.18, 0.78);
+      if (beatInBar === 1 || beatInBar === 3) triggerSnare(offline, master, noiseBuf, t, 0.45);
+      triggerHat(offline, master, noiseBuf, t, false, 0.1);
+      triggerHat(offline, master, noiseBuf, t + beatDur * 0.5, false, 0.12);
+      const root = bar < 4 ? 33 : 36;
+      triggerBass(offline, master, t, root, beatDur * 0.9, 'sawtooth', 380, 0.38);
     } else {
       // low-tide Boom-Bap (92 BPM)
       if (beatInBar === 0 || beatInBar === 2) {
@@ -469,6 +488,34 @@ export function playSamplerPad(ctx, dest, padId) {
     g.connect(dest);
     osc.start(now);
     osc.stop(now + 0.47);
+  } else if (padId === 'siren') {
+    const osc = ctx.createOscillator();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    const g = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(660, now);
+    lfo.frequency.value = 6;
+    lfoGain.gain.value = 180;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    g.gain.setValueAtTime(0.16, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc.connect(g);
+    g.connect(dest);
+    lfo.start(now);
+    osc.start(now);
+    lfo.stop(now + 0.68);
+    osc.stop(now + 0.68);
+  } else if (padId === 'boom') {
+    triggerKick(ctx, dest, now, 120, 0.55, 0.75);
+  } else if (padId === 'snareroll') {
+    const nb = createNoiseBuffer(ctx, 0.2);
+    for (let i = 0; i < 6; i++) {
+      triggerSnare(ctx, dest, nb, now + i * 0.075, 0.22);
+    }
+  } else if (padId === 'aah') {
+    triggerVocalChop(ctx, dest, now, 69, 0.48, 'a', 0.28);
   } else {
     // riser
     const osc = ctx.createOscillator();

@@ -533,11 +533,152 @@ body {
   font-size: 13px;
 }
 
-.pro-only {
+.phrase-strip {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  width: 120px;
+}
+
+.phrase-strip span {
+  height: 4px;
+  border-radius: 2px;
+  background: #273244;
+}
+
+.phrase-strip span.on {
+  background: var(--deck-a);
+}
+
+.tricks-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tricks-row .mini-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.automix-btn {
+  width: 100%;
+  font-weight: 700;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.pill-btn.recording {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+  color: #fca5a5;
+  animation: coachPulse 1.2s infinite;
+}
+
+.crate-search {
+  background: #0b0f17;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  width: 130px;
+}
+
+.crate-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.crate-tabs .mini-btn.active {
+  border-color: var(--deck-a);
+  color: var(--deck-a);
+}
+
+.pro-only,
+.pads-row.pro-only,
+.knob-row.pro-only,
+.split-cue-row.pro-only {
   display: none;
 }
 
 body.pro-mode .pro-only {
+  display: flex;
+}
+
+body.pro-mode .pads-row.pro-only {
+  display: grid;
+}
+
+.phrase-strip {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  width: 120px;
+}
+
+.phrase-strip span {
+  height: 4px;
+  border-radius: 2px;
+  background: #273244;
+}
+
+.phrase-strip span.on {
+  background: var(--deck-a);
+}
+
+.tricks-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.tricks-row .mini-btn {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.automix-btn {
+  width: 100%;
+  font-weight: 700;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.pill-btn.recording {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+  color: #fca5a5;
+  animation: coachPulse 1.2s infinite;
+}
+
+.crate-search {
+  background: #0b0f17;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  width: 130px;
+}
+
+.crate-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.crate-tabs .mini-btn.active {
+  border-color: var(--deck-a);
+  color: var(--deck-a);
+}
+
+.pro-only {
   display: flex;
 }
 

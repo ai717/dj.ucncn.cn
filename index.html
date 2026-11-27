@@ -33,10 +33,13 @@
 
     <div class="topbar-actions">
       <button type="button" id="btn-open-lessons" class="pill-btn accent">
-        互动课程 <span id="lesson-progress-badge">0 / 12</span>
+        互动课程 <span id="lesson-progress-badge">0 / 21</span>
       </button>
       <button type="button" id="btn-challenge" class="pill-btn">
         🎯 盲听挑战
+      </button>
+      <button type="button" id="btn-rec" class="pill-btn" title="录制现场混音 (WebM)">
+        ● REC
       </button>
       <button type="button" id="btn-layout-mode" class="pill-btn" title="切换 Simple / Pro 模式 (快捷键 `)">
         模式: Simple
@@ -117,6 +120,9 @@
             <div class="beat-dots" id="beats-A" aria-label="4拍小节指示">
               <span></span><span></span><span></span><span></span>
             </div>
+            <div class="phrase-strip" id="phrase-A" aria-label="8小节乐句进度">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
           </div>
 
           <div class="tempo-col">
@@ -136,18 +142,35 @@
           <button type="button" class="pad-btn" data-control="deck-A-hotcue-0" data-hotcue="A:0">HC 1</button>
           <button type="button" class="pad-btn" data-control="deck-A-hotcue-1" data-hotcue="A:1">HC 2</button>
           <button type="button" class="pad-btn" data-control="deck-A-hotcue-2" data-hotcue="A:2">HC 3</button>
-          <button type="button" class="pad-btn loop-btn" data-control="deck-A-loop4" id="loop4-A">LOOP 4</button>
+          <button type="button" class="pad-btn" data-control="deck-A-hotcue-3" data-hotcue="A:3">HC 4</button>
+        </div>
+        <div class="pads-row pro-only">
+          <button type="button" class="pad-btn" data-hotcue="A:4">HC 5</button>
+          <button type="button" class="pad-btn" data-hotcue="A:5">HC 6</button>
+          <button type="button" class="pad-btn" data-hotcue="A:6">HC 7</button>
+          <button type="button" class="pad-btn" data-hotcue="A:7">HC 8</button>
+        </div>
+        <div class="tricks-row">
+          <button type="button" class="mini-btn" data-loop-half="A" title="循环减半">½</button>
+          <button type="button" class="mini-btn loop-btn" data-control="deck-A-loop4" id="loop4-A">LOOP 4</button>
+          <button type="button" class="mini-btn" data-loop-double="A" title="循环加倍">×2</button>
+          <button type="button" class="mini-btn" data-jump="A:-4" title="后退4拍">◂◂</button>
+          <button type="button" class="mini-btn" data-jump="A:4" title="前进4拍">▸▸</button>
+          <button type="button" class="mini-btn" data-brake="A">BRAKE</button>
+          <button type="button" class="mini-btn" data-spin="A">SPIN</button>
         </div>
       </article>
 
       <!-- Center Mixer -->
       <article class="mixer-panel" aria-label="中央混音台">
+        <button type="button" id="btn-automix" class="mini-btn automix-btn">⚡ AUTO MIX A ↔ B</button>
         <div class="phase-meter" id="phase-meter">播放双盘可实时对比节拍</div>
 
         <div class="mixer-channels">
           <!-- Channel A -->
           <div class="channel-strip">
             <span class="ch-title deck-a">CH A</span>
+            <label class="knob-row pro-only"><span>GAIN</span><input type="range" data-gain="A" min="0.2" max="1.8" step="0.05" value="1"></label>
             <label class="knob-row"><span>HIGH</span><input type="range" data-control="deck-A-eq-high" data-eq="A:high" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>MID</span><input type="range" data-control="deck-A-eq-mid" data-eq="A:mid" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-A-eq-low" data-eq="A:low" min="-24" max="6" step="1" value="0"></label>
@@ -165,6 +188,7 @@
           <!-- Channel B -->
           <div class="channel-strip">
             <span class="ch-title deck-b">CH B</span>
+            <label class="knob-row pro-only"><span>GAIN</span><input type="range" data-gain="B" min="0.2" max="1.8" step="0.05" value="1"></label>
             <label class="knob-row"><span>HIGH</span><input type="range" data-control="deck-B-eq-high" data-eq="B:high" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>MID</span><input type="range" data-control="deck-B-eq-mid" data-eq="B:mid" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-B-eq-low" data-eq="B:low" min="-24" max="6" step="1" value="0"></label>
@@ -190,6 +214,10 @@
           <label class="split-cue-row pro-only">
             <input type="checkbox" id="chk-split-cue">
             <span>🎧 分路预听 (左Master / 右Cue)</span>
+          </label>
+          <label class="split-cue-row pro-only">
+            <input type="checkbox" id="chk-cut-curve">
+            <span>✂️ 搓碟锐利 Cut 曲线</span>
           </label>
         </div>
       </article>
@@ -222,6 +250,9 @@
             <div class="beat-dots" id="beats-B" aria-label="4拍小节指示">
               <span></span><span></span><span></span><span></span>
             </div>
+            <div class="phrase-strip" id="phrase-B" aria-label="8小节乐句进度">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
           </div>
 
           <div class="tempo-col">
@@ -241,7 +272,22 @@
           <button type="button" class="pad-btn" data-control="deck-B-hotcue-0" data-hotcue="B:0">HC 1</button>
           <button type="button" class="pad-btn" data-control="deck-B-hotcue-1" data-hotcue="B:1">HC 2</button>
           <button type="button" class="pad-btn" data-control="deck-B-hotcue-2" data-hotcue="B:2">HC 3</button>
-          <button type="button" class="pad-btn loop-btn" data-control="deck-B-loop4" id="loop4-B">LOOP 4</button>
+          <button type="button" class="pad-btn" data-control="deck-B-hotcue-3" data-hotcue="B:3">HC 4</button>
+        </div>
+        <div class="pads-row pro-only">
+          <button type="button" class="pad-btn" data-hotcue="B:4">HC 5</button>
+          <button type="button" class="pad-btn" data-hotcue="B:5">HC 6</button>
+          <button type="button" class="pad-btn" data-hotcue="B:6">HC 7</button>
+          <button type="button" class="pad-btn" data-hotcue="B:7">HC 8</button>
+        </div>
+        <div class="tricks-row">
+          <button type="button" class="mini-btn" data-loop-half="B" title="循环减半">½</button>
+          <button type="button" class="mini-btn loop-btn" data-control="deck-B-loop4" id="loop4-B">LOOP 4</button>
+          <button type="button" class="mini-btn" data-loop-double="B" title="循环加倍">×2</button>
+          <button type="button" class="mini-btn" data-jump="B:-4" title="后退4拍">◂◂</button>
+          <button type="button" class="mini-btn" data-jump="B:4" title="前进4拍">▸▸</button>
+          <button type="button" class="mini-btn" data-brake="B">BRAKE</button>
+          <button type="button" class="mini-btn" data-spin="B">SPIN</button>
         </div>
       </article>
     </section>
@@ -250,21 +296,34 @@
     <section class="bottom-grid">
       <div class="crate-panel">
         <div class="crate-head">
-          <h2>内置零版权练习曲库（Web Audio 实时合成）</h2>
+          <h2>内置曲库 &amp; 8 键采样器</h2>
           <div class="crate-tools">
+            <input type="search" id="crate-search" class="crate-search" placeholder="搜索曲名 / 风格…" aria-label="搜索曲库">
+            <button type="button" class="mini-btn" data-sort="bpm">BPM↕</button>
+            <button type="button" class="mini-btn" data-sort="energy">能量↕</button>
             <label class="mini-btn file-import-btn">
-              + 导入本地音频
+              + 导入音频
               <input type="file" id="input-local-audio" accept="audio/*" multiple hidden>
             </label>
-            <div class="sampler-bar" aria-label="氛围音效采样垫">
-              <button type="button" class="sampler-btn" data-sampler="airhorn">📢 喇叭</button>
-              <button type="button" class="sampler-btn" data-sampler="rewind">⏪ 倒带</button>
-              <button type="button" class="sampler-btn" data-sampler="laser">⚡ 激光</button>
-              <button type="button" class="sampler-btn" data-sampler="riser">🚀 上升</button>
-            </div>
           </div>
         </div>
+        <div class="sampler-bar" aria-label="8 键氛围音效采样垫" style="margin-bottom:8px;">
+          <button type="button" class="sampler-btn" data-sampler="airhorn">📢 喇叭</button>
+          <button type="button" class="sampler-btn" data-sampler="siren">🚨 警笛</button>
+          <button type="button" class="sampler-btn" data-sampler="laser">⚡ 激光</button>
+          <button type="button" class="sampler-btn" data-sampler="rewind">⏪ 倒带</button>
+          <button type="button" class="sampler-btn" data-sampler="boom">💥 重低音</button>
+          <button type="button" class="sampler-btn" data-sampler="riser">🚀 上升</button>
+          <button type="button" class="sampler-btn" data-sampler="snareroll">🥁 军鼓</button>
+          <button type="button" class="sampler-btn" data-sampler="aah">🎤 欢呼</button>
+        </div>
+        <div class="crate-tabs">
+          <button type="button" class="mini-btn active" id="tab-crate">曲库 (<span id="crate-count">6</span>)</button>
+          <button type="button" class="mini-btn" id="tab-set">待播 Set (<span id="set-count">0</span>)</button>
+          <button type="button" class="mini-btn" id="btn-auto-dj" style="margin-left:auto;">▶ Auto DJ 连播</button>
+        </div>
         <div class="crate-list" id="crate-list"></div>
+        <div class="crate-list" id="set-list" hidden></div>
       </div>
 
       <aside class="coach-card" aria-label="互动教练面板">
@@ -294,7 +353,7 @@
   <dialog id="lessons-dialog" closedby="any" aria-labelledby="lessons-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="lessons-dialog-title">选择互动课程（共 12 节）</h1>
+        <h1 id="lessons-dialog-title">选择互动课程（共 21 节）</h1>
         <form method="dialog">
           <button type="submit" class="mini-btn" autofocus>关闭</button>
         </form>

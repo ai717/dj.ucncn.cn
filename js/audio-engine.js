@@ -14,6 +14,10 @@ export class DJAudioEngine {
     this.crossfader = -1; // -1 = A, 0 = Center, +1 = B
     this.masterVolume = 0.85;
     this.splitCue = false;
+    this.cutCurve = false; // false = smooth blend, true = sharp scratch cut
+    this.isRecording = false;
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
 
     this.decks = {
       A: this._createDeckState('A'),
@@ -35,6 +39,7 @@ export class DJAudioEngine {
       tempoPercent: 0,     // -8 to +8 (%)
       scratchOffsetRate: 0,// 临时搓碟速率叠加
       volume: 1.0,         // 0..1 通道推子
+      gainTrim: 1.0,       // Pro Gain 旋钮 (0.2..1.8)
       eq: { high: 0, mid: 0, low: 0 }, // -12 to +6 dB (0 = center)
       filter: 0,           // -1 (LPF) .. 0 (Off) .. +1 (HPF)
       echo: 0,             // 0 .. 0.85 Echo send
@@ -42,8 +47,9 @@ export class DJAudioEngine {
       flanger: 0,          // 0 .. 0.85 Flanger wet
       cueMonitor: false,   // 耳机预听开关
       cuePoint: 0,
-      hotCues: [null, null, null, null],
+      hotCues: [null, null, null, null, null, null, null, null],
       loop4: false,
+      loopBeats: 4,
       loopStart: 0,
       loopEnd: 0,
       nodes: null
@@ -234,8 +240,9 @@ export class DJAudioEngine {
     d.track = track;
     d.offset = 0;
     d.cuePoint = 0;
-    d.hotCues = [0, track.duration * 0.25, track.duration * 0.5, track.duration * 0.75];
+    d.hotCues = Array.from({ length: 8 }, (_, i) => (i * track.duration) / 8);
     d.loop4 = false;
+    d.loopBeats = 4;
     this._notify();
     if (!silentAction) {
       this._emitAction({ type: 'LOAD_TRACK', deck: deckId, trackId });
@@ -411,19 +418,41 @@ export class DJAudioEngine {
   }
 
   _applyCrossfader() {
-    // 等功率曲线：x in [0, 1]
     const x = (this.crossfader + 1) / 2;
-    const gainA = Math.cos(x * Math.PI * 0.5);
-    const gainB = Math.sin(x * Math.PI * 0.5);
+    let gainA, gainB;
+    if (this.cutCurve) {
+      // 搓碟锐利 Cut 曲线：极窄边缘切入
+      gainA = x > 0.92 ? (1 - x) / 0.08 : 1;
+      gainB = x < 0.08 ? x / 0.08 : 1;
+    } else {
+      // 等功率平滑混音曲线
+      gainA = Math.cos(x * Math.PI * 0.5);
+      gainB = Math.sin(x * Math.PI * 0.5);
+    }
     this.decks.A.nodes.xfGain.gain.setTargetAtTime(gainA, this.ctx.currentTime, 0.01);
     this.decks.B.nodes.xfGain.gain.setTargetAtTime(gainB, this.ctx.currentTime, 0.01);
+  }
+
+  setCutCurve(enabled) {
+    this.cutCurve = Boolean(enabled);
+    if (this.ctx) this._applyCrossfader();
+    this._notify();
+  }
+
+  setGainTrim(deckId, val) {
+    const d = this.decks[deckId];
+    d.gainTrim = Math.max(0.2, Math.min(1.8, val));
+    if (d.nodes && this.ctx) {
+      d.nodes.channelGain.gain.setTargetAtTime(d.volume * d.gainTrim, this.ctx.currentTime, 0.01);
+    }
+    this._notify();
   }
 
   setChannelVolume(deckId, val, { silentAction = false } = {}) {
     const d = this.decks[deckId];
     d.volume = Math.max(0, Math.min(1, val));
     if (d.nodes) {
-      d.nodes.channelGain.gain.setTargetAtTime(d.volume, this.ctx.currentTime, 0.01);
+      d.nodes.channelGain.gain.setTargetAtTime(d.volume * d.gainTrim, this.ctx.currentTime, 0.01);
     }
     this._notify();
     if (!silentAction) {
@@ -526,6 +555,101 @@ export class DJAudioEngine {
     this.ensureContext();
     this.splitCue = Boolean(enabled);
     this._applyRouting();
+    this._notify();
+  }
+
+  halveLoop(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.loopBeats = Math.max(0.5, d.loopBeats / 2);
+    if (d.loop4) {
+      const beatDur = 60 / d.track.bpm;
+      d.loopEnd = Math.min(d.track.duration, d.loopStart + beatDur * d.loopBeats);
+      if (d.isPlaying) {
+        d.offset = this.getCurrentTime(deckId);
+        this._stopSource(deckId);
+        this._startSource(deckId, d.offset);
+      }
+    }
+    this._notify();
+  }
+
+  doubleLoop(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    d.loopBeats = Math.min(16, d.loopBeats * 2);
+    if (d.loop4) {
+      const beatDur = 60 / d.track.bpm;
+      d.loopEnd = Math.min(d.track.duration, d.loopStart + beatDur * d.loopBeats);
+      if (d.isPlaying) {
+        d.offset = this.getCurrentTime(deckId);
+        this._stopSource(deckId);
+        this._startSource(deckId, d.offset);
+      }
+    }
+    this._notify();
+  }
+
+  beatJump(deckId, beats) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    const beatDur = 60 / d.track.bpm;
+    this.seek(deckId, this.getCurrentTime(deckId) + beats * beatDur);
+  }
+
+  vinylBrake(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track || !d.isPlaying) return;
+    const steps = 8;
+    let i = 0;
+    const iv = setInterval(() => {
+      i += 1;
+      this.setScratchDelta(deckId, -0.7 * (i / steps));
+      if (i >= steps) {
+        clearInterval(iv);
+        this.pause(deckId, { silentAction: true });
+        this.setScratchDelta(deckId, 0);
+        this._emitAction({ type: 'VINYL_TRICK', deck: deckId, trick: 'brake' });
+      }
+    }, 55);
+  }
+
+  vinylSpinback(deckId) {
+    const d = this.decks[deckId];
+    if (!d.track) return;
+    this.triggerSampler('rewind');
+    this.seek(deckId, Math.max(0, this.getCurrentTime(deckId) - 2.0), { silentAction: true });
+    this._emitAction({ type: 'VINYL_TRICK', deck: deckId, trick: 'spinback' });
+  }
+
+  toggleRecording() {
+    this.ensureContext();
+    if (this.isRecording && this.mediaRecorder) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+      this._notify();
+      return;
+    }
+    if (typeof MediaRecorder === 'undefined') return;
+    const dest = this.ctx.createMediaStreamDestination();
+    this.masterGain.connect(dest);
+    this.recordedChunks = [];
+    this.mediaRecorder = new MediaRecorder(dest.stream);
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) this.recordedChunks.push(e.data);
+    };
+    this.mediaRecorder.onstop = () => {
+      try { this.masterGain.disconnect(dest); } catch (_) {}
+      const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backspin-mix-${Date.now()}.webm`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+    this.mediaRecorder.start();
+    this.isRecording = true;
     this._notify();
   }
 
