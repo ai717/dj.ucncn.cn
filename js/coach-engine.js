@@ -3,6 +3,7 @@
  */
 
 import { LESSONS } from './lessons-data.js';
+import { getStepPraise, t } from './i18n.js';
 
 const STORAGE_KEY = 'ucncn_dj_progress_v1';
 
@@ -201,14 +202,14 @@ export class CoachEngine {
     this.audio.ensureContext();
     const step = this.getCurrentStep();
     this.isDemoRunning = true;
-    this.renderStep({ type: 'info', text: '请看唱机与混音台上的自动演示…' });
+    this.renderStep({ type: 'info', text: t('请看唱机与混音台上的自动演示…', 'Watch the virtual cursor demonstrate on the decks…') });
 
     try {
       await step.runDemo(this.audio, this.cursor);
     } finally {
       this.cursor.hide();
       this.isDemoRunning = false;
-      this.renderStep({ type: 'info', text: '演示完毕，轮到你动手试试！' });
+      this.renderStep({ type: 'info', text: t('演示完毕，轮到你动手试试！', 'Demo finished — now give it a try!') });
     }
   }
 
@@ -231,7 +232,7 @@ export class CoachEngine {
         this.state.credits = (this.state.credits || 0) + pointsEarned;
         this._saveProgress();
       }
-      this.renderStep({ type: 'success', text: `✓ ${result.praise}`, pointsEarned });
+      this.renderStep({ type: 'success', text: `✓ ${getStepPraise(step, result.praise)}`, pointsEarned });
       this.advanceTimer = setTimeout(() => {
         this.advanceTimer = null;
         this.isAdvancing = false;

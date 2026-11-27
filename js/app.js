@@ -4,7 +4,7 @@ import { drawScrollingWaveform, drawOverviewWaveform } from './waveform-canvas.j
 import { LESSONS } from './lessons-data.js';
 import { CoachEngine } from './coach-engine.js';
 import { findExplainEntry } from './explain-data.js';
-import { getLang, setLang, applyStaticI18n, t, isEn } from './i18n.js';
+import { getLang, setLang, applyStaticI18n, t, isEn, getTrackTitle, getTrackGenre, getLessonText, getStepText, getExplainEntryText } from './i18n.js';
 
 const engine = new DJAudioEngine();
 
@@ -51,15 +51,17 @@ const coach = new CoachEngine(engine, {
     const txt = document.getElementById('lesson-meter-text');
     if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
     if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
+    const lTxt = getLessonText(lesson);
+    const sTxt = getStepText(step);
     ui.coachTag.textContent = lesson.number === 0
-      ? t(`第 0 课（入门）· ${lesson.title} (${stepNumber}/${totalSteps})`, `Lesson 0 (Intro) · ${lesson.title} (${stepNumber}/${totalSteps})`)
-      : t(`第 ${lesson.number} / ${totalLessons - 1} 课 · ${lesson.title} (${stepNumber}/${totalSteps})`, `Lesson ${lesson.number} of ${totalLessons - 1} · ${lesson.title} (${stepNumber}/${totalSteps})`);
-    ui.coachTitle.textContent = isLessonActive ? step.title : t(`${lesson.title}（自由练习模式）`, `${lesson.title} (Free Play)`);
-    ui.coachDesc.textContent = isLessonActive ? step.instruction : t('点击右侧「继续上课」开启高亮引导，或自由打碟练习。', 'Click "Start Guide" on the right for highlighted walkthrough, or practice freely.');
+      ? t(`第 0 课（入门）· ${lTxt.title} (${stepNumber}/${totalSteps})`, `Lesson 0 (Intro) · ${lTxt.title} (${stepNumber}/${totalSteps})`)
+      : t(`第 ${lesson.number} / ${totalLessons - 1} 课 · ${lTxt.title} (${stepNumber}/${totalSteps})`, `Lesson ${lesson.number} of ${totalLessons - 1} · ${lTxt.title} (${stepNumber}/${totalSteps})`);
+    ui.coachTitle.textContent = isLessonActive ? sTxt.title : t(`${lTxt.title}（自由练习模式）`, `${lTxt.title} (Free Play)`);
+    ui.coachDesc.textContent = isLessonActive ? sTxt.instruction : t('点击右侧「继续上课」开启高亮引导，或自由打碟练习。', 'Click "Start Guide" on the right for highlighted walkthrough, or practice freely.');
     const toggleBtn = document.getElementById('btn-coach-toggle');
     if (toggleBtn) toggleBtn.textContent = isLessonActive ? t('退出引导', 'Exit Guide') : t('继续上课', 'Start Guide');
     document.querySelector('.coach-topbar')?.classList.toggle('learning-active', isLessonActive);
-    updateCoachFloatTip({ lesson, step, stepNumber, totalSteps, isLessonActive, isDemoRunning, feedback });
+    updateCoachFloatTip({ lesson, step: sTxt, stepNumber, totalSteps, isLessonActive, isDemoRunning, feedback });
 
     ui.btnShowMe.disabled = isDemoRunning;
     ui.btnPrev.disabled = isDemoRunning;
@@ -79,13 +81,17 @@ const coach = new CoachEngine(engine, {
 const rewardToastEl = document.getElementById('coach-reward-toast');
 const rewardTitleEl = document.getElementById('reward-title');
 const rewardSubEl = document.getElementById('reward-sub');
-const REWARD_PRAISES = ['真棒！', '太厉害了！', '完美过关！', '节奏感满分！'];
+const REWARD_PRAISES_ZH = ['真棒！', '太厉害了！', '完美过关！', '节奏感满分！'];
+const REWARD_PRAISES_EN = ['Awesome!', 'Great Job!', 'Perfect!', 'On Beat!'];
 let rewardTimer = null;
 
 function showStepReward(praiseText, pointsEarned = 0) {
   if (!rewardToastEl) return;
-  const basePraise = REWARD_PRAISES[Math.floor(Math.random() * REWARD_PRAISES.length)];
-  rewardTitleEl.textContent = pointsEarned > 0 ? `${basePraise} +${pointsEarned} 学分` : basePraise;
+  const pool = isEn() ? REWARD_PRAISES_EN : REWARD_PRAISES_ZH;
+  const basePraise = pool[Math.floor(Math.random() * pool.length)];
+  rewardTitleEl.textContent = pointsEarned > 0
+    ? `${basePraise} +${pointsEarned} ${t('学分', 'Credits')}`
+    : basePraise;
   rewardSubEl.textContent = (praiseText || '').replace(/^✓\s*/, '');
   rewardToastEl.hidden = false;
   clearTimeout(rewardTimer);
@@ -145,8 +151,8 @@ function updateCoachFloatTip(state) {
     return;
   }
   floatBadgeEl.textContent = state.lesson.number === 0
-    ? `第 0 课（入门）· ${state.stepNumber}/${state.totalSteps}`
-    : `第 ${state.lesson.number} 课 · ${state.stepNumber}/${state.totalSteps}`;
+    ? t(`第 0 课（入门）· ${state.stepNumber}/${state.totalSteps}`, `Lesson 0 (Intro) · ${state.stepNumber}/${state.totalSteps}`)
+    : t(`第 ${state.lesson.number} 课 · ${state.stepNumber}/${state.totalSteps}`, `Lesson ${state.lesson.number} · ${state.stepNumber}/${state.totalSteps}`);
   floatTitleEl.textContent = state.step.title;
   const conciseTip = state.step.floatTip || state.step.instruction.replace(/^【[^】]+】/, '').trim();
   floatTextEl.textContent = state.feedback?.type === 'error'
@@ -197,56 +203,58 @@ function renderMixesWellNext() {
   }).slice(0, 2);
 
   if (!matches.length) { bar.innerHTML = ''; return; }
-  bar.innerHTML = `<span>推荐接歌：</span>` + matches.map((m) =>
-    `<button type="button" class="mix-chip" data-mix-load="${targetDeck}:${m.id}">${m.title} · ${m.bpm} BPM → ${targetDeck}</button>`
+  bar.innerHTML = `<span>${t('推荐接歌：', 'Mixes well:')}</span>` + matches.map((m) =>
+    `<button type="button" class="mix-chip" data-mix-load="${targetDeck}:${m.id}">${getTrackTitle(m)} · ${m.bpm} BPM → ${targetDeck}</button>`
   ).join('');
 }
 
 function renderCrate() {
   ui.crateList.innerHTML = '';
-  let list = TRACK_CATALOG.filter((t) => {
-    if (crateSource === 'local' && !t.id.startsWith('local-')) return false;
+  let list = TRACK_CATALOG.filter((tItem) => {
+    if (crateSource === 'local' && !tItem.id.startsWith('local-')) return false;
     if (!crateFilter) return true;
     const q = crateFilter.toLowerCase();
-    return t.title.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
+    return getTrackTitle(tItem).toLowerCase().includes(q)
+      || tItem.title.toLowerCase().includes(q)
+      || getTrackGenre(tItem).toLowerCase().includes(q);
   });
   if (crateSort) {
     list = [...list].sort((a, b) => {
-      const av = a[crateSort];
-      const bv = b[crateSort];
+      const av = crateSort === 'title' ? getTrackTitle(a) : a[crateSort];
+      const bv = crateSort === 'title' ? getTrackTitle(b) : b[crateSort];
       if (typeof av === 'string') return crateSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
       return crateSortAsc ? av - bv : bv - av;
     });
   }
   if (list.length === 0) {
     visibleCrateList = [];
-    ui.crateList.innerHTML = '<div class="crate-item-meta" style="padding:10px;">暂无匹配的曲目，点击「+ 添加音乐」或「+ 添加文件夹」导入本地音频。</div>';
+    ui.crateList.innerHTML = `<div class="crate-item-meta" style="padding:10px;">${t('暂无匹配的曲目，点击「+ 添加音乐」或「+ 添加文件夹」导入本地音频。', 'No matching tracks. Click "+ Add Music" or "+ Add Folder" to import local audio.')}</div>`;
     renderMixesWellNext();
     return;
   }
   visibleCrateList = list;
   selectedCrateIdx = Math.max(0, Math.min(selectedCrateIdx, list.length - 1));
-  list.forEach((t, idx) => {
-    const onA = engine.decks.A.track?.id === t.id;
-    const onB = engine.decks.B.track?.id === t.id;
-    const played = playedTracks.some((p) => p.id === t.id);
+  list.forEach((tItem, idx) => {
+    const onA = engine.decks.A.track?.id === tItem.id;
+    const onB = engine.decks.B.track?.id === tItem.id;
+    const played = playedTracks.some((p) => p.id === tItem.id);
     const badgeA = onA ? '<span class="crate-deck-pill deck-a">A</span>' : '';
     const badgeB = onB ? '<span class="crate-deck-pill deck-b">B</span>' : '';
     const check = played ? '<span class="crate-check">✓</span>' : '';
-    const keyShort = (t.key || '—').split('·')[0].trim();
+    const keyShort = (tItem.key || '—').split('·')[0].trim();
     const row = document.createElement('div');
     row.className = `crate-item compact-row ${onA || onB ? 'loaded' : ''} ${idx === selectedCrateIdx ? 'selected' : ''}`;
     row.dataset.crateIdx = String(idx);
     row.innerHTML = `
-      <span class="crate-song">${badgeA}${badgeB}<strong>${t.title}</strong>${check}</span>
+      <span class="crate-song">${badgeA}${badgeB}<strong>${getTrackTitle(tItem)}</strong>${check}</span>
       <span class="crate-col">${keyShort}</span>
-      <span class="crate-col">${t.bpm.toFixed(1)}</span>
-      <span class="crate-col">${t.energy}</span>
-      <span class="crate-col">${fmtShortTime(trackDurationSec(t))}</span>
+      <span class="crate-col">${tItem.bpm.toFixed(1)}</span>
+      <span class="crate-col">${tItem.energy}</span>
+      <span class="crate-col">${fmtShortTime(trackDurationSec(tItem))}</span>
       <div class="crate-item-btns">
-        <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
-        <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
-        <button type="button" class="hw-sm" data-add-set="${t.id}">+ 待播</button>
+        <button type="button" class="hw-sm" data-load="A:${tItem.id}">→ A</button>
+        <button type="button" class="hw-sm" data-load="B:${tItem.id}">→ B</button>
+        <button type="button" class="hw-sm" data-add-set="${tItem.id}">${t('+ 待播', '+ Queue')}</button>
       </div>
     `;
     ui.crateList.appendChild(row);
@@ -257,32 +265,32 @@ function renderCrate() {
 function renderSetList() {
   document.getElementById('played-count').textContent = String(playedTracks.length);
   const items = setTab === 'queue' ? setQueue : playedTracks;
-  const totalSec = items.reduce((acc, t) => acc + trackDurationSec(t), 0);
-  document.getElementById('set-summary').textContent = `${items.length} 首 · ${fmtShortTime(totalSec)}`;
+  const totalSec = items.reduce((acc, tItem) => acc + trackDurationSec(tItem), 0);
+  document.getElementById('set-summary').textContent = `${items.length} ${t('首', 'tracks')} · ${fmtShortTime(totalSec)}`;
   ui.setList.innerHTML = '';
   if (items.length === 0) {
     ui.setList.innerHTML = setTab === 'queue'
-      ? '<div class="crate-item-meta" style="padding:10px;">在左侧曲库点击「+ 待播」按演出顺序排入歌曲，点击「自动连播」即可连续自动混音。</div>'
-      : '<div class="crate-item-meta" style="padding:10px;">本次会话还没有播放记录。</div>';
+      ? `<div class="crate-item-meta" style="padding:10px;">${t('在左侧曲库点击「+ 待播」按演出顺序排入歌曲，点击「自动连播」即可连续自动混音。', 'Click "+ Queue" on any Crate track to build your set order, then press "Auto DJ" for continuous mixing.')}</div>`
+      : `<div class="crate-item-meta" style="padding:10px;">${t('本次会话还没有播放记录。', 'No tracks played in this session yet.')}</div>`;
     return;
   }
-  items.forEach((t, idx) => {
+  items.forEach((tItem, idx) => {
     const row = document.createElement('div');
     row.className = 'set-row';
     const isFirst = idx === 0;
     const isLast = idx === items.length - 1;
     row.innerHTML = `
       <span class="set-idx">${idx + 1}</span>
-      <span class="crate-song"><strong>${t.title}</strong></span>
-      <span class="crate-col" style="text-align:right;">${Math.round(t.bpm)}</span>
+      <span class="crate-song"><strong>${getTrackTitle(tItem)}</strong></span>
+      <span class="crate-col" style="text-align:right;">${Math.round(tItem.bpm)}</span>
       <div class="crate-item-btns">
         ${setTab === 'queue' ? `
-          <button type="button" class="hw-sm set-icon-btn" data-move-up="${idx}" ${isFirst ? 'disabled' : ''} title="上移">↑</button>
-          <button type="button" class="hw-sm set-icon-btn" data-move-down="${idx}" ${isLast ? 'disabled' : ''} title="下移">↓</button>
-          <button type="button" class="hw-sm set-icon-btn" data-remove-set="${idx}" title="移出">×</button>
+          <button type="button" class="hw-sm set-icon-btn" data-move-up="${idx}" ${isFirst ? 'disabled' : ''} title="${t('上移', 'Move Up')}">↑</button>
+          <button type="button" class="hw-sm set-icon-btn" data-move-down="${idx}" ${isLast ? 'disabled' : ''} title="${t('下移', 'Move Down')}">↓</button>
+          <button type="button" class="hw-sm set-icon-btn" data-remove-set="${idx}" title="${t('移出', 'Remove')}">×</button>
         ` : `
-          <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
-          <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>
+          <button type="button" class="hw-sm" data-load="A:${tItem.id}">→ A</button>
+          <button type="button" class="hw-sm" data-load="B:${tItem.id}">→ B</button>
         `}
       </div>
     `;
@@ -294,15 +302,16 @@ function renderLessonsModal() {
   ui.lessonsDialogList.innerHTML = '';
   LESSONS.forEach((lesson, idx) => {
     const done = coach.state.completedLessons.includes(lesson.id);
+    const lTxt = getLessonText(lesson);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `lesson-option ${done ? 'done' : ''}`;
     btn.innerHTML = `
       <div>
-        <strong>第 ${lesson.number} 课 · ${lesson.title}</strong>
-        <div class="crate-item-meta">${lesson.summary}</div>
+        <strong>${t(`第 ${lesson.number} 课`, `Lesson ${lesson.number}`)} · ${lTxt.title}</strong>
+        <div class="crate-item-meta">${lTxt.summary}</div>
       </div>
-      <span>${done ? '✓ 已完成' : lesson.duration}</span>
+      <span>${done ? t('✓ 已完成', '✓ Done') : lTxt.duration}</span>
     `;
     btn.addEventListener('click', () => {
       coach.selectLesson(idx);
@@ -381,13 +390,13 @@ function syncUIWithEngine() {
     const tempoSlider = document.getElementById(`tempo-${id}`);
 
     if (d.track) {
-      titleEl.textContent = d.track.title;
+      titleEl.textContent = getTrackTitle(d.track);
       const [kCode = '—', kName = ''] = (d.track.key || '—').split('·').map((s) => s.trim());
       if (keyCodeEl) keyCodeEl.textContent = kCode;
       if (keyNameEl) keyNameEl.textContent = kName;
       bpmEl.textContent = engine.getEffectiveBPM(id).toFixed(1);
     } else {
-      titleEl.textContent = '未装盘';
+      titleEl.textContent = t('未装盘', 'Unloaded');
       if (keyCodeEl) keyCodeEl.textContent = '—';
       if (keyNameEl) keyNameEl.textContent = '';
       bpmEl.textContent = '0.0';
@@ -895,13 +904,19 @@ function positionExplainPopover(targetEl) {
 function setExplainMode(on) {
   explainMode = Boolean(on);
   explainBtn.classList.toggle('active', explainMode);
-  explainBtn.textContent = explainMode ? '退出说明' : '说明模式';
+  explainBtn.textContent = explainMode ? t('退出说明', 'Exit Explain') : t('说明模式', 'Explain');
   clearExplainHighlight();
   if (explainMode) {
     setLayoutMode(true); // 点击后默认专业模式
-    explainTitleEl.textContent = '已开启说明模式（专业界面）';
-    explainRoleEl.textContent = '点击下方波形、黑胶唱盘、混音台旋钮/推子、专业功能键或采样器的任意位置，即可查看详细功能原理与操作方法。';
-    explainHowEl.textContent = '说明模式下点击面板控件仅做讲解，不会误触打碟；随时点击顶部「退出说明」即可恢复正常操作。';
+    explainTitleEl.textContent = t('已开启说明模式（专业界面）', 'Explain Mode Active (Pro Layout)');
+    explainRoleEl.textContent = t(
+      '点击下方波形、黑胶唱盘、混音台旋钮/推子、专业功能键或采样器的任意位置，即可查看详细功能原理与操作方法。',
+      'Click any waveform, platter, mixer knob/fader, Pro button, or sampler pad below to inspect its role and usage.'
+    );
+    explainHowEl.textContent = t(
+      '说明模式下点击面板控件仅做讲解，不会误触打碟；随时点击顶部「退出说明」即可恢复正常操作。',
+      'Inspecting controls will not trigger playback. Click "Exit Explain" anytime to resume mixing.'
+    );
     explainPopover.hidden = false;
     requestAnimationFrame(() => positionExplainPopover(null));
   } else {
@@ -935,9 +950,10 @@ function handleExplainInspect(e) {
   highlightNode.classList.add('explain-target-highlight');
   explainHighlightEl = highlightNode;
 
-  explainTitleEl.textContent = hit.entry.name;
-  explainRoleEl.textContent = hit.entry.role;
-  explainHowEl.textContent = hit.entry.how;
+  const ex = getExplainEntryText(hit.entry);
+  explainTitleEl.textContent = ex.name;
+  explainRoleEl.textContent = ex.role;
+  explainHowEl.textContent = ex.how;
   explainPopover.hidden = false;
   requestAnimationFrame(() => positionExplainPopover(highlightNode));
 }
