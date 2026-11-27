@@ -1266,7 +1266,7 @@ autoDjBtn.addEventListener('click', async () => {
   }
 });
 
-// 波形跳转与黑胶搓碟
+// 波形跳转（概览波形按全曲比例跳转 + 顶部滚动波形按视窗相对时间点击/拖动跳转）
 document.querySelectorAll('.overview-canvas').forEach((canvas) => {
   canvas.addEventListener('click', (e) => {
     const deckId = canvas.dataset.deck;
@@ -1275,6 +1275,51 @@ document.querySelectorAll('.overview-canvas').forEach((canvas) => {
     const rect = canvas.getBoundingClientRect();
     engine.seek(deckId, Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * deck.track.duration);
   });
+});
+
+document.querySelectorAll('.wave-canvas').forEach((canvas) => {
+  let dragging = false;
+  let lastX = 0;
+  let moved = false;
+
+  canvas.addEventListener('pointerdown', (e) => {
+    const deckId = canvas.dataset.deck;
+    if (!engine.decks[deckId]?.track) return;
+    dragging = true;
+    moved = false;
+    lastX = e.clientX;
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const deckId = canvas.dataset.deck;
+    const deck = engine.decks[deckId];
+    if (!deck?.track) return;
+    const dx = e.clientX - lastX;
+    if (Math.abs(dx) < 2) return;
+    moved = true;
+    lastX = e.clientX;
+    const rect = canvas.getBoundingClientRect();
+    const deltaSec = -(dx / Math.max(1, rect.width)) * (engine.waveformWindowSec || 9);
+    engine.seek(deckId, engine.getCurrentTime(deckId) + deltaSec);
+  });
+
+  const finishWave = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    if (!moved) {
+      const deckId = canvas.dataset.deck;
+      const deck = engine.decks[deckId];
+      if (!deck?.track) return;
+      const rect = canvas.getBoundingClientRect();
+      const relRatio = (e.clientX - rect.left - rect.width * 0.5) / Math.max(1, rect.width);
+      const deltaSec = relRatio * (engine.waveformWindowSec || 9);
+      engine.seek(deckId, engine.getCurrentTime(deckId) + deltaSec);
+    }
+  };
+  canvas.addEventListener('pointerup', finishWave);
+  canvas.addEventListener('pointercancel', finishWave);
 });
 
 // 黑胶唱盘 1:1 真实角度手动旋转与双向搓碟（按住停盘、顺时针正向、逆时针真实倒放搓碟）
