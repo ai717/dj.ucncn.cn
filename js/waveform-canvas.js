@@ -1,6 +1,16 @@
 /**
- * 顶部双轨滚动波形与唱机总览波形渲染器 (Canvas 2D)
+ * 顶部双轨连续实心波形与唱机总览波形渲染器 (1:1 复刻 Backspin 实心包络质感)
  */
+
+function samplePeak(peaks, duration, timeSec) {
+  let t = timeSec % duration;
+  if (t < 0) t += duration;
+  const exact = (t / duration) * peaks.length;
+  const i0 = Math.floor(exact) % peaks.length;
+  const i1 = (i0 + 1) % peaks.length;
+  const frac = exact - Math.floor(exact);
+  return peaks[i0] * (1 - frac) + peaks[i1] * frac;
+}
 
 export function drawScrollingWaveform(canvas, engine, deckId) {
   if (!canvas) return;
@@ -19,75 +29,83 @@ export function drawScrollingWaveform(canvas, engine, deckId) {
   ctx.clearRect(0, 0, w, h);
 
   const deck = engine.decks[deckId];
-  const color = deckId === 'A' ? '#38bdf8' : '#fb923c';
-  const dimColor = deckId === 'A' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(251, 146, 60, 0.25)';
+  const color = deckId === 'A' ? '#7dd3fc' : '#fdba74';
+  const dimColor = deckId === 'A' ? 'rgba(125, 211, 252, 0.28)' : 'rgba(253, 186, 116, 0.28)';
+  const centerX = Math.floor(w * 0.5);
+  const midY = h * 0.5;
 
-  // 中心播放头参考线
-  const centerX = w * 0.5;
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.fillRect(0, 0, w, h);
-
-  if (!deck.track) {
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
-    ctx.font = `${12 * dpr}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`Deck ${deckId} 未装盘 — 请从下方曲库选择或点击课程「自动装盘」`, centerX, h * 0.54);
-    return;
-  }
+  if (!deck.track) return;
 
   const { peaks, duration, bpm } = deck.track;
   const curTime = engine.getCurrentTime(deckId);
-  const windowSec = 8; // 屏幕左右共显示 8 秒窗口
+  const windowSec = 8;
   const pxPerSec = w / windowSec;
 
-  // 绘制 Loop 4 区间高亮
+  // Loop 区间高亮
   if (deck.loop4 && deck.loopEnd > deck.loopStart) {
     const x1 = centerX + (deck.loopStart - curTime) * pxPerSec;
     const x2 = centerX + (deck.loopEnd - curTime) * pxPerSec;
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
+    ctx.fillStyle = 'rgba(134, 239, 172, 0.16)';
     ctx.fillRect(x1, 0, x2 - x1, h);
   }
 
-  // 绘制节拍网格线 (Beatgrid)
+  // 逐像素计算上下对称连续包络
+  const step = Math.max(1, Math.floor(dpr));
+  const drawHalf = (startX, endX, fillStyle, coreStyle) => {
+    ctx.beginPath();
+    ctx.moveTo(startX, midY);
+    for (let x = startX; x <= endX; x += step) {
+      const t = curTime + (x - centerX) / pxPerSec;
+      const amp = samplePeak(peaks, duration, t);
+      ctx.lineTo(x, midY - Math.max(1.5 * dpr, amp * (h * 0.46)));
+    }
+    for (let x = endX; x >= startX; x -= step) {
+      const t = curTime + (x - centerX) / pxPerSec;
+      const amp = samplePeak(peaks, duration, t);
+      ctx.lineTo(x, midY + Math.max(1.5 * dpr, amp * (h * 0.46)));
+    }
+    ctx.closePath();
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+
+    if (coreStyle) {
+      ctx.beginPath();
+      ctx.moveTo(startX, midY);
+      for (let x = startX; x <= endX; x += step) {
+        const t = curTime + (x - centerX) / pxPerSec;
+        const amp = samplePeak(peaks, duration, t);
+        ctx.lineTo(x, midY - amp * (h * 0.24));
+      }
+      for (let x = endX; x >= startX; x -= step) {
+        const t = curTime + (x - centerX) / pxPerSec;
+        const amp = samplePeak(peaks, duration, t);
+        ctx.lineTo(x, midY + amp * (h * 0.24));
+      }
+      ctx.closePath();
+      ctx.fillStyle = coreStyle;
+      ctx.fill();
+    }
+  };
+
+  drawHalf(0, centerX, dimColor, null);
+  drawHalf(centerX, w, color, 'rgba(255, 255, 255, 0.65)');
+
+  // 节拍网格线
   const beatDur = 60 / bpm;
   const startBeat = Math.floor((curTime - windowSec / 2) / beatDur);
   const endBeat = Math.ceil((curTime + windowSec / 2) / beatDur);
   for (let b = startBeat; b <= endBeat; b++) {
-    const bTime = b * beatDur;
-    const x = centerX + (bTime - curTime) * pxPerSec;
+    const x = centerX + (b * beatDur - curTime) * pxPerSec;
     const isBar = ((b % 4) + 4) % 4 === 0;
-    ctx.strokeStyle = isBar ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = isBar ? 1.5 * dpr : 1 * dpr;
+    ctx.strokeStyle = isBar ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1 * dpr;
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, h);
     ctx.stroke();
   }
 
-  // 绘制高密度饱满音频波形（类似 Serato / Backspin 实心对称波形）
-  const barWidth = Math.max(1.5 * dpr, w / 240);
-  const numCols = Math.ceil(w / barWidth);
-  for (let i = 0; i < numCols; i++) {
-    const x = i * barWidth;
-    const tOffset = (x - centerX) / pxPerSec;
-    let sampleTime = (curTime + tOffset) % duration;
-    if (sampleTime < 0) sampleTime += duration;
-
-    const bin = Math.min(peaks.length - 1, Math.floor((sampleTime / duration) * peaks.length));
-    const amp = peaks[bin];
-    const barH = Math.max(2 * dpr, amp * (h * 0.88));
-    const y = (h - barH) * 0.5;
-
-    ctx.fillStyle = x < centerX ? dimColor : color;
-    ctx.fillRect(x, y, Math.max(1, barWidth - 0.5 * dpr), barH);
-    // 中心高光芯线，增强波形立体感
-    if (x >= centerX && barH > 8 * dpr) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-      ctx.fillRect(x, y + barH * 0.25, Math.max(1, barWidth - 0.5 * dpr), barH * 0.5);
-    }
-  }
-
-  // 中心播放头红/白线
+  // 中心播放头白线
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2 * dpr;
   ctx.beginPath();
@@ -117,19 +135,30 @@ export function drawOverviewWaveform(canvas, engine, deckId) {
 
   const { peaks, duration } = deck.track;
   const curTime = engine.getCurrentTime(deckId);
-  const progress = curTime / duration;
-  const color = deckId === 'A' ? '#38bdf8' : '#fb923c';
+  const playX = Math.floor((curTime / duration) * w);
+  const color = deckId === 'A' ? '#7dd3fc' : '#fdba74';
+  const dimColor = deckId === 'A' ? 'rgba(125, 211, 252, 0.25)' : 'rgba(253, 186, 116, 0.25)';
+  const midY = h * 0.5;
 
-  const step = w / peaks.length;
-  for (let i = 0; i < peaks.length; i++) {
-    const x = i * step;
-    const barH = Math.max(2 * dpr, peaks[i] * h * 0.85);
-    ctx.fillStyle = (i / peaks.length) <= progress ? color : 'rgba(148, 163, 184, 0.35)';
-    ctx.fillRect(x, (h - barH) * 0.5, Math.max(1, step * 0.8), barH);
-  }
+  const drawSegment = (x0, x1, fill) => {
+    ctx.beginPath();
+    ctx.moveTo(x0, midY);
+    for (let x = x0; x <= x1; x++) {
+      const bin = Math.min(peaks.length - 1, Math.floor((x / w) * peaks.length));
+      ctx.lineTo(x, midY - Math.max(1, peaks[bin] * h * 0.45));
+    }
+    for (let x = x1; x >= x0; x--) {
+      const bin = Math.min(peaks.length - 1, Math.floor((x / w) * peaks.length));
+      ctx.lineTo(x, midY + Math.max(1, peaks[bin] * h * 0.45));
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  };
 
-  // 播放进度游标
-  const px = progress * w;
+  drawSegment(0, playX, dimColor);
+  drawSegment(playX, w, color);
+
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(px - dpr, 0, 2 * dpr, h);
+  ctx.fillRect(playX - dpr, 0, 2 * dpr, h);
 }

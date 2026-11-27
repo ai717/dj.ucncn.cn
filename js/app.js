@@ -75,12 +75,12 @@ function renderCrate() {
   }
   for (const t of list) {
     const row = document.createElement('div');
-    row.className = 'crate-item';
+    row.className = 'crate-item compact-row';
     row.innerHTML = `
-      <div class="crate-item-info">
-        <strong>${t.title}</strong>
-        <span class="crate-item-meta">${t.genre} · ${t.bpm} BPM · ${t.key} · 能量 ${t.energy}</span>
-      </div>
+      <span class="crate-song"><strong>${t.title}</strong> <small>${t.genre}</small></span>
+      <span class="crate-col">${t.key}</span>
+      <span class="crate-col">${t.bpm}</span>
+      <span class="crate-col">E${t.energy}</span>
       <div class="crate-item-btns">
         <button type="button" class="hw-sm" data-load="A:${t.id}">→ A</button>
         <button type="button" class="hw-sm" data-load="B:${t.id}">→ B</button>

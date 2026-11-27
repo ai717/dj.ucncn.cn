@@ -57,6 +57,24 @@
   </header>
 
   <main class="studio-main">
+    <!-- 顶部极简互动课程引导条（1:1 复刻 Backspin 顶部位置与结构） -->
+    <section class="coach-topbar" aria-label="互动教练面板">
+      <div class="coach-top-left">
+        <span class="coach-lesson-tag" id="coach-lesson-tag">LESSON 1 OF 21 · 第一次无缝切歌</span>
+        <div class="coach-top-title-row">
+          <strong class="coach-title" id="coach-title">加载中…</strong>
+          <span class="coach-desc" id="coach-desc"></span>
+        </div>
+        <div class="coach-feedback" id="coach-feedback" hidden></div>
+      </div>
+      <div class="coach-top-right">
+        <button type="button" class="showme-btn" id="btn-show-me">▶ Show me</button>
+        <button type="button" class="hw-sm" id="btn-coach-prev">上一步</button>
+        <button type="button" class="hw-sm" id="btn-coach-skip">跳过</button>
+        <button type="button" class="hw-sm" id="btn-coach-all">All lessons</button>
+      </div>
+    </section>
+
     <!-- 盲听挑战悬浮条 -->
     <div class="challenge-banner" id="challenge-banner" hidden>
       <span>🎯 <strong>30 秒盲听对拍挑战中</strong> · 只靠耳朵拖动右边 Deck B 的 TEMPO 推子对齐节拍</span>
@@ -109,8 +127,11 @@
           <div class="platter-wrap">
             <div class="turntable-box">
               <div class="vinyl-platter" id="platter-A" data-deck="A" title="按住拖动可搓碟">
+                <svg class="strobe-svg" viewBox="0 0 220 220" aria-hidden="true">
+                  <circle cx="110" cy="110" r="105" fill="none" stroke="rgba(226,232,240,0.45)" stroke-width="4" stroke-dasharray="2 4.5"/>
+                </svg>
                 <div class="vinyl-grooves"></div>
-                <div class="vinyl-label deck-a"><span>A</span></div>
+                <div class="vinyl-label deck-a"><span>SIDE A</span></div>
                 <div class="vinyl-spindle"></div>
               </div>
               <svg class="tonearm-svg" viewBox="0 0 60 140" aria-hidden="true">
@@ -153,18 +174,18 @@
         </div>
 
         <div class="deck-tagged-rows">
-          <div class="tagged-row">
-            <span class="row-label">LOOP</span>
-            <button type="button" class="hw-sm" data-loop-half="A">½</button>
-            <button type="button" class="hw-sm loop-btn" data-control="deck-A-loop4" id="loop4-A">LOOP 4</button>
-            <button type="button" class="hw-sm" data-loop-double="A">×2</button>
-            <button type="button" class="hw-sm" data-jump="A:-4">◂◂</button>
-            <button type="button" class="hw-sm" data-jump="A:4">▸▸</button>
-          </div>
-          <div class="tagged-row">
-            <span class="row-label">VINYL</span>
-            <button type="button" class="hw-sm" data-brake="A">BRAKE</button>
-            <button type="button" class="hw-sm" data-spin="A">SPIN</button>
+          <div class="tagged-row split-row">
+            <div class="row-group">
+              <button type="button" class="hw-sm" data-loop-half="A">½</button>
+              <button type="button" class="hw-sm loop-btn" data-control="deck-A-loop4" id="loop4-A">LOOP 4</button>
+              <button type="button" class="hw-sm" data-loop-double="A">×2</button>
+              <button type="button" class="hw-sm pro-only" data-jump="A:-4">◂◂</button>
+              <button type="button" class="hw-sm pro-only" data-jump="A:4">▸▸</button>
+            </div>
+            <div class="row-group">
+              <button type="button" class="hw-sm" data-brake="A">BRAKE</button>
+              <button type="button" class="hw-sm" data-spin="A">SPIN</button>
+            </div>
           </div>
           <div class="tagged-row pro-only">
             <span class="row-label">FX</span>
@@ -278,8 +299,11 @@
           <div class="platter-wrap">
             <div class="turntable-box">
               <div class="vinyl-platter" id="platter-B" data-deck="B" title="按住拖动可搓碟">
+                <svg class="strobe-svg" viewBox="0 0 220 220" aria-hidden="true">
+                  <circle cx="110" cy="110" r="105" fill="none" stroke="rgba(226,232,240,0.45)" stroke-width="4" stroke-dasharray="2 4.5"/>
+                </svg>
                 <div class="vinyl-grooves"></div>
-                <div class="vinyl-label deck-b"><span>B</span></div>
+                <div class="vinyl-label deck-b"><span>SIDE B</span></div>
                 <div class="vinyl-spindle"></div>
               </div>
               <svg class="tonearm-svg" viewBox="0 0 60 140" aria-hidden="true">
@@ -322,18 +346,18 @@
         </div>
 
         <div class="deck-tagged-rows">
-          <div class="tagged-row">
-            <span class="row-label">LOOP</span>
-            <button type="button" class="hw-sm" data-loop-half="B">½</button>
-            <button type="button" class="hw-sm loop-btn" data-control="deck-B-loop4" id="loop4-B">LOOP 4</button>
-            <button type="button" class="hw-sm" data-loop-double="B">×2</button>
-            <button type="button" class="hw-sm" data-jump="B:-4">◂◂</button>
-            <button type="button" class="hw-sm" data-jump="B:4">▸▸</button>
-          </div>
-          <div class="tagged-row">
-            <span class="row-label">VINYL</span>
-            <button type="button" class="hw-sm" data-brake="B">BRAKE</button>
-            <button type="button" class="hw-sm" data-spin="B">SPIN</button>
+          <div class="tagged-row split-row">
+            <div class="row-group">
+              <button type="button" class="hw-sm" data-loop-half="B">½</button>
+              <button type="button" class="hw-sm loop-btn" data-control="deck-B-loop4" id="loop4-B">LOOP 4</button>
+              <button type="button" class="hw-sm" data-loop-double="B">×2</button>
+              <button type="button" class="hw-sm pro-only" data-jump="B:-4">◂◂</button>
+              <button type="button" class="hw-sm pro-only" data-jump="B:4">▸▸</button>
+            </div>
+            <div class="row-group">
+              <button type="button" class="hw-sm" data-brake="B">BRAKE</button>
+              <button type="button" class="hw-sm" data-spin="B">SPIN</button>
+            </div>
           </div>
           <div class="tagged-row pro-only">
             <span class="row-label">FX</span>
@@ -391,24 +415,6 @@
       </div>
     </section>
   </main>
-
-  <!-- 底部居中悬浮教练卡片（1:1 复刻 Backspin 毛玻璃悬浮层） -->
-  <aside class="coach-card" aria-label="互动教练面板">
-    <div class="coach-head">
-      <span class="coach-lesson-tag" id="coach-lesson-tag">第 1 课 · 1/4</span>
-      <button type="button" class="hw-sm" id="btn-coach-all">All lessons · 全部课程</button>
-    </div>
-    <h3 class="coach-title" id="coach-title">加载中…</h3>
-    <p class="coach-desc" id="coach-desc"></p>
-    <div class="coach-feedback" id="coach-feedback" hidden></div>
-    <div class="coach-actions">
-      <button type="button" class="showme-btn" id="btn-show-me">▶ Show me · 演示给我看</button>
-      <div class="coach-nav">
-        <button type="button" class="hw-sm" id="btn-coach-prev">上一步</button>
-        <button type="button" class="hw-sm" id="btn-coach-skip">跳过</button>
-      </div>
-    </div>
-  </aside>
 
   <!-- 虚拟演示光标 -->
   <div id="virtual-cursor" class="virtual-cursor" aria-hidden="true"></div>
