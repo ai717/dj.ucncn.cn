@@ -343,7 +343,183 @@ export const LESSONS = [
         },
         validate(action) {
           if (action.type === 'HOT_CUE' && action.deck === 'A' && action.index === 0) {
-            return { pass: true, praise: '恭喜通关全部 5 节互动课！你已经掌握核心 DJ 混音技能了！' };
+            return { pass: true, praise: '干得漂亮！Hot Cue 让你随时精准回到预设进歌点。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-6',
+    number: 6,
+    title: '乐句对齐（Phrasing）',
+    duration: '4 分钟',
+    summary: '在 4 拍小节的第 1 拍切入下一首歌，让鼓点与和弦变化完美踩在一起。',
+    steps: [
+      {
+        id: 'l6-s1',
+        title: '第一步：踩准第 1 拍启动 Deck B',
+        instruction: '看着 Deck A 下方 4 颗节拍灯，当第 1 颗灯亮起时（或亮起瞬间）按下 Deck B 的「PLAY」键。',
+        highlightSelector: '[data-control="deck-B-play"]',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          if (!engine.decks.B.track) await engine.loadTrack('B', 'night-shift', { silentAction: true });
+          engine.syncDeck('B', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('[data-control="deck-B-play"]');
+          await cursor.click();
+          engine.play('B', { silentAction: true });
+          await wait(1400);
+          engine.pause('B', { silentAction: true });
+        },
+        validate(action, engine) {
+          if (action.type === 'PLAY' && action.deck === 'B') {
+            const beat = engine.getBeatInfo('A');
+            if (beat.beatInBar === 1 || (beat.beatInBar === 4 && beat.phase > 0.65)) {
+              return { pass: true, praise: '踩拍极其精准！第 1 拍切入让两首歌结构完全同步。' };
+            }
+            return { pass: false, hint: `刚才是在第 ${beat.beatInBar} 拍按下的，等第 1 颗黄灯亮起时再按！` };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-7',
+    number: 7,
+    title: 'Baby Scratch 基础搓碟',
+    duration: '3 分钟',
+    summary: '用鼠标或手指按住黑胶唱盘前后推拉，制造经典的 DJ 搓碟节奏感。',
+    steps: [
+      {
+        id: 'l7-s1',
+        title: '第一步：按住左盘黑胶来回搓碟',
+        instruction: '先确保 Deck A 正在播放，然后用鼠标/手指按住左边的圆形黑胶唱盘左右快速拖动一次。',
+        highlightSelector: '#platter-A',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'low-tide', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('#platter-A');
+          engine.setScratchDelta('A', 0.45);
+          await wait(240);
+          engine.setScratchDelta('A', -0.45);
+          await wait(240);
+          engine.setScratchDelta('A', 0);
+        },
+        validate(action) {
+          if (action.type === 'SCRATCH' && action.deck === 'B') {
+            return { pass: false, hint: '这是右边的 Deck B 黑胶，请搓左边 Deck A 的唱盘！' };
+          }
+          if (action.type === 'SCRATCH' && action.deck === 'A') {
+            return { pass: true, praise: '有感觉了！这就是经典的 Baby Scratch 手法。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-8',
+    number: 8,
+    title: 'Echo-Out 经典回声收尾',
+    duration: '4 分钟',
+    summary: '在 Pro 模式下打开 Echo 延迟后暂停原曲，让回声飘散在空气中自然过渡。',
+    steps: [
+      {
+        id: 'l8-s1',
+        title: '第一步：调高 Deck A 的 ECHO 延迟量',
+        instruction: '先切换到右上角「Pro 模式」（或直接拖动 Deck A 下方的 ECHO 滑块到 0.4 以上），然后暂停 Deck A 听回声尾音。',
+        highlightSelector: '[data-control="deck-A-echo"]',
+        async runDemo(engine, cursor) {
+          document.body.classList.add('pro-mode');
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          engine.play('A', { silentAction: true });
+          await cursor.moveTo('[data-control="deck-A-echo"]');
+          engine.setEcho('A', 0.65, { silentAction: true });
+          await wait(900);
+          engine.pause('A', { silentAction: true });
+          await wait(1200);
+          engine.setEcho('A', 0, { silentAction: true });
+        },
+        validate(action, engine) {
+          if (action.type === 'PAUSE' && action.deck === 'A' && engine.decks.A.echo < 0.3) {
+            return { pass: false, hint: '还没开回声就暂停啦！先把 Deck A 的 ECHO 推到 0.4 以上再按暂停。' };
+          }
+          if (action.type === 'PAUSE' && action.deck === 'A' && engine.decks.A.echo >= 0.3) {
+            return { pass: true, praise: '太高级了！回声尾音让停歌变得毫无违和感。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-9',
+    number: 9,
+    title: '热键切片演奏（Hot Cue Play）',
+    duration: '3 分钟',
+    summary: '用 HC 1 / HC 2 / HC 3 在歌曲不同段落间瞬间跳跃，像鼓机一样演奏。',
+    steps: [
+      {
+        id: 'l9-s1',
+        title: '第一步：连续触发 HC 2 与 HC 3 跳段',
+        instruction: '点击 Deck A 下方的「HC 2」或「HC 3」按钮，体验从副歌瞬间切到间奏的快感。',
+        highlightSelector: '[data-control="deck-A-hotcue-1"]',
+        async runDemo(engine, cursor) {
+          if (!engine.decks.A.track) await engine.loadTrack('A', 'golden-hour', { silentAction: true });
+          await cursor.moveTo('[data-control="deck-A-hotcue-1"]');
+          await cursor.click();
+          engine.triggerHotCue('A', 1, { silentAction: true });
+          await wait(1000);
+          await cursor.moveTo('[data-control="deck-A-hotcue-2"]');
+          await cursor.click();
+          engine.triggerHotCue('A', 2, { silentAction: true });
+        },
+        validate(action) {
+          if (action.type === 'HOT_CUE' && action.deck === 'A' && (action.index === 1 || action.index === 2)) {
+            return { pass: true, praise: '节奏感十足！热键跳段是现场炒热气氛的利器。' };
+          }
+          return null;
+        }
+      }
+    ]
+  },
+  {
+    id: 'lesson-10',
+    number: 10,
+    title: '毕业实战：完整演出过渡',
+    duration: '5 分钟',
+    summary: '综合运用 SYNC 对拍、低频让位与 Crossfader 过渡，独立完成一次专业级切歌。',
+    steps: [
+      {
+        id: 'l10-s1',
+        title: '毕业考核：独立完成 A → B 混音过渡',
+        instruction: '装入两首歌并播放 Deck A → 拧小 Deck B 的 BASS → 用 SYNC 对齐并播放 Deck B → 把 Crossfader 推到最右（B 盘 ≥ 0.85）！',
+        highlightSelector: '[data-control="crossfader"]',
+        async runDemo(engine, cursor) {
+          await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+          await engine.loadTrack('B', 'golden-hour', { silentAction: true });
+          engine.setCrossfader(-1, { silentAction: true });
+          engine.setEQ('B', 'low', -16, { silentAction: true });
+          engine.play('A', { silentAction: true });
+          engine.syncDeck('B', { silentAction: true });
+          engine.play('B', { silentAction: true });
+          await cursor.moveTo('[data-control="crossfader"]');
+          for (let v = -1; v <= 1; v += 0.25) {
+            engine.setCrossfader(v, { silentAction: true });
+            await wait(160);
+          }
+          engine.setEQ('B', 'low', 0, { silentAction: true });
+          await wait(800);
+          engine.pause('A', { silentAction: true });
+          engine.pause('B', { silentAction: true });
+          engine.setCrossfader(-1, { silentAction: true });
+        },
+        validate(action, engine) {
+          if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.crossfader >= 0.85) {
+            return { pass: true, praise: '🎉 恭喜毕业！你已通关全部 10 节 DJ 互动课程，可以试试顶部的「🎯 盲听挑战」了！' };
           }
           return null;
         }

@@ -36,6 +36,7 @@ export class DJAudioEngine {
       volume: 1.0,         // 0..1 通道推子
       eq: { high: 0, mid: 0, low: 0 }, // -12 to +6 dB (0 = center)
       filter: 0,           // -1 (LPF) .. 0 (Off) .. +1 (HPF)
+      echo: 0,             // 0 .. 0.85 Echo send
       cuePoint: 0,
       hotCues: [null, null, null, null],
       loop4: false,
@@ -97,6 +98,17 @@ export class DJAudioEngine {
 
     const xfGain = ctx.createGain();
 
+    // Echo 延迟发送链：channelGain -> echoSend -> delay -> feedback -> lp -> masterGain
+    const echoSend = ctx.createGain();
+    echoSend.gain.value = 0;
+    const echoDelay = ctx.createDelay(2.0);
+    echoDelay.delayTime.value = 0.375; // ~3/4 beat at 120 BPM
+    const echoFeedback = ctx.createGain();
+    echoFeedback.gain.value = 0.42;
+    const echoTone = ctx.createBiquadFilter();
+    echoTone.type = 'lowpass';
+    echoTone.frequency.value = 2400;
+
     eqLow.connect(eqMid);
     eqMid.connect(eqHigh);
     eqHigh.connect(sweepFilter);
@@ -105,7 +117,14 @@ export class DJAudioEngine {
     analyser.connect(xfGain);
     xfGain.connect(this.masterGain);
 
-    d.nodes = { eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain };
+    channelGain.connect(echoSend);
+    echoSend.connect(echoDelay);
+    echoDelay.connect(echoTone);
+    echoTone.connect(echoFeedback);
+    echoFeedback.connect(echoDelay);
+    echoTone.connect(this.masterGain);
+
+    d.nodes = { eqLow, eqMid, eqHigh, sweepFilter, channelGain, analyser, xfGain, echoSend, echoDelay };
   }
 
   onChange(fn) {
@@ -379,6 +398,23 @@ export class DJAudioEngine {
     }
   }
 
+  setEcho(deckId, amount, { silentAction = false } = {}) {
+    const d = this.decks[deckId];
+    const clamped = Math.max(0, Math.min(0.85, amount));
+    d.echo = clamped;
+    if (d.nodes && this.ctx) {
+      if (d.track) {
+        const beatDur = 60 / this.getEffectiveBPM(deckId);
+        d.nodes.echoDelay.delayTime.setTargetAtTime(beatDur * 0.75, this.ctx.currentTime, 0.02);
+      }
+      d.nodes.echoSend.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.02);
+    }
+    this._notify();
+    if (!silentAction) {
+      this._emitAction({ type: 'ECHO', deck: deckId, value: clamped });
+    }
+  }
+
   cueAction(deckId, { silentAction = false } = {}) {
     const d = this.decks[deckId];
     if (!d.track) return;
@@ -445,6 +481,9 @@ export class DJAudioEngine {
     d.scratchOffsetRate = rateDelta;
     if (d.source && this.ctx) {
       d.source.playbackRate.setTargetAtTime(this.getPlaybackRate(deckId), this.ctx.currentTime, 0.01);
+    }
+    if (Math.abs(rateDelta) >= 0.15) {
+      this._emitAction({ type: 'SCRATCH', deck: deckId, value: rateDelta });
     }
   }
 

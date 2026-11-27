@@ -20,8 +20,19 @@ const ui = {
   crateList: document.getElementById('crate-list'),
   lessonsDialog: document.getElementById('lessons-dialog'),
   lessonsDialogList: document.getElementById('lessons-dialog-list'),
-  shortcutsDialog: document.getElementById('shortcuts-dialog')
+  shortcutsDialog: document.getElementById('shortcuts-dialog'),
+  challengeDialog: document.getElementById('challenge-dialog'),
+  challengeBanner: document.getElementById('challenge-banner'),
+  bannerTimerVal: document.getElementById('banner-timer-val'),
+  challengeResult: document.getElementById('challenge-result'),
+  challengeGrade: document.getElementById('challenge-grade'),
+  challengeStats: document.getElementById('challenge-stats'),
+  layoutModeBtn: document.getElementById('btn-layout-mode')
 };
+
+let blindChallengeActive = false;
+let blindTimerId = null;
+let blindRemaining = 30;
 
 const coach = new CoachEngine(engine, {
   updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isDemoRunning, feedback }) {
@@ -99,14 +110,16 @@ function syncUIWithEngine() {
     if (d.track) {
       titleEl.textContent = d.track.title;
       metaEl.textContent = `${d.track.genre} · ${d.track.key}`;
-      bpmEl.textContent = engine.getEffectiveBPM(id).toFixed(1);
+      bpmEl.textContent = (blindChallengeActive && id === 'B') ? '???' : engine.getEffectiveBPM(id).toFixed(1);
     } else {
       titleEl.textContent = '未装盘';
       metaEl.textContent = '— · —';
       bpmEl.textContent = '0.0';
     }
 
-    pctEl.textContent = `${d.tempoPercent >= 0 ? '+' : ''}${d.tempoPercent.toFixed(1)}%`;
+    pctEl.textContent = (blindChallengeActive && id === 'B')
+      ? '盲听中'
+      : `${d.tempoPercent >= 0 ? '+' : ''}${d.tempoPercent.toFixed(1)}%`;
     tempoSlider.value = String(d.tempoPercent);
 
     playBtn.classList.toggle('active', d.isPlaying);
@@ -122,8 +135,14 @@ function syncUIWithEngine() {
     if (filterEl && Math.abs(Number(filterEl.value) - d.filter) > 0.01) {
       filterEl.value = String(d.filter);
     }
+    const echoEl = document.querySelector(`[data-echo="${id}"]`);
+    if (echoEl && Math.abs(Number(echoEl.value) - d.echo) > 0.01) {
+      echoEl.value = String(d.echo);
+    }
   }
   ui.crossfader.value = String(engine.crossfader);
+  const isPro = document.body.classList.contains('pro-mode');
+  ui.layoutModeBtn.textContent = isPro ? '模式: Pro' : '模式: Simple';
 }
 
 engine.onChange(syncUIWithEngine);
@@ -273,6 +292,17 @@ document.querySelectorAll('[data-filter]').forEach((input) => {
   });
 });
 
+document.querySelectorAll('[data-echo]').forEach((input) => {
+  input.addEventListener('input', () => {
+    engine.setEcho(input.dataset.echo, Number(input.value));
+  });
+});
+
+ui.layoutModeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('pro-mode');
+  syncUIWithEngine();
+});
+
 document.querySelectorAll('[data-vol]').forEach((input) => {
   input.addEventListener('input', () => {
     engine.setChannelVolume(input.dataset.vol, Number(input.value));
@@ -349,6 +379,76 @@ document.getElementById('btn-open-shortcuts').addEventListener('click', () => {
   ui.shortcutsDialog.showModal();
 });
 
+// 30 秒盲听对拍挑战
+function finishBlindChallenge() {
+  if (!blindChallengeActive) return;
+  clearInterval(blindTimerId);
+  blindChallengeActive = false;
+  ui.challengeBanner.hidden = true;
+
+  const bpmA = engine.getEffectiveBPM('A');
+  const bpmB = engine.getEffectiveBPM('B');
+  const diff = Math.abs(bpmA - bpmB);
+  engine.pause('A', { silentAction: true });
+  engine.pause('B', { silentAction: true });
+  syncUIWithEngine();
+
+  let grade = 'C';
+  if (diff <= 0.4) grade = 'S';
+  else if (diff <= 1.0) grade = 'A';
+  else if (diff <= 2.2) grade = 'B';
+
+  ui.challengeGrade.textContent = grade;
+  ui.challengeStats.innerHTML = `
+    <div>Deck A：<strong>${bpmA.toFixed(1)} BPM</strong> · 你的 Deck B：<strong>${bpmB.toFixed(1)} BPM</strong></div>
+    <div>BPM 误差：<strong>${diff.toFixed(2)} BPM</strong>（用时 ${30 - blindRemaining} 秒）</div>
+  `;
+  ui.challengeResult.hidden = false;
+  ui.challengeDialog.showModal();
+}
+
+document.getElementById('btn-challenge').addEventListener('click', () => {
+  ui.challengeResult.hidden = true;
+  ui.challengeDialog.showModal();
+});
+
+document.getElementById('btn-challenge-start').addEventListener('click', async () => {
+  ui.challengeDialog.close();
+  await engine.loadTrack('A', 'sunrise-house', { silentAction: true });
+  await engine.loadTrack('B', 'night-shift', { silentAction: true });
+  const randomOffset = (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random() * 3.5);
+  engine.setTempo('A', 0, { silentAction: true });
+  engine.setTempo('B', randomOffset, { silentAction: true });
+  engine.setCrossfader(0, { silentAction: true });
+  engine.play('A', { silentAction: true });
+  engine.play('B', { silentAction: true });
+
+  blindChallengeActive = true;
+  blindRemaining = 30;
+  ui.bannerTimerVal.textContent = '30';
+  ui.challengeBanner.hidden = false;
+  syncUIWithEngine();
+
+  clearInterval(blindTimerId);
+  blindTimerId = setInterval(() => {
+    blindRemaining -= 1;
+    ui.bannerTimerVal.textContent = String(Math.max(0, blindRemaining));
+    if (blindRemaining <= 0) finishBlindChallenge();
+  }, 1000);
+});
+
+document.getElementById('btn-banner-submit').addEventListener('click', finishBlindChallenge);
+
+document.getElementById('btn-copy-challenge').addEventListener('click', async (e) => {
+  const grade = ui.challengeGrade.textContent;
+  const text = `🎧 我在 dj.ucncn.cn「30秒盲听对拍挑战」拿到 ${grade} 级！${ui.challengeStats.textContent.replace(/\s+/g, ' ').trim()}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    e.target.textContent = '✓ 已复制战绩';
+    setTimeout(() => { e.target.textContent = '📋 复制战绩分享'; }, 1600);
+  } catch (_) {}
+});
+
 // Dialog closedby="any" 渐进增强兜底（遵循 modern-web-guidance dialog 规范）
 if (!('closedBy' in HTMLDialogElement.prototype)) {
   const outside = (e, dialog) => {
@@ -379,6 +479,9 @@ window.addEventListener('keydown', (e) => {
     engine.setCrossfader(engine.crossfader - 0.1);
   } else if (e.key === 'ArrowRight') {
     engine.setCrossfader(engine.crossfader + 0.1);
+  } else if (e.code === 'Backquote') {
+    document.body.classList.toggle('pro-mode');
+    syncUIWithEngine();
   } else if (e.key === '?') {
     if (ui.shortcutsDialog.open) ui.shortcutsDialog.close();
     else ui.shortcutsDialog.showModal();

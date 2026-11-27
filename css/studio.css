@@ -476,6 +476,69 @@ body {
   accent-color: #a78bfa;
 }
 
+.knob-row.echo input {
+  accent-color: #38bdf8;
+}
+
+.pro-only {
+  display: none;
+}
+
+body.pro-mode .pro-only {
+  display: flex;
+}
+
+/* 盲听挑战悬浮条与战绩卡片 */
+.challenge-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+}
+
+.challenge-banner[hidden] {
+  display: none;
+}
+
+.challenge-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-result {
+  background: #0f141e;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.challenge-result[hidden] {
+  display: none;
+}
+
+.challenge-grade {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #facc15, #f97316);
+  color: #0b0e14;
+}
+
 .fader-meter-wrap {
   display: flex;
   align-items: center;
@@ -814,6 +877,8 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
 }
 
 .lesson-option {

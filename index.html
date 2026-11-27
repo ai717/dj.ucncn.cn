@@ -33,7 +33,13 @@
 
     <div class="topbar-actions">
       <button type="button" id="btn-open-lessons" class="pill-btn accent">
-        互动课程 <span id="lesson-progress-badge">0 / 5</span>
+        互动课程 <span id="lesson-progress-badge">0 / 10</span>
+      </button>
+      <button type="button" id="btn-challenge" class="pill-btn">
+        🎯 盲听挑战
+      </button>
+      <button type="button" id="btn-layout-mode" class="pill-btn" title="切换 Simple / Pro 模式 (快捷键 `)">
+        模式: Simple
       </button>
       <button type="button" id="btn-premix-demo" class="pill-btn">
         🎧 高手示范
@@ -50,6 +56,15 @@
   </header>
 
   <main class="studio-main">
+    <!-- 盲听挑战进行中悬浮条 -->
+    <div class="challenge-banner" id="challenge-banner" hidden>
+      <span>🎯 <strong>30 秒盲听对拍挑战进行中</strong> · 请只靠耳朵拖动右边 Deck B 的 TEMPO 推子对齐节拍</span>
+      <div class="challenge-banner-right">
+        <span class="challenge-timer">剩余 <strong id="banner-timer-val">30</strong>s</span>
+        <button type="button" class="pill-btn accent" id="btn-banner-submit">✓ 立即交卷</button>
+      </div>
+    </div>
+
     <!-- 顶部双轨滚动波形 -->
     <section class="waveforms-strip" aria-label="双轨同步波形">
       <div class="wave-row">
@@ -134,6 +149,7 @@
             <label class="knob-row"><span>MID</span><input type="range" data-control="deck-A-eq-mid" data-eq="A:mid" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-A-eq-low" data-eq="A:low" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row filter"><span>FILTER</span><input type="range" data-control="deck-A-filter" data-filter="A" min="-1" max="1" step="0.05" value="0"></label>
+            <label class="knob-row pro-only echo"><span>ECHO</span><input type="range" data-control="deck-A-echo" data-echo="A" min="0" max="0.85" step="0.05" value="0"></label>
             <div class="fader-meter-wrap">
               <input type="range" class="vol-slider" data-vol="A" min="0" max="1" step="0.02" value="1" aria-label="Channel A 音量">
               <div class="vu-track"><div class="vu-fill deck-a" id="vu-A"></div></div>
@@ -147,6 +163,7 @@
             <label class="knob-row"><span>MID</span><input type="range" data-control="deck-B-eq-mid" data-eq="B:mid" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row"><span>BASS</span><input type="range" data-control="deck-B-eq-low" data-eq="B:low" min="-24" max="6" step="1" value="0"></label>
             <label class="knob-row filter"><span>FILTER</span><input type="range" data-control="deck-B-filter" data-filter="B" min="-1" max="1" step="0.05" value="0"></label>
+            <label class="knob-row pro-only echo"><span>ECHO</span><input type="range" data-control="deck-B-echo" data-echo="B" min="0" max="0.85" step="0.05" value="0"></label>
             <div class="fader-meter-wrap">
               <input type="range" class="vol-slider" data-vol="B" min="0" max="1" step="0.02" value="1" aria-label="Channel B 音量">
               <div class="vu-track"><div class="vu-fill deck-b" id="vu-B"></div></div>
@@ -264,7 +281,7 @@
   <dialog id="lessons-dialog" closedby="any" aria-labelledby="lessons-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="lessons-dialog-title">选择互动课程（共 5 节）</h1>
+        <h1 id="lessons-dialog-title">选择互动课程（共 10 节）</h1>
         <form method="dialog">
           <button type="submit" class="mini-btn" autofocus>关闭</button>
         </form>
@@ -273,6 +290,31 @@
       <footer class="dialog-foot">
         <button type="button" id="btn-reset-progress" class="mini-btn danger">重置学习进度</button>
       </footer>
+    </div>
+  </dialog>
+
+  <!-- 30 秒盲听对拍挑战弹窗 -->
+  <dialog id="challenge-dialog" closedby="any" aria-labelledby="challenge-dialog-title">
+    <div class="dialog-inner">
+      <header class="dialog-head">
+        <h1 id="challenge-dialog-title">🎯 30 秒盲听对拍挑战</h1>
+        <form method="dialog">
+          <button type="submit" class="mini-btn" autofocus>关闭</button>
+        </form>
+      </header>
+      <p class="coach-desc" id="challenge-intro">
+        规则：系统将随机打乱右盘（Deck B）的速度并隐藏 BPM 数字。你有 30 秒时间，纯靠耳朵拖动右盘「TEMPO」滑块把两首歌节拍对齐！
+      </p>
+      <div class="challenge-hud" id="challenge-hud" hidden>
+        <div class="challenge-timer">剩余时间：<strong id="challenge-timer-val">30</strong> s</div>
+        <button type="button" class="showme-btn" id="btn-challenge-submit">✓ 我对齐了，立即交卷</button>
+      </div>
+      <div class="challenge-result" id="challenge-result" hidden>
+        <div class="challenge-grade" id="challenge-grade">S</div>
+        <div class="challenge-stats" id="challenge-stats"></div>
+        <button type="button" class="pill-btn accent" id="btn-copy-challenge">📋 复制战绩分享</button>
+      </div>
+      <button type="button" class="showme-btn" id="btn-challenge-start">▶ 开始 30 秒挑战</button>
     </div>
   </dialog>
 
