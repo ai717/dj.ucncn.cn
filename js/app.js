@@ -354,6 +354,10 @@ function syncUIWithEngine() {
   });
   const qBtn = document.getElementById('btn-quantize-toggle');
   if (qBtn) qBtn.classList.toggle('active', engine.quantize);
+  const zoomOutBtn = document.getElementById('btn-wave-zoom-out');
+  const zoomInBtn = document.getElementById('btn-wave-zoom-in');
+  if (zoomOutBtn) zoomOutBtn.disabled = engine.waveformWindowSec >= 23.9;
+  if (zoomInBtn) zoomInBtn.disabled = engine.waveformWindowSec <= 1.55;
   const cueMixKnob = document.querySelector('[data-knob="cuemix"]');
   if (cueMixKnob) updateKnobVisual(cueMixKnob, engine.cueMix);
   const phonesKnob = document.querySelector('[data-knob="phones"]');
@@ -484,8 +488,8 @@ compactBtn.addEventListener('click', () => {
   compactBtn.classList.toggle('active', on);
 });
 
-document.getElementById('btn-wave-zoom-out').addEventListener('click', () => engine.zoomWaveform(2));
-document.getElementById('btn-wave-zoom-in').addEventListener('click', () => engine.zoomWaveform(-2));
+document.getElementById('btn-wave-zoom-out').addEventListener('click', () => engine.zoomWaveform(1.35));
+document.getElementById('btn-wave-zoom-in').addEventListener('click', () => engine.zoomWaveform(1 / 1.35));
 
 document.querySelectorAll('[data-tempo-range]').forEach((b) => {
   b.addEventListener('click', () => engine.toggleTempoRange(b.dataset.tempoRange));
@@ -1117,6 +1121,8 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowLeft') engine.setCrossfader(engine.crossfader - 0.1);
   else if (e.key === 'ArrowRight') engine.setCrossfader(engine.crossfader + 0.1);
   else if (e.code === 'Backquote') setLayoutMode(!document.body.classList.contains('pro-mode'));
+  else if (e.key === '[') engine.zoomWaveform(1.35);
+  else if (e.key === ']') engine.zoomWaveform(1 / 1.35);
   else if (e.key === '?') { if (ui.shortcutsDialog.open) ui.shortcutsDialog.close(); else ui.shortcutsDialog.showModal(); }
   else if (/^Digit[1-8]$/.test(e.code) && (e.shiftKey || !e.ctrlKey && !e.altKey)) {
     triggerPad(SAMPLER_KEYS[Number(e.code.replace('Digit', '')) - 1]);

@@ -610,8 +610,8 @@ export class DJAudioEngine {
     this._notify();
   }
 
-  zoomWaveform(delta) {
-    this.waveformWindowSec = Math.max(4, Math.min(16, this.waveformWindowSec + delta));
+  zoomWaveform(factor) {
+    this.waveformWindowSec = Math.max(1.5, Math.min(24, this.waveformWindowSec * factor));
     this._notify();
   }
 
