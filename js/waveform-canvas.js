@@ -1,6 +1,24 @@
 /**
- * 高密度双轨波形与唱机总览波形渲染器（1:1 复刻 Backspin 实心多层次波形质感）
+ * 高密度双轨波形与唱机总览波形渲染器（1:1 复刻 Backspin 实心多层次波形质感与 Hot Cue / CUE 标点）
  */
+
+const HOT_CUE_COLORS = ['#e07f76', '#e3c88c', '#9fd4a3', '#b3a6e0', '#8ecfe0', '#e0a3c8', '#c9d08a', '#eab88c'];
+const CUE_MARKER_COLOR = '#e5e7eb';
+
+function drawCueMarker(ctx, x, h, dpr, color, label, dimmed) {
+  ctx.save();
+  if (dimmed) ctx.globalAlpha = 0.5;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, 0, 1.5 * dpr, h);
+  const bw = 12 * dpr;
+  const bh = 13 * dpr;
+  ctx.fillRect(x, h - bh, bw, bh);
+  ctx.fillStyle = '#0d0d0f';
+  ctx.font = `700 ${Math.round(9 * dpr)}px system-ui, sans-serif`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(label, x + 3.5 * dpr, h - 3.5 * dpr);
+  ctx.restore();
+}
 
 function samplePeak(peaks, duration, timeSec) {
   let t = timeSec % duration;
@@ -85,6 +103,23 @@ export function drawScrollingWaveform(canvas, engine, deckId) {
     }
   }
 
+  // CUE 起始点与 Hot Cue 1~8 彩色标点（带数字标签 C, 1..8）
+  if (typeof deck.cuePoint === 'number' && deck.cuePoint > 0) {
+    const cx = Math.round(centerX + (deck.cuePoint - curTime) * pxPerSec);
+    if (cx >= -16 * dpr && cx <= w + 16 * dpr) {
+      drawCueMarker(ctx, cx, h, dpr, CUE_MARKER_COLOR, 'C', cx < centerX);
+    }
+  }
+  if (Array.isArray(deck.hotCues)) {
+    deck.hotCues.forEach((pos, idx) => {
+      if (pos === null || pos === undefined) return;
+      const hx = Math.round(centerX + (pos - curTime) * pxPerSec);
+      if (hx >= -16 * dpr && hx <= w + 16 * dpr) {
+        drawCueMarker(ctx, hx, h, dpr, HOT_CUE_COLORS[idx] || '#ecebe8', String(idx + 1), hx < centerX);
+      }
+    });
+  }
+
   // 中心播放头白线
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(centerX - dpr * 0.5, 0, Math.max(1.5, dpr * 1.5), h);
@@ -126,6 +161,21 @@ export function drawOverviewWaveform(canvas, engine, deckId) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
       ctx.fillRect(x, h - barH * 0.5, step, barH * 0.5);
     }
+  }
+
+  // CUE 竖线与 Hot Cue 1~8 彩色竖线
+  if (typeof deck.cuePoint === 'number' && deck.cuePoint > 0) {
+    const cx = Math.round((deck.cuePoint / duration) * w);
+    ctx.fillStyle = CUE_MARKER_COLOR;
+    ctx.fillRect(cx - 0.5 * dpr, 0, 1 * dpr, h);
+  }
+  if (Array.isArray(deck.hotCues)) {
+    deck.hotCues.forEach((pos, idx) => {
+      if (pos === null || pos === undefined) return;
+      const hx = Math.round((pos / duration) * w);
+      ctx.fillStyle = HOT_CUE_COLORS[idx] || '#ecebe8';
+      ctx.fillRect(hx - 1 * dpr, 0, 2 * dpr, h);
+    });
   }
 
   // 播放进度游标
