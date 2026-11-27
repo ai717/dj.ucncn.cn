@@ -1038,12 +1038,12 @@ body.pro-mode .hc-btn {
 .sampler-pads-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 8px;
 }
 
 @media (max-width: 960px) {
-  .sampler-pads-grid { grid-template-columns: repeat(4, 1fr); }
+  .sampler-pads-grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 .sampler-pad {

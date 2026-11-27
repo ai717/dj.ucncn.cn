@@ -927,10 +927,11 @@ document.querySelectorAll('[data-fx-wet]').forEach((input) => {
   });
 });
 
-// 8 键 Sampler 点击、亮白触发态与拖放自定义音频
+// 10 键 Sampler 点击、亮白触发态与拖放自定义音频
 const PAD_DURATIONS = {
   airhorn: 1100, siren: 2000, laser: 400, rewind: 900,
-  boom: 1800, riser: 2000, snareroll: 2000, aah: 600
+  boom: 1800, riser: 2000, snareroll: 2000, aah: 600,
+  crash: 2200, clap: 600
 };
 const padTimers = new Map();
 
@@ -1357,8 +1358,8 @@ if (!('closedBy' in HTMLDialogElement.prototype)) {
   }
 }
 
-// 全键盘快捷键（1:1 对齐 Backspin 68 组快捷键）
-const SAMPLER_KEYS = ['airhorn', 'siren', 'laser', 'rewind', 'boom', 'riser', 'snareroll', 'aah'];
+// 全键盘快捷键（1:1 对齐 Backspin 全键盘快捷键 + 10 键采样器）
+const SAMPLER_KEYS = ['airhorn', 'siren', 'laser', 'rewind', 'boom', 'riser', 'snareroll', 'aah', 'crash', 'clap'];
 const FX_CYCLE = ['echo', 'reverb', 'flanger', null];
 let backspaceHeld = false;
 const heldScratchIntervals = new Map();
@@ -1544,9 +1545,11 @@ window.addEventListener('keydown', (e) => {
       else ui.shortcutsDialog.showModal();
       return;
     }
-    if (/^Digit[1-8]$/.test(code)) {
+    if (/^Digit[0-9]$/.test(code)) {
       e.preventDefault();
-      triggerPad(SAMPLER_KEYS[Number(code.replace('Digit', '')) - 1]);
+      const num = Number(code.replace('Digit', ''));
+      const padIdx = num === 0 ? 9 : num - 1;
+      triggerPad(SAMPLER_KEYS[padIdx]);
       return;
     }
     if (code === 'KeyW') { e.preventDefault(); engine.toggleReverse('A'); return; }

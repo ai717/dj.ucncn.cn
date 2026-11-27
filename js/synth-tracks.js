@@ -800,6 +800,48 @@ function getSamplerBuffer(ctx, padId) {
       const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.18);
       data[i] = v * env;
     }
+  } else if (padId === 'crash') {
+    // 2.2s 镲片重击（金属方波泛音群 + 宽带高通金属衰减）
+    const dur = 2.2;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    const ratios = [1, 1.48, 1.71, 2.13, 2.67, 3.31];
+    const phases = new Float64Array(ratios.length);
+    const hp = createSVF(sr);
+    const bp = createSVF(sr);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      let metal = 0;
+      for (let k = 0; k < ratios.length; k++) {
+        phases[k] = (phases[k] + (340 * ratios[k]) / sr) % 1;
+        metal += phases[k] < 0.5 ? 1 : -1;
+      }
+      const noise = Math.random() * 2 - 1;
+      const bright = hp(noise * 0.75 + metal * 0.12, 4600, 0.85, 'hp') + bp(noise, 7800, 1.2, 'bp') * 0.55;
+      const env = Math.min(1, t / 0.004) * Math.exp(-t / 0.62);
+      data[i] = bright * env;
+    }
+  } else if (padId === 'clap') {
+    // 0.55s 多层错峰电子拍手 + 混响尾音
+    const dur = 0.55;
+    const len = Math.floor(sr * dur);
+    data = new Float32Array(len);
+    const bp1 = createSVF(sr);
+    const bp2 = createSVF(sr);
+    const offsets = [0, 0.011, 0.022, 0.034];
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const n = Math.random() * 2 - 1;
+      let burstEnv = 0;
+      for (let k = 0; k < offsets.length; k++) {
+        const dt = t - offsets[k];
+        if (dt >= 0) {
+          burstEnv += (k === offsets.length - 1 ? Math.exp(-dt / 0.14) : Math.exp(-dt / 0.012) * 0.85);
+        }
+      }
+      const tone = bp1(n, 1450, 1.4, 'bp') * 0.8 + bp2(n, 2900, 1.1, 'bp') * 0.55;
+      data[i] = tone * burstEnv * Math.min(1, (dur - t) / 0.06);
+    }
   } else {
     // riser (2.0s)
     const dur = 2.0;
