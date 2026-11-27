@@ -24,76 +24,84 @@
   <link rel="stylesheet" href="./css/studio.css">
 </head>
 <body>
-  <!-- 顶部导航栏（1:1 复刻 Backspin 紧凑顶栏） -->
+  <!-- 顶部导航栏（1:1 复刻 Backspin 顶栏元素与形态） -->
   <header class="topbar">
     <div class="brand">
-      <span class="brand-icon" aria-hidden="true">◉</span>
+      <svg class="brand-logo" viewBox="0 0 28 28" aria-hidden="true">
+        <circle cx="14" cy="14" r="12" fill="none" stroke="#8ecfe0" stroke-width="2"/>
+        <circle cx="14" cy="14" r="5" fill="#8ecfe0"/>
+        <circle cx="14" cy="14" r="2" fill="#0d0d0f"/>
+      </svg>
       <strong>Backspin</strong>
-      <span class="brand-sub">浏览器学 DJ</span>
+      <span class="brand-sub">浏览器里学 DJ</span>
     </div>
 
     <div class="topbar-actions">
-      <button type="button" id="btn-premix-demo" class="top-pill">Premixes · 高手示范</button>
-      <button type="button" id="btn-open-lessons" class="top-pill">
-        课程 <span id="lesson-progress-badge">0 / 21</span>
+      <button type="button" id="btn-premix-demo" class="top-btn">Premixes</button>
+      <button type="button" id="btn-open-lessons" class="top-btn">
+        课程 <span class="dim-num" id="lesson-progress-badge">0/21</span>
       </button>
-      <button type="button" id="btn-challenge" class="top-pill">🎯 盲听挑战</button>
-      <button type="button" id="btn-load-demo-pair" class="top-pill">一键装盘</button>
+      <button type="button" id="btn-challenge" class="top-btn">盲听挑战</button>
+      <button type="button" id="btn-load-demo-pair" class="top-btn">重置曲目</button>
 
       <div class="segmented-toggle" role="group" aria-label="界面模式">
         <button type="button" id="btn-mode-simple" class="seg-btn active">Simple</button>
         <button type="button" id="btn-mode-pro" class="seg-btn">Pro</button>
       </div>
 
-      <button type="button" id="btn-open-midi" class="top-pill pro-only">MIDI</button>
-      <button type="button" id="btn-rec" class="top-pill rec-pill">● REC</button>
+      <button type="button" id="btn-open-midi" class="top-btn pro-only">MIDI</button>
+      <button type="button" id="btn-rec" class="top-btn rec-btn"><span class="rec-dot"></span>REC</button>
 
       <div class="knob-unit master-knob-unit" data-knob="master" data-min="0" data-max="1" data-val="0.85" data-default="0.85" title="上下拖动调节主音量">
-        <div class="rotary-knob master-knob"><div class="knob-dial"></div></div>
+        <svg class="knob-svg master-svg" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/>
+          <circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/>
+          <g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g>
+        </svg>
         <span class="knob-label">MASTER</span>
       </div>
-      <button type="button" id="btn-open-shortcuts" class="top-pill icon-pill" aria-label="快捷键">?</button>
+
+      <button type="button" id="btn-open-shortcuts" class="top-btn">快捷键</button>
     </div>
   </header>
 
   <main class="studio-main">
-    <!-- 顶部极简互动课程引导条（1:1 复刻 Backspin 顶部位置与结构） -->
+    <!-- 顶部极简互动课程横条（1:1 复刻 Backspin 顶部进度条与按钮风格） -->
     <section class="coach-topbar" aria-label="互动教练面板">
       <div class="coach-top-left">
-        <span class="coach-lesson-tag" id="coach-lesson-tag">LESSON 1 OF 21 · 第一次无缝切歌</span>
+        <span class="coach-lesson-tag" id="coach-lesson-tag">CONTINUE · LESSON 1 OF 21</span>
         <div class="coach-top-title-row">
           <strong class="coach-title" id="coach-title">加载中…</strong>
           <span class="coach-desc" id="coach-desc"></span>
         </div>
         <div class="coach-feedback" id="coach-feedback" hidden></div>
       </div>
+
       <div class="coach-top-right">
+        <div class="lesson-meter-wrap" aria-hidden="true">
+          <div class="lesson-meter-track"><div class="lesson-meter-fill" id="lesson-meter-fill"></div></div>
+          <span class="dim-num" id="lesson-meter-text">0/21</span>
+        </div>
+        <button type="button" class="top-btn" id="btn-coach-prev">上一步</button>
+        <button type="button" class="top-btn" id="btn-coach-skip">跳过</button>
+        <button type="button" class="top-btn" id="btn-coach-all">全部课程</button>
         <button type="button" class="showme-btn" id="btn-show-me">▶ Show me</button>
-        <button type="button" class="hw-sm" id="btn-coach-prev">上一步</button>
-        <button type="button" class="hw-sm" id="btn-coach-skip">跳过</button>
-        <button type="button" class="hw-sm" id="btn-coach-all">All lessons</button>
       </div>
     </section>
 
     <!-- 盲听挑战悬浮条 -->
     <div class="challenge-banner" id="challenge-banner" hidden>
-      <span>🎯 <strong>30 秒盲听对拍挑战中</strong> · 只靠耳朵拖动右边 Deck B 的 TEMPO 推子对齐节拍</span>
+      <span><strong>30 秒盲听对拍挑战中</strong> · 只靠耳朵拖动右边 Deck B 的 TEMPO 推子对齐节拍</span>
       <div class="challenge-banner-right">
         <span class="challenge-timer">剩余 <strong id="banner-timer-val">30</strong>s</span>
-        <button type="button" class="top-pill accent" id="btn-banner-submit">✓ 立即交卷</button>
+        <button type="button" class="showme-btn" id="btn-banner-submit">立即交卷</button>
       </div>
     </div>
 
-    <!-- 顶部双轨滚动波形 -->
+    <!-- 顶部双轨连续高解析波形 -->
     <section class="waveforms-strip" aria-label="双轨同步波形">
-      <div class="wave-row">
-        <span class="wave-badge deck-a">A</span>
-        <canvas id="wave-scroll-A" class="wave-canvas" data-deck="A"></canvas>
-      </div>
-      <div class="wave-row">
-        <span class="wave-badge deck-b">B</span>
-        <canvas id="wave-scroll-B" class="wave-canvas" data-deck="B"></canvas>
-      </div>
+      <canvas id="wave-scroll-A" class="wave-canvas" data-deck="A"></canvas>
+      <canvas id="wave-scroll-B" class="wave-canvas" data-deck="B"></canvas>
     </section>
 
     <!-- 移动端窄屏切换栏 -->
@@ -103,7 +111,7 @@
       <button type="button" class="mobile-tab" data-mobile-panel="B">右盘 Deck B</button>
     </nav>
 
-    <!-- 三栏主工作区：Deck A | Mixer | Deck B -->
+    <!-- 三栏主工作区：Deck A | 292px Mixer | Deck B -->
     <section class="workspace-grid">
       <!-- Deck A -->
       <article class="deck-panel" data-deck="A">
@@ -112,12 +120,18 @@
             <span class="deck-badge deck-a">A</span>
             <div class="deck-title-meta">
               <div class="track-title" id="track-title-A">未装盘</div>
-              <div class="track-meta" id="track-meta-A">— · —</div>
+              <div class="track-timer mono" id="time-A">0:00.0 &nbsp;-0:00.0</div>
             </div>
           </div>
-          <div class="deck-readout">
-            <div class="bpm-val deck-a-text" id="bpm-A">0.0</div>
-            <div class="tempo-pct" id="tempo-pct-A">+0.0%</div>
+          <div class="deck-right-meta">
+            <div class="key-col">
+              <div class="key-code" id="key-code-A">8A</div>
+              <div class="key-name" id="key-name-A">Am</div>
+            </div>
+            <div class="bpm-col">
+              <div class="bpm-val deck-a-text mono" id="bpm-A">0.0</div>
+              <div class="tempo-pct mono" id="tempo-pct-A">BPM · +0.0%</div>
+            </div>
           </div>
         </header>
 
@@ -127,40 +141,45 @@
           <div class="platter-wrap">
             <div class="turntable-box">
               <div class="vinyl-platter" id="platter-A" data-deck="A" title="按住拖动可搓碟">
-                <svg class="strobe-svg" viewBox="0 0 220 220" aria-hidden="true">
-                  <circle cx="110" cy="110" r="105" fill="none" stroke="rgba(226,232,240,0.45)" stroke-width="4" stroke-dasharray="2 4.5"/>
-                </svg>
                 <div class="vinyl-grooves"></div>
-                <div class="vinyl-label deck-a"><span>SIDE A</span></div>
+                <div class="vinyl-label deck-a">
+                  <span class="label-top">SIDE A</span>
+                  <span class="label-bot">33 RPM</span>
+                </div>
                 <div class="vinyl-spindle"></div>
               </div>
-              <svg class="tonearm-svg" viewBox="0 0 60 140" aria-hidden="true">
-                <circle cx="42" cy="20" r="10" fill="#2a2d37" stroke="#474c5c" stroke-width="2"/>
-                <path d="M42 20 L36 96 L24 118" fill="none" stroke="#9ca3af" stroke-width="3.5" stroke-linecap="round"/>
-                <rect x="18" y="114" width="10" height="14" rx="2" fill="#d1d5db" transform="rotate(24 23 121)"/>
+              <svg class="tonearm-svg" viewBox="0 0 70 200" aria-hidden="true">
+                <circle cx="48" cy="24" r="14" fill="#1b1b1f" stroke="#35353c" stroke-width="2"/>
+                <circle cx="48" cy="24" r="6" fill="#2e2e34"/>
+                <path d="M48 24 C46 72, 34 118, 18 158" fill="none" stroke="#c8c8ce" stroke-width="4" stroke-linecap="round"/>
+                <path d="M48 24 C46 72, 34 118, 18 158" fill="none" stroke="#686870" stroke-width="1.2" stroke-linecap="round"/>
+                <rect x="11" y="152" width="12" height="18" rx="2.5" fill="#242429" stroke="#52525b" stroke-width="1.2" transform="rotate(24 17 161)"/>
               </svg>
-            </div>
-            <div class="meters-inline">
-              <div class="beat-dots" id="beats-A" aria-label="4拍小节指示"><span></span><span></span><span></span><span></span></div>
-              <div class="phrase-strip" id="phrase-A" aria-label="8小节乐句进度"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
             </div>
           </div>
 
           <div class="tempo-col">
             <span class="mini-label">TEMPO</span>
-            <span class="range-tag">±8%</span>
-            <input type="range" class="tempo-slider" id="tempo-A" data-control="deck-A-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck A 调速">
-            <div class="nudge-pair">
+            <div class="v-fader-wrap tempo-fader-wrap">
+              <div class="v-fader-slot"></div>
+              <input type="range" class="v-fader-input tempo-slider" id="tempo-A" data-control="deck-A-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck A 调速">
+            </div>
+            <div class="nudge-pair pro-only">
               <button type="button" class="nudge-btn" data-nudge="A:-0.2">−</button>
               <button type="button" class="nudge-btn" data-nudge="A:0.2">+</button>
             </div>
           </div>
         </div>
 
+        <div class="meters-full-row">
+          <div class="beat-dots" id="beats-A" aria-label="4拍小节指示"><span></span><span></span><span></span><span></span></div>
+          <div class="phrase-strip" id="phrase-A" aria-label="8小节乐句进度"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+
         <div class="transport-hc-row">
-          <button type="button" class="hw-btn" data-control="deck-A-cue" id="cue-A">CUE</button>
+          <button type="button" class="hw-btn cue-btn" data-control="deck-A-cue" id="cue-A">CUE</button>
           <button type="button" class="hw-btn play-btn" data-control="deck-A-play" id="play-A">▶</button>
-          <button type="button" class="hw-btn" data-control="deck-A-sync" id="sync-A">SYNC</button>
+          <button type="button" class="hw-btn sync-btn" data-control="deck-A-sync" id="sync-A">SYNC</button>
           <div class="hc-matrix">
             <button type="button" class="hc-btn" data-control="deck-A-hotcue-0" data-hotcue="A:0">1</button>
             <button type="button" class="hc-btn" data-control="deck-A-hotcue-1" data-hotcue="A:1">2</button>
@@ -173,8 +192,8 @@
           </div>
         </div>
 
-        <div class="deck-tagged-rows">
-          <div class="tagged-row split-row">
+        <div class="deck-bottom-rows">
+          <div class="split-row">
             <div class="row-group">
               <button type="button" class="hw-sm" data-loop-half="A">½</button>
               <button type="button" class="hw-sm loop-btn" data-control="deck-A-loop4" id="loop4-A">LOOP 4</button>
@@ -192,43 +211,50 @@
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:echo">ECHO</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:reverb">REVERB</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="A:flanger">FLANGE</button>
-            <input type="range" class="fx-wet-slider" data-control="deck-A-echo" data-fx-wet="A" min="0" max="0.85" step="0.05" value="0" aria-label="Deck A 效果强度">
+            <input type="range" class="h-mini-slider" data-control="deck-A-echo" data-fx-wet="A" min="0" max="0.85" step="0.05" value="0" aria-label="Deck A 效果强度">
           </div>
         </div>
       </article>
 
-      <!-- Center Mixer (1:1 圆形硬件旋钮) -->
+      <!-- Center Mixer (292px · SVG 硬件旋钮与精准对齐推子) -->
       <article class="mixer-panel" aria-label="中央混音台">
-        <button type="button" id="btn-automix" class="hw-btn automix-btn">AUTO MIX A → B</button>
-        <div class="phase-meter" id="phase-meter">播放双盘可实时对比节拍</div>
+        <button type="button" id="btn-automix" class="hw-btn automix-btn">▶ AUTO MIX A → B</button>
+
+        <div class="phase-box">
+          <div class="phase-track"><div class="phase-dot" id="phase-dot"></div></div>
+          <div class="phase-text" id="phase-meter">播放双盘可实时对比节拍</div>
+        </div>
 
         <div class="mixer-channels">
           <!-- Channel A -->
           <div class="channel-strip">
             <div class="knob-unit pro-only" data-knob="gain:A" data-min="0.2" data-max="1.8" data-val="1" data-default="1" title="上下拖动调节 GAIN">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">GAIN</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:A:high" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 HIGH">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">HIGH</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:A:mid" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 MID">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">MID</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:A:low" data-control="deck-A-eq-low" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 BASS">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">BASS</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="filter:A" data-control="deck-A-filter" data-min="-1" data-max="1" data-val="0" data-default="0" title="上下拖动调节 FILTER">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#3c3a4f" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#5b5773" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">FILTER</span>
-              <div class="rotary-knob filter-knob"><div class="knob-dial"></div></div>
             </div>
-            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="A">🎧 CUE</button>
+            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="A">CUE A</button>
             <div class="fader-meter-wrap">
-              <div class="vu-track"><div class="vu-fill deck-a" id="vu-A"></div></div>
-              <input type="range" class="vol-slider" data-vol="A" min="0" max="1" step="0.02" value="1" aria-label="Channel A 音量">
+              <div class="vu-track"><div class="vu-fill" id="vu-A"></div></div>
+              <div class="v-fader-wrap ch-fader-wrap">
+                <div class="v-fader-slot"></div>
+                <input type="range" class="v-fader-input vol-slider" data-vol="A" min="0" max="1" step="0.02" value="1" aria-label="Channel A 音量">
+              </div>
             </div>
             <span class="ch-foot deck-a-text">A</span>
           </div>
@@ -236,29 +262,32 @@
           <!-- Channel B -->
           <div class="channel-strip">
             <div class="knob-unit pro-only" data-knob="gain:B" data-min="0.2" data-max="1.8" data-val="1" data-default="1" title="上下拖动调节 GAIN">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">GAIN</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:B:high" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 HIGH">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">HIGH</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:B:mid" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 MID">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">MID</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="eq:B:low" data-control="deck-B-eq-low" data-min="-24" data-max="6" data-val="0" data-default="0" title="上下拖动调节 BASS">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">BASS</span>
-              <div class="rotary-knob"><div class="knob-dial"></div></div>
             </div>
             <div class="knob-unit" data-knob="filter:B" data-control="deck-B-filter" data-min="-1" data-max="1" data-val="0" data-default="0" title="上下拖动调节 FILTER">
+              <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#3c3a4f" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#5b5773" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">FILTER</span>
-              <div class="rotary-knob filter-knob"><div class="knob-dial"></div></div>
             </div>
-            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="B">🎧 CUE</button>
+            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="B">CUE B</button>
             <div class="fader-meter-wrap">
-              <div class="vu-track"><div class="vu-fill deck-b" id="vu-B"></div></div>
-              <input type="range" class="vol-slider" data-vol="B" min="0" max="1" step="0.02" value="1" aria-label="Channel B 音量">
+              <div class="vu-track"><div class="vu-fill" id="vu-B"></div></div>
+              <div class="v-fader-wrap ch-fader-wrap">
+                <div class="v-fader-slot"></div>
+                <input type="range" class="v-fader-input vol-slider" data-vol="B" min="0" max="1" step="0.02" value="1" aria-label="Channel B 音量">
+              </div>
             </div>
             <span class="ch-foot deck-b-text">B</span>
           </div>
@@ -267,12 +296,15 @@
         <div class="crossfader-box">
           <div class="xf-row">
             <span class="deck-a-text">A</span>
-            <input type="range" id="crossfader" data-control="crossfader" min="-1" max="1" step="0.02" value="-1" aria-label="Crossfader 交叉推子">
+            <div class="h-fader-wrap">
+              <div class="h-fader-slot"></div>
+              <input type="range" id="crossfader" class="h-fader-input" data-control="crossfader" min="-1" max="1" step="0.02" value="-1" aria-label="Crossfader 交叉推子">
+            </div>
             <span class="deck-b-text">B</span>
           </div>
           <div class="pro-mixer-opts pro-only">
-            <button type="button" class="hw-sm active" id="btn-curve-toggle">BLEND CURVE</button>
-            <button type="button" class="hw-sm" id="btn-split-cue">🎧 SPLIT CUE</button>
+            <button type="button" class="hw-sm" id="btn-curve-toggle">BLEND CURVE</button>
+            <button type="button" class="hw-sm" id="btn-split-cue">SPLIT CUE</button>
           </div>
         </div>
       </article>
@@ -284,12 +316,18 @@
             <span class="deck-badge deck-b">B</span>
             <div class="deck-title-meta">
               <div class="track-title" id="track-title-B">未装盘</div>
-              <div class="track-meta" id="track-meta-B">— · —</div>
+              <div class="track-timer mono" id="time-B">0:00.0 &nbsp;-0:00.0</div>
             </div>
           </div>
-          <div class="deck-readout">
-            <div class="bpm-val deck-b-text" id="bpm-B">0.0</div>
-            <div class="tempo-pct" id="tempo-pct-B">+0.0%</div>
+          <div class="deck-right-meta">
+            <div class="key-col">
+              <div class="key-code" id="key-code-B">8A</div>
+              <div class="key-name" id="key-name-B">Am</div>
+            </div>
+            <div class="bpm-col">
+              <div class="bpm-val deck-b-text mono" id="bpm-B">0.0</div>
+              <div class="tempo-pct mono" id="tempo-pct-B">BPM · +0.0%</div>
+            </div>
           </div>
         </header>
 
@@ -299,40 +337,45 @@
           <div class="platter-wrap">
             <div class="turntable-box">
               <div class="vinyl-platter" id="platter-B" data-deck="B" title="按住拖动可搓碟">
-                <svg class="strobe-svg" viewBox="0 0 220 220" aria-hidden="true">
-                  <circle cx="110" cy="110" r="105" fill="none" stroke="rgba(226,232,240,0.45)" stroke-width="4" stroke-dasharray="2 4.5"/>
-                </svg>
                 <div class="vinyl-grooves"></div>
-                <div class="vinyl-label deck-b"><span>SIDE B</span></div>
+                <div class="vinyl-label deck-b">
+                  <span class="label-top">SIDE B</span>
+                  <span class="label-bot">33 RPM</span>
+                </div>
                 <div class="vinyl-spindle"></div>
               </div>
-              <svg class="tonearm-svg" viewBox="0 0 60 140" aria-hidden="true">
-                <circle cx="42" cy="20" r="10" fill="#2a2d37" stroke="#474c5c" stroke-width="2"/>
-                <path d="M42 20 L36 96 L24 118" fill="none" stroke="#9ca3af" stroke-width="3.5" stroke-linecap="round"/>
-                <rect x="18" y="114" width="10" height="14" rx="2" fill="#d1d5db" transform="rotate(24 23 121)"/>
+              <svg class="tonearm-svg" viewBox="0 0 70 200" aria-hidden="true">
+                <circle cx="48" cy="24" r="14" fill="#1b1b1f" stroke="#35353c" stroke-width="2"/>
+                <circle cx="48" cy="24" r="6" fill="#2e2e34"/>
+                <path d="M48 24 C46 72, 34 118, 18 158" fill="none" stroke="#c8c8ce" stroke-width="4" stroke-linecap="round"/>
+                <path d="M48 24 C46 72, 34 118, 18 158" fill="none" stroke="#686870" stroke-width="1.2" stroke-linecap="round"/>
+                <rect x="11" y="152" width="12" height="18" rx="2.5" fill="#242429" stroke="#52525b" stroke-width="1.2" transform="rotate(24 17 161)"/>
               </svg>
-            </div>
-            <div class="meters-inline">
-              <div class="beat-dots" id="beats-B" aria-label="4拍小节指示"><span></span><span></span><span></span><span></span></div>
-              <div class="phrase-strip" id="phrase-B" aria-label="8小节乐句进度"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
             </div>
           </div>
 
           <div class="tempo-col">
             <span class="mini-label">TEMPO</span>
-            <span class="range-tag">±8%</span>
-            <input type="range" class="tempo-slider" id="tempo-B" data-control="deck-B-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck B 调速">
-            <div class="nudge-pair">
+            <div class="v-fader-wrap tempo-fader-wrap">
+              <div class="v-fader-slot"></div>
+              <input type="range" class="v-fader-input tempo-slider" id="tempo-B" data-control="deck-B-tempo" min="-8" max="8" step="0.1" value="0" aria-label="Deck B 调速">
+            </div>
+            <div class="nudge-pair pro-only">
               <button type="button" class="nudge-btn" data-nudge="B:-0.2">−</button>
               <button type="button" class="nudge-btn" data-nudge="B:0.2">+</button>
             </div>
           </div>
         </div>
 
+        <div class="meters-full-row">
+          <div class="beat-dots" id="beats-B" aria-label="4拍小节指示"><span></span><span></span><span></span><span></span></div>
+          <div class="phrase-strip" id="phrase-B" aria-label="8小节乐句进度"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+
         <div class="transport-hc-row">
-          <button type="button" class="hw-btn" data-control="deck-B-cue" id="cue-B">CUE</button>
+          <button type="button" class="hw-btn cue-btn" data-control="deck-B-cue" id="cue-B">CUE</button>
           <button type="button" class="hw-btn play-btn" data-control="deck-B-play" id="play-B">▶</button>
-          <button type="button" class="hw-btn" data-control="deck-B-sync" id="sync-B">SYNC</button>
+          <button type="button" class="hw-btn sync-btn" data-control="deck-B-sync" id="sync-B">SYNC</button>
           <div class="hc-matrix">
             <button type="button" class="hc-btn" data-control="deck-B-hotcue-0" data-hotcue="B:0">1</button>
             <button type="button" class="hc-btn" data-control="deck-B-hotcue-1" data-hotcue="B:1">2</button>
@@ -345,8 +388,8 @@
           </div>
         </div>
 
-        <div class="deck-tagged-rows">
-          <div class="tagged-row split-row">
+        <div class="deck-bottom-rows">
+          <div class="split-row">
             <div class="row-group">
               <button type="button" class="hw-sm" data-loop-half="B">½</button>
               <button type="button" class="hw-sm loop-btn" data-control="deck-B-loop4" id="loop4-B">LOOP 4</button>
@@ -364,13 +407,13 @@
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:echo">ECHO</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:reverb">REVERB</button>
             <button type="button" class="hw-sm fx-toggle" data-fx-toggle="B:flanger">FLANGE</button>
-            <input type="range" class="fx-wet-slider" data-control="deck-B-echo" data-fx-wet="B" min="0" max="0.85" step="0.05" value="0" aria-label="Deck B 效果强度">
+            <input type="range" class="h-mini-slider" data-control="deck-B-echo" data-fx-wet="B" min="0" max="0.85" step="0.05" value="0" aria-label="Deck B 效果强度">
           </div>
         </div>
       </article>
     </section>
 
-    <!-- 独立 8 键 Sampler 采样器横条（1:1 复刻 Backspin 原版结构） -->
+    <!-- 独立 8 键 Sampler 采样器横条 -->
     <section class="sampler-strip" aria-label="8 键采样器">
       <span class="sampler-title">Sampler</span>
       <div class="sampler-pads-grid">
@@ -391,8 +434,8 @@
       <div class="crate-panel">
         <div class="crate-head">
           <div class="crate-title-group">
-            <h2>Crate 曲库</h2>
-            <label class="hw-sm file-import-btn">
+            <h2>Crate</h2>
+            <label class="top-btn file-import-btn">
               + 导入音乐
               <input type="file" id="input-local-audio" accept="audio/*" multiple hidden>
             </label>
@@ -415,8 +458,8 @@
 
       <div class="set-panel">
         <div class="crate-head">
-          <h2>Set 待播清单 (<span id="set-count">0</span>)</h2>
-          <button type="button" class="hw-sm" id="btn-auto-dj">▶ Auto DJ</button>
+          <h2>Set <span class="dim-num">(<span id="set-count">0</span>)</span></h2>
+          <button type="button" class="top-btn" id="btn-auto-dj">▶ Auto DJ</button>
         </div>
         <div class="crate-list" id="set-list"></div>
       </div>
@@ -431,9 +474,7 @@
     <div class="dialog-inner">
       <header class="dialog-head">
         <h1 id="lessons-dialog-title">选择互动课程（共 21 节）</h1>
-        <form method="dialog">
-          <button type="submit" class="hw-sm" autofocus>关闭</button>
-        </form>
+        <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
       </header>
       <div id="lessons-dialog-list" class="lessons-list"></div>
       <footer class="dialog-foot">
@@ -446,20 +487,18 @@
   <dialog id="challenge-dialog" closedby="any" aria-labelledby="challenge-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="challenge-dialog-title">🎯 30 秒盲听对拍挑战</h1>
-        <form method="dialog">
-          <button type="submit" class="hw-sm" autofocus>关闭</button>
-        </form>
+        <h1 id="challenge-dialog-title">30 秒盲听对拍挑战</h1>
+        <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
       </header>
       <p class="coach-desc">
-        规则：系统将随机打乱右盘（Deck B）的速度并隐藏 BPM 数字。你有 30 秒时间，纯靠耳朵拖动右盘「TEMPO」滑块把两首歌节拍对齐！
+        规则：系统将随机打乱右盘（Deck B）的速度并隐藏 BPM 数字。你有 30 秒时间，纯靠耳朵拖动右盘「TEMPO」推子把两首歌节拍对齐。
       </p>
       <div class="challenge-result" id="challenge-result" hidden>
         <div class="challenge-grade" id="challenge-grade">S</div>
         <div class="challenge-stats" id="challenge-stats"></div>
         <div class="challenge-result-btns">
-          <button type="button" class="top-pill accent" id="btn-copy-challenge">📋 复制战绩文案</button>
-          <button type="button" class="top-pill" id="btn-download-poster">🖼️ 下载战绩海报</button>
+          <button type="button" class="top-btn" id="btn-copy-challenge">复制战绩文案</button>
+          <button type="button" class="showme-btn" id="btn-download-poster">下载战绩海报</button>
         </div>
       </div>
       <button type="button" class="showme-btn" id="btn-challenge-start">▶ 开始 30 秒挑战</button>
@@ -470,10 +509,8 @@
   <dialog id="midi-dialog" closedby="any" aria-labelledby="midi-dialog-title">
     <div class="dialog-inner">
       <header class="dialog-head">
-        <h1 id="midi-dialog-title">🎹 Web MIDI 控制器映射</h1>
-        <form method="dialog">
-          <button type="submit" class="hw-sm" autofocus>关闭</button>
-        </form>
+        <h1 id="midi-dialog-title">Web MIDI 控制器映射</h1>
+        <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
       </header>
       <div class="midi-status" id="midi-status">正在检测 MIDI 设备…</div>
       <div class="midi-map-list" id="midi-map-list"></div>
@@ -486,9 +523,7 @@
     <div class="dialog-inner">
       <header class="dialog-head">
         <h1 id="shortcuts-dialog-title">键盘快捷键与使用提示</h1>
-        <form method="dialog">
-          <button type="submit" class="hw-sm" autofocus>关闭</button>
-        </form>
+        <form method="dialog"><button type="submit" class="hw-sm" autofocus>关闭</button></form>
       </header>
       <ul class="shortcuts-list">
         <li><kbd>Space</kbd> <span>播放 / 暂停 Deck A</span></li>
@@ -496,7 +531,7 @@
         <li><kbd>S</kbd> <span>用 SYNC 自动对齐 Deck B 速度</span></li>
         <li><kbd>←</kbd> / <kbd>→</kbd> <span>向左 / 向右微调 Crossfader</span></li>
         <li><kbd>`</kbd> <span>切换 Simple / Pro 界面模式</span></li>
-        <li><kbd>⇧ 1</kbd> ~ <kbd>⇧ 8</kbd> <span>触发 8 键采样垫</span></li>
+        <li><kbd>1</kbd> ~ <kbd>8</kbd> <span>触发 8 键采样垫</span></li>
         <li><kbd>?</kbd> <span>打开 / 关闭此帮助面板</span></li>
       </ul>
       <p class="dialog-note">提示：所有课程进度自动保存在本地浏览器中，无需注册账号；6 首内置舞曲由 Web Audio API 本地合成，零版权限制。</p>

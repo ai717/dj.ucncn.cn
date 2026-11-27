@@ -44,8 +44,12 @@ const activeFxMode = { A: 'echo', B: 'echo' };
 
 const coach = new CoachEngine(engine, {
   updateCoachPanel({ lesson, step, stepNumber, totalSteps, completedCount, totalLessons, isDemoRunning, feedback }) {
-    ui.lessonBadge.textContent = `${completedCount} / ${totalLessons}`;
-    ui.coachTag.textContent = `LESSON ${lesson.number} · ${lesson.title} (${stepNumber}/${totalSteps})`;
+    ui.lessonBadge.textContent = `${completedCount}/${totalLessons}`;
+    const fill = document.getElementById('lesson-meter-fill');
+    const txt = document.getElementById('lesson-meter-text');
+    if (fill) fill.style.width = `${Math.round((completedCount / totalLessons) * 100)}%`;
+    if (txt) txt.textContent = `${completedCount}/${totalLessons}`;
+    ui.coachTag.textContent = `CONTINUE · LESSON ${lesson.number} OF ${totalLessons} · ${lesson.title} (${stepNumber}/${totalSteps})`;
     ui.coachTitle.textContent = step.title;
     ui.coachDesc.textContent = step.instruction;
 
@@ -144,11 +148,18 @@ function renderLessonsModal() {
 function updateKnobVisual(knobUnit, val) {
   const min = Number(knobUnit.dataset.min);
   const max = Number(knobUnit.dataset.max);
-  const norm = Math.max(0, Math.min(1, (val - min) / (max - min)));
-  const deg = -135 + norm * 270;
+  const def = Number(knobUnit.dataset.default ?? (min + max) / 2);
+  let deg = 0;
+  if (val >= def) {
+    const span = max - def || 1;
+    deg = Math.min(1, (val - def) / span) * 135;
+  } else {
+    const span = def - min || 1;
+    deg = -Math.min(1, (def - val) / span) * 135;
+  }
   knobUnit.dataset.val = String(val);
-  const dial = knobUnit.querySelector('.knob-dial');
-  if (dial) dial.style.transform = `rotate(${deg}deg)`;
+  const rotor = knobUnit.querySelector('.knob-rotor');
+  if (rotor) rotor.setAttribute('transform', `rotate(${deg.toFixed(1)} 24 24)`);
 }
 
 function setLayoutMode(isPro) {
@@ -161,7 +172,8 @@ function syncUIWithEngine() {
   for (const id of ['A', 'B']) {
     const d = engine.decks[id];
     const titleEl = document.getElementById(`track-title-${id}`);
-    const metaEl = document.getElementById(`track-meta-${id}`);
+    const keyCodeEl = document.getElementById(`key-code-${id}`);
+    const keyNameEl = document.getElementById(`key-name-${id}`);
     const bpmEl = document.getElementById(`bpm-${id}`);
     const pctEl = document.getElementById(`tempo-pct-${id}`);
     const playBtn = document.getElementById(`play-${id}`);
@@ -170,17 +182,20 @@ function syncUIWithEngine() {
 
     if (d.track) {
       titleEl.textContent = d.track.title;
-      metaEl.textContent = `${d.track.genre} · ${d.track.key}`;
+      const [kCode = '—', kName = ''] = (d.track.key || '—').split('·').map((s) => s.trim());
+      if (keyCodeEl) keyCodeEl.textContent = kCode;
+      if (keyNameEl) keyNameEl.textContent = kName;
       bpmEl.textContent = (blindChallengeActive && id === 'B') ? '???' : engine.getEffectiveBPM(id).toFixed(1);
     } else {
       titleEl.textContent = '未装盘';
-      metaEl.textContent = '— · —';
+      if (keyCodeEl) keyCodeEl.textContent = '—';
+      if (keyNameEl) keyNameEl.textContent = '';
       bpmEl.textContent = '0.0';
     }
 
     pctEl.textContent = (blindChallengeActive && id === 'B')
       ? '盲听中'
-      : `${d.tempoPercent >= 0 ? '+' : ''}${d.tempoPercent.toFixed(1)}%`;
+      : `BPM · ${d.tempoPercent >= 0 ? '+' : ''}${d.tempoPercent.toFixed(1)}%`;
     tempoSlider.value = String(d.tempoPercent);
 
     playBtn.classList.toggle('active', d.isPlaying);
@@ -223,7 +238,7 @@ function syncUIWithEngine() {
   const recBtn = document.getElementById('btn-rec');
   if (recBtn) {
     recBtn.classList.toggle('recording', engine.isRecording);
-    recBtn.textContent = engine.isRecording ? '⏹ REC' : '● REC';
+    recBtn.innerHTML = engine.isRecording ? '<span class="rec-dot"></span>STOP' : '<span class="rec-dot"></span>REC';
   }
   const curveBtn = document.getElementById('btn-curve-toggle');
   if (curveBtn) {
@@ -719,6 +734,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 // 60fps 动画循环
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = (sec % 60).toFixed(1).padStart(4, '0');
+  return `${m}:${s}`;
+}
+
 const platterAngles = { A: 0, B: 0 };
 let lastFrame = performance.now();
 function animate(now) {
@@ -728,6 +749,12 @@ function animate(now) {
     drawScrollingWaveform(document.getElementById(`wave-scroll-${id}`), engine, id);
     drawOverviewWaveform(document.getElementById(`wave-overview-${id}`), engine, id);
     const d = engine.decks[id];
+    const timeEl = document.getElementById(`time-${id}`);
+    if (timeEl && d.track) {
+      const cur = engine.getCurrentTime(id);
+      const rem = Math.max(0, d.track.duration - cur);
+      timeEl.textContent = `${fmtTime(cur)}  -${fmtTime(rem)}`;
+    }
     if (d.isPlaying) {
       platterAngles[id] = (platterAngles[id] + dt * 120 * engine.getPlaybackRate(id)) % 360;
       document.getElementById(`platter-${id}`).style.transform = `rotate(${platterAngles[id]}deg)`;
@@ -742,6 +769,7 @@ function animate(now) {
     });
     document.getElementById(`vu-${id}`).style.height = `${Math.round(engine.getLevel(id) * 100)}%`;
   }
+  const phaseDot = document.getElementById('phase-dot');
   if (engine.decks.A.isPlaying && engine.decks.B.isPlaying && engine.decks.A.track && engine.decks.B.track) {
     const bA = engine.getBeatInfo('A').phase;
     const bB = engine.getBeatInfo('B').phase;
@@ -751,9 +779,11 @@ function animate(now) {
     const ms = Math.round(diff * (60000 / engine.getEffectiveBPM('A')));
     ui.phaseMeter.textContent = Math.abs(ms) <= 22 ? '节拍已同步 ✓' : (ms > 0 ? `B 领先 ${ms} ms` : `B 落后 ${Math.abs(ms)} ms`);
     ui.phaseMeter.classList.toggle('synced', Math.abs(ms) <= 22);
+    if (phaseDot) phaseDot.style.left = `${Math.max(8, Math.min(92, 50 + diff * 80))}%`;
   } else {
     ui.phaseMeter.textContent = '播放双盘可实时对比节拍';
     ui.phaseMeter.classList.remove('synced');
+    if (phaseDot) phaseDot.style.left = '50%';
   }
   requestAnimationFrame(animate);
 }

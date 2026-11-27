@@ -436,8 +436,16 @@ export async function getRenderedTrack(trackId) {
     }
   }
 
+  // 为每首舞曲铺设柔和的持续和弦 Pad，让听感更饱满、波形自然连贯
+  const padRoot = meta.id === 'golden-hour' ? 48 : meta.id === 'low-tide' ? 50 : 45;
+  for (let bar = 0; bar < meta.bars; bar++) {
+    const bt = bar * 4 * beatDur;
+    const shift = bar % 4 === 2 ? -2 : bar % 4 === 3 ? -4 : 0;
+    triggerChord(offline, master, bt, [padRoot + shift, padRoot + shift + 7, padRoot + shift + 12], beatDur * 3.9, 'sawtooth', 900, 0.14);
+  }
+
   const buffer = await offline.startRendering();
-  const peaks = computePeaks(buffer, 480);
+  const peaks = computePeaks(buffer, 1200);
   const result = { ...meta, buffer, peaks, duration: buffer.duration };
   bufferCache.set(trackId, result);
   return result;
