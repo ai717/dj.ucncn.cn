@@ -974,7 +974,7 @@ export const LESSONS = [
         id: 'l19-s1',
         title: '第一步：开启 Pro 模式并推高 Reverb / Flanger',
         instruction: '切换到 Pro 模式，拖动 Deck A 的 REVERB 或 FLANGER 滑块聆听空间变化。',
-        highlightSelector: '#btn-layout-mode',
+        highlightSelector: '#btn-mode-pro',
         async runDemo(engine, cursor) {
           document.body.classList.add('pro-mode');
           if (!engine.decks.A.track) await engine.loadTrack('A', 'sunrise-house', { silentAction: true });

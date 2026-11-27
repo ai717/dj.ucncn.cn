@@ -49,6 +49,8 @@ const coach = new CoachEngine(engine, {
     ui.coachDesc.textContent = isLessonActive ? step.instruction : '点击右侧「继续上课」开启高亮引导，或自由打碟练习。';
     const toggleBtn = document.getElementById('btn-coach-toggle');
     if (toggleBtn) toggleBtn.textContent = isLessonActive ? '退出引导' : '继续上课';
+    document.querySelector('.coach-topbar')?.classList.toggle('learning-active', isLessonActive);
+    updateCoachFloatTip({ lesson, step, stepNumber, totalSteps, isLessonActive, isDemoRunning, feedback });
 
     ui.btnShowMe.disabled = isDemoRunning;
     ui.btnPrev.disabled = isDemoRunning;
@@ -63,6 +65,78 @@ const coach = new CoachEngine(engine, {
     }
   }
 });
+
+const floatTipEl = document.getElementById('coach-float-tip');
+const floatBadgeEl = document.getElementById('coach-float-badge');
+const floatTitleEl = document.getElementById('coach-float-title');
+const floatTextEl = document.getElementById('coach-float-text');
+let lastFloatState = null;
+
+function positionCoachFloatTip(targetEl) {
+  if (!floatTipEl || floatTipEl.hidden || !targetEl) return;
+  const r = targetEl.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) {
+    floatTipEl.hidden = true;
+    return;
+  }
+  const tipW = floatTipEl.offsetWidth || 288;
+  const tipH = floatTipEl.offsetHeight || 130;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const pad = 12;
+
+  let left = r.left + r.width / 2 - tipW / 2;
+  left = Math.max(pad, Math.min(vw - tipW - pad, left));
+
+  let top = r.bottom + 12;
+  let arrowClass = 'arrow-top';
+  if (top + tipH > vh - pad && r.top - tipH - 12 >= pad) {
+    top = r.top - tipH - 12;
+    arrowClass = 'arrow-bottom';
+  }
+  top = Math.max(pad, Math.min(vh - tipH - pad, top));
+
+  const arrowX = Math.max(20, Math.min(tipW - 20, r.left + r.width / 2 - left));
+  floatTipEl.classList.remove('arrow-top', 'arrow-bottom');
+  floatTipEl.classList.add(arrowClass);
+  floatTipEl.style.setProperty('--arrow-x', `${arrowX}px`);
+  floatTipEl.style.left = `${Math.round(left)}px`;
+  floatTipEl.style.top = `${Math.round(top)}px`;
+}
+
+function updateCoachFloatTip(state) {
+  lastFloatState = state;
+  if (!floatTipEl) return;
+  if (!state.isLessonActive || state.isDemoRunning) {
+    floatTipEl.hidden = true;
+    return;
+  }
+  const targetEl = coach.highlightedEl || (state.step.highlightSelector ? document.querySelector(state.step.highlightSelector) : null);
+  if (!targetEl) {
+    floatTipEl.hidden = true;
+    return;
+  }
+  floatBadgeEl.textContent = state.lesson.number === 0
+    ? `第 0 课（入门）· ${state.stepNumber}/${state.totalSteps}`
+    : `第 ${state.lesson.number} 课 · ${state.stepNumber}/${state.totalSteps}`;
+  floatTitleEl.textContent = state.step.title;
+  floatTextEl.textContent = state.feedback?.type === 'error'
+    ? `💡 ${state.feedback.text}`
+    : (state.step.floatTip || state.step.instruction);
+  floatTipEl.hidden = false;
+  requestAnimationFrame(() => positionCoachFloatTip(targetEl));
+}
+
+window.addEventListener('resize', () => {
+  if (lastFloatState?.isLessonActive && coach.highlightedEl) positionCoachFloatTip(coach.highlightedEl);
+});
+window.addEventListener('scroll', () => {
+  if (lastFloatState?.isLessonActive && coach.highlightedEl) positionCoachFloatTip(coach.highlightedEl);
+}, { passive: true });
+
+document.getElementById('btn-float-close').addEventListener('click', () => coach.setLessonActive(false));
+document.getElementById('btn-float-demo').addEventListener('click', () => coach.runShowMe());
+document.getElementById('btn-float-skip').addEventListener('click', () => { coach.setLessonActive(true); coach.skipStep(); });
 
 let crateSource = 'all'; // 'all' | 'local'
 let setTab = 'queue';    // 'queue' | 'played'

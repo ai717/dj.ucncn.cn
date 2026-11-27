@@ -128,8 +128,18 @@ export class CoachEngine {
     }
 
     if (this.isLessonActive && step.highlightSelector) {
-      const el = document.querySelector(step.highlightSelector);
+      let el = document.querySelector(step.highlightSelector);
       if (el) {
+        // 若引导目标位于仅专业模式可见的区段，自动切入专业模式保证高亮与悬浮引导可见
+        if (el.closest('.pro-only') && !document.body.classList.contains('pro-mode')) {
+          document.body.classList.add('pro-mode');
+          document.getElementById('btn-mode-simple')?.classList.remove('active');
+          document.getElementById('btn-mode-pro')?.classList.add('active');
+        }
+        // range input 无法直接渲染 ::after 透明层，提升至包裹容器
+        if (el.tagName === 'INPUT' && el.type === 'range' && el.parentElement) {
+          el = el.parentElement;
+        }
         el.classList.add('coach-highlight');
         this.highlightedEl = el;
       }

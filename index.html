@@ -733,6 +733,20 @@
     </div>
   </dialog>
 
+  <!-- 课程操作悬浮提示语引导气泡 -->
+  <div id="coach-float-tip" class="coach-float-tip" role="status" aria-live="polite" hidden>
+    <div class="coach-float-head">
+      <span class="coach-float-badge" id="coach-float-badge">第 0 课 · 1/10</span>
+      <button type="button" class="coach-float-close" id="btn-float-close" title="退出引导">×</button>
+    </div>
+    <div class="coach-float-title" id="coach-float-title"></div>
+    <div class="coach-float-text" id="coach-float-text"></div>
+    <div class="coach-float-actions">
+      <button type="button" class="hw-sm" id="btn-float-demo">▶ 演示一下</button>
+      <button type="button" class="hw-sm" id="btn-float-skip">跳过此步</button>
+    </div>
+  </div>
+
   <script type="module" src="./js/app.js"></script>
 </body>
 </html>
