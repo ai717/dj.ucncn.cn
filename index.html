@@ -301,7 +301,7 @@
               <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#3c3a4f" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#5b5773" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">滤波</span>
             </div>
-            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="A">监听 A</button>
+            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="A">🎧 监听</button>
             <div class="fader-meter-wrap">
               <div class="vu-col">
                 <div class="vu-clip" id="clip-A"></div>
@@ -337,7 +337,7 @@
               <svg class="knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#3c3a4f" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#5b5773" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">滤波</span>
             </div>
-            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="B">监听 B</button>
+            <button type="button" class="hw-sm pro-only cue-mon-btn" data-cue-mon="B">🎧 监听</button>
             <div class="fader-meter-wrap">
               <div class="vu-col">
                 <div class="vu-clip" id="clip-B"></div>
@@ -363,10 +363,14 @@
           </div>
           <div class="pro-mixer-opts pro-only">
             <button type="button" class="hw-sm" id="btn-curve-toggle">平滑曲线</button>
-            <button type="button" class="hw-sm active" id="btn-quantize-toggle">节拍量化</button>
-            <button type="button" class="hw-sm" id="btn-split-cue">分路预听</button>
+            <button type="button" class="hw-sm mode-pill active" id="btn-quantize-toggle">节拍量化</button>
           </div>
           <div class="pro-phones-row pro-only">
+            <select id="sel-headphones-mode" class="phones-select" aria-label="耳机监听输出模式">
+              <option value="off">耳机：关闭</option>
+              <option value="split">分路监听（左主/右预听）</option>
+              <option value="second">使用独立第二声卡…</option>
+            </select>
             <div class="knob-unit" data-knob="cuemix" data-min="0" data-max="1" data-val="0.5" data-default="0.5" title="上下拖动调节预听混合">
               <svg class="knob-svg mini-knob-svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#2c2c32" stroke-width="2" stroke-dasharray="88 40" transform="rotate(135 24 24)"/><circle cx="24" cy="24" r="14.5" fill="#2a2a2e" stroke="#4a4a51" stroke-width="1.5"/><g class="knob-rotor"><line x1="24" y1="24" x2="24" y2="11" stroke="#ecebe8" stroke-width="2.4" stroke-linecap="round"/></g></svg>
               <span class="knob-label">预听混合</span>

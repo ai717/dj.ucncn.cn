@@ -391,8 +391,10 @@ function syncUIWithEngine() {
     curveBtn.textContent = engine.cutCurve ? '搓碟切割' : '平滑曲线';
     curveBtn.classList.toggle('active', engine.cutCurve);
   }
-  const splitBtn = document.getElementById('btn-split-cue');
-  if (splitBtn) splitBtn.classList.toggle('active', engine.splitCue);
+  const phonesSel = document.getElementById('sel-headphones-mode');
+  if (phonesSel && phonesSel.value !== 'second') {
+    phonesSel.value = engine.splitCue ? 'split' : 'off';
+  }
 }
 
 engine.onChange(syncUIWithEngine);
@@ -648,7 +650,45 @@ document.querySelectorAll('[data-cue-mon]').forEach((btn) => {
 });
 
 document.getElementById('btn-curve-toggle').addEventListener('click', () => engine.setCutCurve(!engine.cutCurve));
-document.getElementById('btn-split-cue').addEventListener('click', () => engine.setSplitCue(!engine.splitCue));
+
+let secondOutputAudio = null;
+const phonesSelect = document.getElementById('sel-headphones-mode');
+if (phonesSelect) {
+  phonesSelect.addEventListener('change', async () => {
+    const mode = phonesSelect.value;
+    if (mode === 'off') {
+      engine.setSplitCue(false);
+      if (secondOutputAudio) {
+        secondOutputAudio.pause();
+        secondOutputAudio.srcObject = null;
+      }
+    } else if (mode === 'split') {
+      engine.setSplitCue(true);
+    } else if (mode === 'second') {
+      if (navigator.mediaDevices?.selectAudioOutput) {
+        try {
+          const device = await navigator.mediaDevices.selectAudioOutput();
+          const ctx = engine.ensureContext();
+          const cueDest = ctx.createMediaStreamDestination();
+          engine.cueBus.connect(cueDest);
+          if (!secondOutputAudio) secondOutputAudio = new Audio();
+          secondOutputAudio.srcObject = cueDest.stream;
+          if (typeof secondOutputAudio.setSinkId === 'function') {
+            await secondOutputAudio.setSinkId(device.deviceId);
+          }
+          await secondOutputAudio.play();
+          engine.setSplitCue(false);
+        } catch (_) {
+          phonesSelect.value = engine.splitCue ? 'split' : 'off';
+        }
+      } else {
+        alert('当前浏览器暂不支持直接选择第二声卡输出，已为你切换至「分路监听（左主/右预听）」模式。');
+        engine.setSplitCue(true);
+        phonesSelect.value = 'split';
+      }
+    }
+  });
+}
 
 // FX Toggle + 共享 Wet 滑块
 document.querySelectorAll('[data-fx-toggle]').forEach((btn) => {
